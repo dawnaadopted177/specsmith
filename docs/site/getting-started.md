@@ -20,7 +20,7 @@ pip install -e ".[dev]"
 
 ```bash
 specsmith --version
-# specsmith, version 0.1.0a4
+# specsmith, version 0.1.2
 
 # Or via python module
 python -m specsmith --version

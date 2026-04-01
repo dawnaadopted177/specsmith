@@ -119,6 +119,33 @@ Follow [Keep a Changelog](https://keepachangelog.com/):
 ### Security   ← vulnerability fixes
 ```
 
+## Pre-Release Checklist
+
+Before EVERY release (feature or hotfix), verify:
+
+- [ ] Version bumped in all 5 places (see above)
+- [ ] CHANGELOG.md has dated section with correct comparison links
+- [ ] `pyproject.toml` classifier matches release status (not "Alpha" for stable)
+- [ ] No stale alpha/pre-release references in docs or README
+- [ ] `pip install specsmith` (not `--pre`) in all install instructions
+- [ ] `python -m pytest tests/ -q` passes
+- [ ] `ruff check src/ tests/` passes
+- [ ] `mypy src/` passes  
+- [ ] `specsmith audit --project-dir .` passes
+- [ ] All open code scanning alerts resolved
+
+## Post-Release Verification
+
+After pushing the tag:
+
+- [ ] CI passes on main
+- [ ] Release workflow: build ✓, pypi-publish ✓, github-release ✓
+- [ ] `pip index versions specsmith` shows new version as LATEST
+- [ ] PyPI page (pypi.org/project/specsmith/) shows correct README and classifier
+- [ ] RTD rebuilds with updated docs
+- [ ] shields.io badge refreshes (may take 5 min)
+- [ ] GitHub repo README renders correct badge version
+
 ## Automated Publishing
 
 When a tag matching `v*` is pushed to `main`, the release workflow automatically:
@@ -126,3 +153,10 @@ When a tag matching `v*` is pushed to `main`, the release workflow automatically
 1. **Builds** sdist + wheel
 2. **Publishes to PyPI** via OIDC trusted publishing (no tokens needed)
 3. **Creates GitHub Release** with auto-generated notes and artifacts
+
+## Lessons Learned
+
+- **PyPI README is baked at upload time** — if README changes after a release, they won't appear on PyPI until the next release. Always finalize README before tagging.
+- **PyPI classifiers are baked at upload time** — changing `Development Status` in pyproject.toml requires a new release to take effect on PyPI.
+- **shields.io badges cache for ~5 minutes** — don't panic if the badge shows the old version immediately after release.
+- **Hotfixes must include ALL changes** — not just the code fix. Version bump, CHANGELOG, docs, and classifiers must all be in the hotfix commit.

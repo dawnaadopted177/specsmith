@@ -46,6 +46,14 @@ Before every commit, mentally answer:
 - Did I add a new feature? → Update CHANGELOG.md [Unreleased]
 - Did I change test count? → Update CHANGELOG.md test count
 
+## Release Checks
+
+Before every release:
+- Verify `pyproject.toml` classifier matches release status (not "Alpha" for stable releases)
+- Verify no stale version references in docs (search for old version strings)
+- Verify install commands say `pip install specsmith` (no `--pre` for stable)
+- Follow the full checklist in `docs/site/releasing.md`
+
 ## Rule
 
 If any documentation update is needed, make the updates in the SAME commit as the code changes — do not defer documentation to a separate commit.

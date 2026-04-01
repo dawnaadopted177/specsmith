@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-04-01
+
+### Fixed
+- **PyPI classifier**: updated from "Development Status :: 3 - Alpha" to "Production/Stable".
+- **Stale alpha references**: removed `--pre` flag text and alpha-period notes from getting-started.md and troubleshooting.md.
+
+### Added
+- **Release workflow guide** (`docs/site/releasing.md`): complete gitflow release process with pre-release checklist, post-release verification, version locations (5 places), and lessons learned.
+- **WARP rule**: added release checks (classifier, stale versions, install commands) to `.warp/rules/documentation-updates.md`.
+
 ## [0.1.1] - 2026-04-01
 
 ### Security
@@ -113,7 +123,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/BitConcepts/specsmith/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/BitConcepts/specsmith/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/BitConcepts/specsmith/compare/v0.1.0-alpha.2...v0.1.0
 [0.1.0-alpha.2]: https://github.com/BitConcepts/specsmith/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
