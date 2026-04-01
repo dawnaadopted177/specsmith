@@ -8,7 +8,7 @@ from specsmith.config import Platform, ProjectConfig, ProjectType
 
 def test_version():
     """Version string is set."""
-    assert __version__ == "0.1.0a1"
+assert __version__ == "0.1.0a2"
 
 
 def test_config_defaults():
