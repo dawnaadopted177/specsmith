@@ -1,60 +1,103 @@
 # Governance Model
 
-specsmith implements the Agentic AI Development Workflow Specification — a structured governance model for AI-assisted development.
+## The Problem specsmith Solves
 
-## Core Principle
+AI coding agents are stateless. They don't remember what happened last session, don't know what's been tested, and don't follow consistent processes unless told to. specsmith generates the governance layer that makes AI-assisted development auditable and structured.
 
-Every AI agent action follows a closed loop:
+## The Closed-Loop Workflow
 
-**Propose → Check → Execute → Verify → Record**
+Every AI agent action follows five steps:
 
-## File Hierarchy
+1. **Propose** — The agent describes what it wants to do, why, and what risks exist. For non-trivial changes, this is a formal proposal in LEDGER.md.
+2. **Check** — The human reviews the proposal. No execution without approval (Hard Rule H2).
+3. **Execute** — The agent implements the approved change.
+4. **Verify** — The agent runs verification tools (from the [Tool Registry](tool-registry.md)) and records what passed and failed.
+5. **Record** — The agent writes a ledger entry with what changed, what was tested, and what's next.
 
-Every specsmith-governed project has this authority hierarchy:
+This loop ensures every change is proposed, approved, verified, and recorded.
 
-1. **AGENTS.md** + `docs/governance/*` — highest authority (governance rules)
-2. **README.md** — project intent and scope
-3. **docs/REQUIREMENTS.md** — what the system must do
-4. **docs/architecture.md** — how the system is structured
-5. **docs/TEST_SPEC.md** — how the system is verified
-6. **LEDGER.md** — sole authority for session state
-7. **docs/workflow.md** — how work proceeds
+## File Hierarchy (Authority Order)
+
+Every specsmith-governed project has this authority hierarchy — higher files override lower ones when they conflict:
+
+1. **AGENTS.md + docs/governance/*** — Highest. Governance rules are law.
+2. **README.md** — Project intent and scope.
+3. **docs/REQUIREMENTS.md** — What the system must do.
+4. **docs/architecture.md** — How the system is structured.
+5. **docs/TEST_SPEC.md** — How the system is verified.
+6. **LEDGER.md** — Sole authority for session state (what's been done, what's next).
+7. **docs/workflow.md** — How work proceeds (milestones, PR expectations).
+
+## AGENTS.md — The Governance Hub
+
+This is the first file every AI agent reads. It contains:
+
+- **Project summary** — type, language, platforms, spec version
+- **Governance file registry** — table of modular governance files with load timing
+- **Authority hierarchy** — the precedence order above
+- **Type-specific rules** — tailored to the project type (e.g., patent claim rules, Rust clippy rules, legal compliance tracking)
+- **Quick command reference** — start, resume, save, commit, sync, audit
+
+specsmith generates AGENTS.md with type-specific rules. For example, a patent application gets rules about claim self-containment and prior art tracking, while a Rust CLI gets rules about clippy warnings and doc comments.
 
 ## Modular Governance
 
-When AGENTS.md grows beyond ~150 lines, governance is split into modular files:
+When AGENTS.md is kept small (~100-150 lines), governance details are delegated to six modular files under `docs/governance/`:
 
-- `docs/governance/rules.md` — Hard rules H1–H9, stop conditions
-- `docs/governance/workflow.md` — Session lifecycle, proposal/ledger format
-- `docs/governance/roles.md` — Agent role boundaries
-- `docs/governance/context-budget.md` — Context management, credit optimization
-- `docs/governance/verification.md` — Verification standards, acceptance criteria, **project-specific tools**
-- `docs/governance/drift-metrics.md` — Drift detection, health signals
+| File | Content | When Loaded |
+|------|---------|-------------|
+| `rules.md` | Hard rules H1-H9, stop conditions | Every session start |
+| `workflow.md` | Session lifecycle, proposal format, ledger format | Every session start |
+| `roles.md` | Agent role boundaries, behavioral rules | Every session start |
+| `context-budget.md` | Context management, credit optimization | Every session start |
+| `verification.md` | Verification standards, tools listing, acceptance criteria | When performing verification |
+| `drift-metrics.md` | Drift detection, feedback loops, health signals | On audit or session start |
 
-## Type-Specific Rules
+This lazy-loading approach minimizes token consumption — agents only load verification.md when they're actually running tests, not at every session start.
 
-Each project type gets tailored governance rules in AGENTS.md. Examples:
+## LEDGER.md — The Session Memory
 
-- **Patent application** — Claims are governance artifacts; independent claims must be self-contained; prior art must be tracked with publication dates
-- **Rust CLI** — `cargo clippy` must pass with no warnings; all public APIs need doc comments
-- **Legal/compliance** — All changes need version tracking; regulatory references need jurisdiction and effective date; approval workflows are mandatory
-- **FPGA/RTL** — Tool invocations must use batch mode only; constraint files are governance artifacts; timing closure is a formal milestone
+The ledger is append-only. Agents write entries here after every task:
 
-## Verification
+```markdown
+## 2026-04-01 — Add export command
 
-The `verification.md` governance file is populated with the project's specific verification tools from the [Tool Registry](tool-registry.md). Agents read this file to know which tools to run before marking tasks complete.
+- **Proposal**: Add `specsmith export` to generate compliance reports
+- **Changes**: Created exporter.py, wired CLI command, added tests
+- **Verified**: 113 tests pass, lint clean, mypy clean
+- **Next**: Update documentation site
+```
+
+This is how context persists across sessions. When an agent starts with `resume`, it reads the last ledger entry to know where things stand.
+
+## Requirements and Tests
+
+`docs/REQUIREMENTS.md` uses numbered IDs:
+
+```markdown
+### REQ-CLI-001
+- **Description**: specsmith init scaffolds a governed project from interactive prompts or YAML config
+```
+
+`docs/TEST_SPEC.md` links tests to requirements:
+
+```markdown
+### TEST-CLI-002
+- **Covers**: REQ-CLI-001
+- **Description**: specsmith init --config creates project from YAML
+```
+
+`specsmith audit` checks that every REQ has at least one TEST with a `Covers:` reference. `specsmith export` generates the full coverage matrix.
 
 ## Drift Detection
 
-`specsmith audit` checks 6 health dimensions:
+`specsmith audit` checks six health dimensions:
 
-1. **File existence** — Required governance files present
-2. **REQ↔TEST coverage** — Every requirement has test coverage
-3. **Ledger health** — Size within threshold, open TODOs manageable
-4. **Governance size** — Files not bloated beyond thresholds
-5. **Tool configuration** — CI config references the correct tools
-6. **Consistency** — scaffold.yml, AGENTS.md references, requirement uniqueness
+1. **File existence** — Are AGENTS.md, LEDGER.md, and recommended files present?
+2. **REQ↔TEST coverage** — Does every requirement have test coverage?
+3. **Ledger health** — Is the ledger within size limits? Are there too many open TODOs?
+4. **Governance size** — Are individual governance files within line-count thresholds?
+5. **Tool configuration** — Does the CI config reference the expected verification tools?
+6. **Consistency** — Do AGENTS.md references resolve? Are requirement IDs unique?
 
-## Compliance Reporting
-
-`specsmith export` generates a full compliance report with coverage matrix, audit summary, and file inventory. See [Export & Compliance](export.md).
+`specsmith audit --fix` auto-repairs what it can: creates missing stubs, compresses oversized ledgers, regenerates CI configs.

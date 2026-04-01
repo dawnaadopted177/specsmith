@@ -78,43 +78,17 @@ specsmith diff --project-dir ./my-project
 | `specsmith status` | Show CI status, dependency alerts, and open PRs from VCS platform CLI |
 | `specsmith diff` | Compare governance files against what spec templates would generate |
 
-## Project Types
+## Project Types (30)
 
-specsmith supports 30 project types, each with type-specific directory structures, CI tooling, and governance rules.
-See [full project types reference](https://specsmith.readthedocs.io/project-types/) for details.
+Software: Python (CLI, library, backend+frontend), Rust (CLI, library), Go, C/C++, .NET, JS/TS (web, fullstack, browser extension), mobile, monorepo, microservices, DevOps/IaC, data/ML.
 
-| # | Type | Spec Section | Verification Tools |
-|---|------|-------------|--------------------|
-| 1 | Python backend + web frontend | 17.1 | ruff, mypy, pytest, pip-audit |
-| 2 | Python backend + web frontend + tray | 17.2 | ruff, mypy, pytest, pip-audit |
-| 3 | CLI tool (Python) | 17.3 | ruff, mypy, pytest, pip-audit |
-| 4 | Library / SDK (Python) | 17.4 | ruff, mypy, pytest, pip-audit |
-| 5 | Embedded / hardware | 17.5 | clang-tidy, cppcheck, ctest, flawfinder |
-| 6 | FPGA / RTL | 17.6 | vsg, verilator, ghdl, cocotb |
-| 7 | Yocto / embedded Linux BSP | 17.7 | oelint-adv, bitbake |
-| 8 | PCB / hardware design | 17.8 | drc-check, erc-check, kicad-cli |
-| 9 | Web frontend (SPA) | 17.9 | eslint, tsc, vitest, prettier |
-| 10 | Fullstack JS/TS | 17.10 | eslint, tsc, vitest, jest |
-| 11 | CLI tool (Rust) | 17.11 | clippy, cargo check/test/audit, rustfmt |
-| 12 | CLI tool (Go) | 17.12 | golangci-lint, go test, govulncheck |
-| 13 | CLI tool (C/C++) | 17.13 | clang-tidy, cppcheck, ctest, clang-format |
-| 14 | Library / crate (Rust) | 17.14 | clippy, cargo check/test/audit, rustfmt |
-| 15 | Library (C/C++) | 17.15 | clang-tidy, cppcheck, ctest, clang-format |
-| 16 | .NET / C# application | 17.16 | dotnet format/test/audit |
-| 17 | Mobile app | 17.17 | flutter analyze/test, eslint |
-| 18 | DevOps / IaC | 17.18 | tflint, ansible-lint, tfsec, checkov |
-| 19 | Data / ML pipeline | 17.19 | ruff, mypy, pytest, pip-audit |
-| 20 | Microservices | 17.20 | ruff, eslint, pytest, jest, docker compose |
-| 21 | Technical specification | 17.21 | vale, markdownlint, cspell, pandoc |
-| 22 | User manual / documentation | 17.22 | vale, markdownlint, cspell, sphinx |
-| 23 | Research paper / white paper | 17.23 | vale, cspell, chktex, pdflatex |
-| 24 | Business plan / proposal | 17.24 | vale, cspell, prettier, pandoc |
-| 25 | Patent application | 17.25 | vale, cspell, pandoc, claim-ref-check |
-| 26 | Legal / compliance | 17.26 | vale, cspell, pandoc, regulation-ref-check |
-| 27 | Requirements management | 17.27 | vale, markdownlint, req-trace |
-| 28 | API specification | 17.28 | spectral, buf lint, schemathesis |
-| 29 | Monorepo (multi-package) | 17.29 | eslint, ruff, nx/turbo, npm audit |
-| 30 | Browser extension | 17.30 | eslint, web-ext lint, tsc, vitest |
+Hardware: FPGA/RTL, Yocto BSP, PCB, embedded.
+
+Document: technical specs, user manuals, research papers, API specifications, requirements management.
+
+Business/Legal: business plans, patent applications, legal/compliance.
+
+Each type gets tool-aware CI, domain-specific directory structure, governance rules, and template starters. See [full project types reference](https://specsmith.readthedocs.io/en/latest/project-types/).
 
 ## Agent Integrations
 

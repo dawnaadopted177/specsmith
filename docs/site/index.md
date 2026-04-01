@@ -1,39 +1,64 @@
-# specsmith
+# specsmith Documentation
 
 **Forge governed project scaffolds from the Agentic AI Development Workflow Specification.**
 
-> Intelligence proposes. Constraints decide. The ledger remembers.
+specsmith generates project structures with built-in AI agent governance — the rules, verification tools, CI/CD pipelines, and documentation that keep AI coding assistants working within an auditable, structured workflow.
 
-specsmith is a CLI tool that generates full project scaffolds with built-in AI agent governance. It creates the file structure, CI/CD pipelines, governance documents, and agent integration files that AI coding assistants need to work within a structured, auditable workflow.
+## Why specsmith?
 
-Every scaffolded project follows the closed-loop workflow: **propose → check → execute → verify → record**.
+AI coding agents (Warp/Oz, Claude Code, Cursor, Copilot, etc.) are powerful but unstructured. Without governance, they:
 
-## Key Features
+- Make changes without proposals or review
+- Skip verification steps
+- Lose context between sessions
+- Generate inconsistent project structures
 
-- **30 project types** — Python, Rust, Go, C/C++, JS/TS, .NET, FPGA, Yocto, PCB, mobile, DevOps, data/ML, microservices, patent applications, legal/compliance, business plans, technical specs, research papers, and more.
-- **Tool-aware CI generation** — CI configs automatically use the correct lint, test, security, and build tools for each project type across GitHub Actions, GitLab CI, and Bitbucket Pipelines.
-- **Project importer** — Adopt existing projects by detecting language, build system, test framework, and CI, then generating governance overlay files.
-- **10 CLI commands** — `init`, `import`, `audit`, `validate`, `compress`, `upgrade`, `status`, `diff`, `export`.
-- **7 agent integrations** — Warp/Oz, Claude Code, Cursor, GitHub Copilot, Gemini, Windsurf, Aider.
-- **Compliance reporting** — `specsmith export` generates REQ↔TEST coverage matrices, audit summaries, and governance file inventories.
+specsmith solves this by generating a **governance layer** that agents read and follow: propose before acting, verify before recording, log everything in the ledger.
 
-## Quick Install
+## What You Get
 
-```bash
-pip install specsmith
-```
+When you run `specsmith init` or `specsmith import`, your project gets:
+
+- **AGENTS.md** — The governance hub. Every AI agent reads this first. Contains authority hierarchy, type-specific rules, and pointers to modular governance files.
+- **LEDGER.md** — Append-only record of all changes. The agent writes here after every task. This is how context persists across sessions.
+- **docs/governance/** — Six modular files: rules, workflow, roles, context budget, verification standards, drift metrics. Loaded lazily to minimize token use.
+- **docs/REQUIREMENTS.md** — Numbered, testable requirements. For patent projects, pre-populated with claim/specification/figure requirements. For API projects, endpoint/auth requirements.
+- **docs/TEST_SPEC.md** — Test cases linked to requirements via `Covers: REQ-xxx` references. The audit command checks this linkage.
+- **CI config** — GitHub Actions, GitLab CI, or Bitbucket Pipelines with the exact tools for your project type (not generic Python-only configs).
+- **Dependency management** — Dependabot or Renovate configured for the correct package ecosystem.
+- **Agent integration files** — Warp SKILL.md, CLAUDE.md, Copilot instructions, Cursor rules, etc.
 
 ## Quick Start
 
 ```bash
-# Interactive scaffold
+pip install --pre specsmith
+
+# New project (interactive)
 specsmith init
 
-# Import an existing project
+# Adopt an existing project
 specsmith import --project-dir ./my-project
 
-# Health check
+# Check governance health
 specsmith audit --project-dir ./my-project
+
+# Generate compliance report
+specsmith export --project-dir ./my-project
 ```
 
-See [Getting Started](getting-started.md) for the full walkthrough.
+## Documentation Guide
+
+| Section | What You'll Learn |
+|---------|------------------|
+| [Getting Started](getting-started.md) | Installation, first project, first import — with full walkthrough |
+| [CLI Commands](commands.md) | Every command with all options, examples, and behavior details |
+| [Project Types](project-types.md) | All 30 types with directory structures, tools, and governance rules |
+| [Tool Registry](tool-registry.md) | How tool-aware CI works, what tools each type uses, how to override |
+| [Importing Projects](importing.md) | How detection works, merge behavior, type inference logic |
+| [Configuration](configuration.md) | Every scaffold.yml field explained with examples |
+| [Governance Model](governance.md) | The closed-loop workflow, file hierarchy, modular governance |
+| [Agent Integrations](agent-integrations.md) | How each AI agent reads governance files |
+| [Doctor](doctor.md) | Checking if your tools are installed |
+| [Export & Compliance](export.md) | Generating coverage reports, understanding the output |
+| [Troubleshooting](troubleshooting.md) | Common issues and solutions |
+| [Contributing](contributing.md) | Adding project types, code standards, PR process |

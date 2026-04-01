@@ -35,7 +35,10 @@ nav:
   - Importing Projects: importing.md
   - Configuration: configuration.md
   - Governance Model: governance.md
+  - Agent Integrations: agent-integrations.md
+  - Doctor: doctor.md
   - Export & Compliance: export.md
+  - Troubleshooting: troubleshooting.md
   - Contributing: contributing.md
 
 markdown_extensions:

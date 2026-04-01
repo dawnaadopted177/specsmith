@@ -48,3 +48,13 @@ This project follows its own specification. See:
 - Types: mypy (strict)
 - Tests: pytest + pytest-cov
 - CI: GitHub Actions (3 OS × 3 Python)
+- Docs: Read the Docs (specsmith.readthedocs.io)
+
+## Documentation Rule
+
+The Read the Docs site (`docs/site/`) is the authoritative user manual.
+When ANY feature is added, changed, or removed:
+1. Update the relevant `docs/site/*.md` page(s) in the SAME commit
+2. Update `README.md` if it affects the project summary
+3. Update `CHANGELOG.md` under [Unreleased]
+4. README.md links to RTD for details — do NOT duplicate RTD content in README

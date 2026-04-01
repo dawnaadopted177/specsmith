@@ -2,11 +2,15 @@
 
 ## Installation
 
+### From PyPI
+
 ```bash
-pip install specsmith
+pip install --pre specsmith
 ```
 
-From source:
+The `--pre` flag is needed during the alpha period. Once stable, `pip install specsmith` will work.
+
+### From Source
 
 ```bash
 git clone https://github.com/BitConcepts/specsmith.git
@@ -14,22 +18,26 @@ cd specsmith
 pip install -e ".[dev]"
 ```
 
-## Create a New Project
-
-### Interactive Mode
+### Verify Installation
 
 ```bash
-specsmith init
+specsmith --version
+# specsmith, version 0.1.0a4
+
+# Or via python module
+python -m specsmith --version
 ```
 
-This walks you through selecting a project type, platforms, VCS platform, branching strategy, and agent integrations.
+## Tutorial: Create a New Python CLI Project
 
-### From Config File
+This walkthrough creates a governed Python CLI project from scratch.
 
-Create a `scaffold.yml`:
+### Step 1: Create the Config
+
+Create `scaffold.yml`:
 
 ```yaml
-name: my-project
+name: my-tool
 type: cli-python
 platforms: [windows, linux, macos]
 language: python
@@ -38,70 +46,141 @@ branching_strategy: gitflow
 integrations: [agents-md, warp, claude-code]
 ```
 
-Then scaffold:
+### Step 2: Scaffold
 
 ```bash
 specsmith init --config scaffold.yml --output-dir .
 ```
 
-### Guided Mode
+This creates the `my-tool/` directory with ~30 files:
 
-Add `--guided` to interactively define your architecture components. specsmith auto-generates requirement and test stubs:
-
-```bash
-specsmith init --config scaffold.yml --output-dir . --guided
+```
+my-tool/
+├── AGENTS.md                          # Governance hub
+├── LEDGER.md                          # Change ledger
+├── README.md                          # Project readme
+├── pyproject.toml                     # Python project config
+├── scaffold.yml                       # specsmith config (saved)
+├── .gitignore / .gitattributes
+├── docs/
+│   ├── governance/
+│   │   ├── rules.md                   # Hard rules H1-H9
+│   │   ├── workflow.md                # Session lifecycle
+│   │   ├── roles.md                   # Agent boundaries
+│   │   ├── context-budget.md          # Token optimization
+│   │   ├── verification.md            # Tools: ruff, mypy, pytest
+│   │   └── drift-metrics.md           # Health signals
+│   ├── architecture.md
+│   ├── workflow.md
+│   ├── REQUIREMENTS.md
+│   └── TEST_SPEC.md
+├── src/my_tool/
+│   ├── __init__.py
+│   └── cli.py
+├── tests/.gitkeep
+├── scripts/
+│   ├── setup.cmd / setup.sh
+│   ├── run.cmd / run.sh
+│   └── exec.cmd / exec.sh
+├── .github/
+│   ├── workflows/ci.yml               # ruff + mypy + pytest + pip-audit
+│   └── dependabot.yml                 # pip + github-actions
+├── .warp/skills/SKILL.md              # Warp/Oz governance skill
+└── CLAUDE.md                          # Claude Code governance
 ```
 
-## Import an Existing Project
+### Step 3: Verify Governance Health
+
+```bash
+specsmith audit --project-dir my-tool
+# Healthy. 9 checks passed.
+```
+
+### Step 4: Check Your Tools
+
+```bash
+specsmith doctor --project-dir my-tool
+# ✓ lint: ruff (ruff 0.4.x)
+# ✓ typecheck: mypy (mypy 1.10.x)
+# ✓ test: pytest (pytest 9.x)
+# ...
+```
+
+### Step 5: Open in Your AI Agent
+
+Open the project in Warp, Claude Code, Cursor, or your preferred agent. The agent reads `AGENTS.md` and knows the governance rules. Type `start` to begin a governed session.
+
+## Tutorial: Import an Existing Project
+
+This walkthrough adopts an existing Python project that has no specsmith governance.
+
+### Step 1: Run Import
 
 ```bash
 specsmith import --project-dir ./my-existing-project
 ```
 
-specsmith detects language, build system, test framework, CI, and VCS platform, then generates governance overlay files (AGENTS.md, LEDGER.md, docs/REQUIREMENTS.md, docs/TEST_SPEC.md, docs/architecture.md).
+specsmith analyzes the project and reports:
 
-Use `--force` to overwrite existing governance files, or `--guided` to add architecture definitions after import.
+```
+Analyzing C:\path\to\my-existing-project...
 
-## Ongoing Governance
+  Files: 47
+  Language: python
+  Build system: pyproject
+  Test framework: pytest
+  CI: github
+  VCS: github
+  Inferred type: cli-python
+  Modules: myapp
+  Existing governance: (none)
 
-```bash
-# Health and drift checks
-specsmith audit --project-dir ./my-project
-
-# Auto-fix missing files and CI configs
-specsmith audit --fix --project-dir ./my-project
-
-# Consistency checks
-specsmith validate --project-dir ./my-project
-
-# Compress oversized ledger
-specsmith compress --project-dir ./my-project
-
-# Upgrade governance to new spec version
-specsmith upgrade --spec-version 0.3.0 --project-dir ./my-project
-
-# Compare files against templates
-specsmith diff --project-dir ./my-project
-
-# CI/PR/alert status from VCS platform
-specsmith status --project-dir ./my-project
-
-# Generate compliance report
-specsmith export --project-dir ./my-project
-specsmith export --project-dir ./my-project --output report.md
+Proceed with these settings? [Y/n]:
 ```
 
-## What Gets Generated
+### Step 2: Review Generated Files
 
-A scaffolded project includes:
+After confirming, specsmith generates only the **missing** governance files:
 
-- **AGENTS.md** — Agent governance hub with type-specific rules
-- **LEDGER.md** — Append-only change record
-- **docs/governance/** — Modular governance (rules, workflow, roles, verification, etc.)
-- **docs/REQUIREMENTS.md** — Numbered requirements with domain-specific starters
-- **docs/TEST_SPEC.md** — Test specifications linked to requirements
-- **docs/architecture.md** — Architecture overview with tool listings
-- **CI config** — GitHub Actions / GitLab CI / Bitbucket Pipelines with correct tools
-- **Dependency management** — Dependabot or Renovate with correct ecosystem
-- **Agent files** — Warp SKILL.md, CLAUDE.md, Copilot instructions, etc.
-- **Scripts** — setup, run, exec shims for cross-platform support
+- `AGENTS.md` — populated with detected project info
+- `LEDGER.md` — initial import entry
+- `docs/REQUIREMENTS.md` — one REQ per detected module
+- `docs/TEST_SPEC.md` — one TEST per detected test file
+- `docs/architecture.md` — modules, entry points, language distribution
+- `docs/governance/*.md` — modular governance stubs
+- `scaffold.yml` — project config for future commands
+
+If the project already has `AGENTS.md` (from a previous manual setup), specsmith **skips it** and only generates what's missing. Use `--force` to overwrite.
+
+### Step 3: Add Architecture (Optional)
+
+```bash
+specsmith import --project-dir ./my-existing-project --guided
+```
+
+The `--guided` flag prompts you to name your components, then generates richer REQ/TEST stubs and an architecture document.
+
+### Step 4: Ongoing Governance
+
+Now you can use all specsmith commands:
+
+```bash
+specsmith audit --project-dir ./my-existing-project    # Health check
+specsmith validate --project-dir ./my-existing-project  # Consistency
+specsmith export --project-dir ./my-existing-project    # Coverage report
+specsmith doctor --project-dir ./my-existing-project    # Tool check
+```
+
+## What Happens With Different Project Types
+
+The scaffold structure changes based on project type. A patent application:
+
+```bash
+specsmith init --config patent.yml
+```
+
+Gets: `claims/`, `specification/`, `figures/`, `prior-art/`, `correspondence/` directories, claim-specific REQs (`REQ-CLM-001`), and governance rules about claim dependencies.
+
+A Rust CLI project gets: `src/`, `tests/`, `benches/` directories, CI with `cargo clippy`, `cargo test`, `cargo audit`, and rules about clippy warnings and doc comments.
+
+See [Project Types](project-types.md) for all 30 types.

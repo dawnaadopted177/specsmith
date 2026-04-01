@@ -1,48 +1,75 @@
 # Export & Compliance
 
-`specsmith export` generates a comprehensive compliance report for your governed project.
+`specsmith export` generates a comprehensive compliance report — useful for audits, stakeholder reviews, and tracking governance maturity.
 
 ## Usage
 
 ```bash
-# Print to terminal
-specsmith export --project-dir ./my-project
-
-# Save to file
-specsmith export --project-dir ./my-project --output report.md
+specsmith export --project-dir ./my-project                    # Print to terminal
+specsmith export --project-dir ./my-project --output report.md # Save to file
 ```
 
 ## Report Sections
 
 ### Project Summary
-
-Project name, type, language, VCS platform, and spec version from `scaffold.yml`.
+From `scaffold.yml`: project name, type label, language, VCS platform, spec version.
 
 ### Verification Tools
-
-Complete listing of lint, typecheck, test, security, build, format, and compliance tools from the [Tool Registry](tool-registry.md) for the project type.
+Complete listing of all 7 tool categories from the [Tool Registry](tool-registry.md): lint, typecheck, test, security, build, format, compliance. Shows the exact tool commands configured for this project type.
 
 ### Requirements Coverage Matrix
-
 Cross-references `docs/REQUIREMENTS.md` against `docs/TEST_SPEC.md`:
 
-- Lists every REQ-ID found in requirements
-- Checks which REQs have corresponding `Covers: REQ-xxx` in tests
-- Shows coverage percentage (e.g., "12/15 (80%)")
-- Marks each REQ as ✓ (covered) or ✗ (uncovered)
+- Scans REQUIREMENTS.md for all `REQ-xxx-NNN` IDs
+- Scans TEST_SPEC.md for `Covers: REQ-xxx-NNN` references
+- Reports: **Coverage: 56/74 (76%)**
+- Lists every REQ with ✓ (covered) or ✗ (uncovered)
+
+This is the same check `specsmith audit` performs, but in report format.
+
+### Recent Activity
+If a `.git` directory exists:
+- Last 10 git commits (hash + message)
+- Contributor list with commit counts
 
 ### Audit Summary
-
-Runs the full `specsmith audit` check suite and reports:
-
+Runs the full `specsmith audit` check suite inline and reports:
 - Passed / Failed / Fixable counts
 - Overall status (Healthy or Issues found)
-- Individual check results with messages
+- Each individual check result with message
 
 ### Governance File Inventory
+Lists all expected governance files with ✓ (exists) or ✗ (missing):
+AGENTS.md, LEDGER.md, scaffold.yml, docs/REQUIREMENTS.md, docs/TEST_SPEC.md, docs/architecture.md, docs/governance/rules.md, workflow.md, roles.md, verification.md.
 
-Lists all expected governance files and whether they exist:
+## Example Output
 
-- AGENTS.md, LEDGER.md, scaffold.yml
-- docs/REQUIREMENTS.md, docs/TEST_SPEC.md, docs/architecture.md
-- docs/governance/rules.md, workflow.md, roles.md, verification.md
+```markdown
+# Compliance Report — my-project
+
+**Generated:** 2026-04-01
+
+## Project Summary
+- **Name**: my-project
+- **Type**: CLI tool (Python)
+- **Language**: python
+- **VCS Platform**: github
+
+## Verification Tools
+- **Lint**: ruff check
+- **Typecheck**: mypy
+- **Test**: pytest
+- **Security**: pip-audit
+- **Format**: ruff format
+
+## Requirements Coverage Matrix
+**Coverage**: 12/12 (100%)
+- ✓ REQ-CLI-001
+- ✓ REQ-CLI-002
+...
+
+## Audit Summary
+- **Passed**: 9
+- **Failed**: 0
+- **Status**: Healthy
+```
