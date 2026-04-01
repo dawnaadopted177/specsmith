@@ -39,6 +39,7 @@ nav:
   - Doctor: doctor.md
   - Export & Compliance: export.md
   - Troubleshooting: troubleshooting.md
+  - Releasing: releasing.md
   - Contributing: contributing.md
 
 markdown_extensions:

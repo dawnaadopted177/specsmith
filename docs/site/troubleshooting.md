@@ -3,10 +3,10 @@
 ## Installation Issues
 
 ### `pip install specsmith` finds no package
-specsmith is in alpha. Use `pip install --pre specsmith` to install pre-release versions.
+Check your Python version (requires 3.10+) and that pip is up to date: `pip install --upgrade pip`.
 
 ### `python -m specsmith` gives "No module named specsmith.__main__"
-Update to v0.1.0a4+ which added `__main__.py`. Run `pip install --pre --upgrade specsmith`.
+Update to v0.1.1+: `pip install --upgrade specsmith`.
 
 ## Import Issues
 
@@ -46,7 +46,7 @@ Doctor checks `shutil.which()` — the tool must be on your PATH. Virtual enviro
 ## Template Issues
 
 ### "'tools' is undefined" error in diff/upgrade
-If you see this error, you're running specsmith < v0.1.0a3 which didn't pass tools to the template context. Upgrade: `pip install --pre --upgrade specsmith`.
+Upgrade to v0.1.0+: `pip install --upgrade specsmith`.
 
 ## General
 

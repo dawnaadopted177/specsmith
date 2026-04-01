@@ -8,8 +8,6 @@
 pip install specsmith
 ```
 
-The `--pre` flag is needed during the alpha period. Once stable, `pip install specsmith` will work.
-
 ### From Source
 
 ```bash
