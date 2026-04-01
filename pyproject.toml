@@ -54,8 +54,10 @@ specsmith = "specsmith.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/BitConcepts/specsmith"
+Documentation = "https://specsmith.readthedocs.io"
 Repository = "https://github.com/BitConcepts/specsmith"
 Changelog = "https://github.com/BitConcepts/specsmith/blob/main/CHANGELOG.md"
+Issues = "https://github.com/BitConcepts/specsmith/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
