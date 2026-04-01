@@ -7,15 +7,26 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from specsmith.config import ProjectConfig, ProjectType
+from specsmith.config import ProjectConfig
+from specsmith.tools import LANG_CI_META, ToolSet, get_format_check_commands, get_tools
 from specsmith.vcs.base import CommandResult, PlatformStatus, VCSPlatform
 
-_PYTHON_TYPES = (
-    ProjectType.CLI_PYTHON,
-    ProjectType.LIBRARY_PYTHON,
-    ProjectType.BACKEND_FRONTEND,
-    ProjectType.BACKEND_FRONTEND_TRAY,
-)
+# Language → Dependabot package ecosystem
+_LANG_ECOSYSTEM: dict[str, str] = {
+    "python": "pip",
+    "javascript": "npm",
+    "typescript": "npm",
+    "rust": "cargo",
+    "go": "gomod",
+    "csharp": "nuget",
+    "dart": "pub",
+}
+
+
+def _needs_node_setup(tools: ToolSet) -> bool:
+    """Check if any tools require Node.js runtime."""
+    all_cmds = " ".join(tools.lint + tools.typecheck + tools.test + tools.security + tools.format)
+    return any(t in all_cmds for t in ("eslint", "tsc", "vitest", "jest", "npm", "prettier"))
 
 
 class GitHubPlatform(VCSPlatform):
@@ -97,54 +108,136 @@ class GitHubPlatform(VCSPlatform):
         return self.run_command(["code-scanning", "alert", "list"])
 
     def _render_ci(self, config: ProjectConfig) -> str:
-        is_python = config.type in _PYTHON_TYPES
+        tools = get_tools(config)
+        meta = LANG_CI_META.get(config.language, {})
+        gh_setup = meta.get("gh_setup", "")
+        install = meta.get("install", "")
+        is_python = config.language == "python"
+        needs_node = _needs_node_setup(tools) and config.language not in (
+            "javascript",
+            "typescript",
+            "jsx",
+            "tsx",
+        )
+
         ci = (
             "name: CI\n\non:\n  push:\n    branches: [main]\n"
             "  pull_request:\n    branches: [main]\n\n"
             "concurrency:\n  group: ci-${{ github.ref }}\n"
             "  cancel-in-progress: true\n\npermissions:\n  contents: read\n\njobs:\n"
         )
-        if is_python:
+
+        needs: list[str] = []
+
+        # Lint job
+        if tools.lint or tools.format:
+            needs.append("lint")
             ci += (
                 "  lint:\n    runs-on: ubuntu-latest\n    steps:\n"
                 "      - uses: actions/checkout@v6\n"
-                "      - uses: actions/setup-python@v6\n"
-                '        with:\n          python-version: "3.12"\n          cache: pip\n'
-                "      - run: pip install ruff\n"
-                "      - run: ruff check src/ tests/\n"
-                "      - run: ruff format --check src/ tests/\n\n"
+            )
+            if gh_setup:
+                ci += gh_setup
+            if needs_node:
+                ci += LANG_CI_META.get("javascript", {}).get("gh_setup", "")
+            if install:
+                ci += f"      - run: {install}\n"
+            if needs_node and install != "npm ci":
+                ci += "      - run: npm ci\n"
+            for cmd in tools.lint:
+                ci += f"      - run: {cmd}\n"
+            for cmd in get_format_check_commands(tools):
+                ci += f"      - run: {cmd}\n"
+            ci += "\n"
+
+        # Typecheck job
+        if tools.typecheck:
+            needs.append("typecheck")
+            ci += (
                 "  typecheck:\n    runs-on: ubuntu-latest\n    steps:\n"
                 "      - uses: actions/checkout@v6\n"
-                "      - uses: actions/setup-python@v6\n"
-                '        with:\n          python-version: "3.12"\n          cache: pip\n'
-                '      - run: pip install -e ".[dev]"\n'
-                f"      - run: mypy src/{config.package_name}/\n\n"
-                "  test:\n    needs: [lint, typecheck]\n    strategy:\n"
-                "      fail-fast: false\n      matrix:\n"
-                "        os: [ubuntu-latest, windows-latest, macos-latest]\n"
-                '        python-version: ["3.10", "3.12", "3.13"]\n'
-                "    runs-on: ${{ matrix.os }}\n    steps:\n"
-                "      - uses: actions/checkout@v6\n"
-                "      - uses: actions/setup-python@v6\n"
-                "        with:\n          python-version: ${{ matrix.python-version }}\n"
-                "          cache: pip\n"
-                '      - run: pip install -e ".[dev]"\n'
-                f"      - run: pytest --cov={config.package_name}"
-                " --cov-report=term-missing\n\n"
+            )
+            if gh_setup:
+                ci += gh_setup
+            if install:
+                ci += f"      - run: {install}\n"
+            for cmd in tools.typecheck:
+                if cmd == "mypy" and is_python:
+                    ci += f"      - run: mypy src/{config.package_name}/\n"
+                else:
+                    ci += f"      - run: {cmd}\n"
+            ci += "\n"
+
+        # Test job
+        if tools.test:
+            needs_str = ", ".join(needs) if needs else ""
+            ci += "  test:\n"
+            if needs:
+                ci += f"    needs: [{needs_str}]\n"
+            if is_python:
+                ci += (
+                    "    strategy:\n"
+                    "      fail-fast: false\n      matrix:\n"
+                    "        os: [ubuntu-latest, windows-latest, macos-latest]\n"
+                    '        python-version: ["3.10", "3.12", "3.13"]\n'
+                    "    runs-on: ${{ matrix.os }}\n    steps:\n"
+                    "      - uses: actions/checkout@v6\n"
+                    "      - uses: actions/setup-python@v6\n"
+                    "        with:\n          python-version: ${{ matrix.python-version }}\n"
+                    "          cache: pip\n"
+                )
+            else:
+                ci += "    runs-on: ubuntu-latest\n    steps:\n"
+                ci += "      - uses: actions/checkout@v6\n"
+                if gh_setup:
+                    ci += gh_setup
+            if install:
+                ci += f"      - run: {install}\n"
+            if needs_node and not is_python:
+                ci += "      - run: npm ci\n"
+            for cmd in tools.test:
+                if cmd == "pytest" and is_python:
+                    ci += (
+                        f"      - run: pytest --cov={config.package_name}"
+                        " --cov-report=term-missing\n"
+                    )
+                else:
+                    ci += f"      - run: {cmd}\n"
+            ci += "\n"
+
+        # Security job
+        if tools.security:
+            ci += (
                 "  security:\n    runs-on: ubuntu-latest\n    steps:\n"
                 "      - uses: actions/checkout@v6\n"
-                "      - uses: actions/setup-python@v6\n"
-                '        with:\n          python-version: "3.12"\n          cache: pip\n'
-                "      - run: pip install pip-audit\n"
-                "      - run: pip install -e .\n"
-                "      - run: pip-audit\n"
             )
-        else:
+            if gh_setup:
+                ci += gh_setup
+            if is_python:
+                ci += "      - run: pip install -e .\n"
+            elif install:
+                ci += f"      - run: {install}\n"
+            for cmd in tools.security:
+                if cmd == "pip-audit":
+                    ci += "      - run: pip install pip-audit\n"
+                    ci += "      - run: pip-audit\n"
+                elif cmd == "cargo audit":
+                    ci += "      - run: cargo install cargo-audit\n"
+                    ci += "      - run: cargo audit\n"
+                elif "govulncheck" in cmd:
+                    ci += "      - run: go install golang.org/x/vuln/cmd/govulncheck@latest\n"
+                    ci += f"      - run: {cmd}\n"
+                else:
+                    ci += f"      - run: {cmd}\n"
+
+        # Fallback if no tools at all
+        if not any([tools.lint, tools.typecheck, tools.test, tools.security, tools.format]):
             ci += (
                 "  build:\n    runs-on: ubuntu-latest\n    steps:\n"
                 "      - uses: actions/checkout@v6\n"
                 f"      - run: echo 'Add {config.type_label} build steps here'\n"
             )
+
         return ci
 
     def _render_dependabot(self, config: ProjectConfig) -> str:
@@ -155,10 +248,11 @@ class GitHubPlatform(VCSPlatform):
             '      interval: "weekly"\n'
             "    open-pull-requests-limit: 5\n"
         ]
-        if config.type in _PYTHON_TYPES:
+        lang_eco = _LANG_ECOSYSTEM.get(config.language)
+        if lang_eco:
             ecosystems.insert(
                 0,
-                '  - package-ecosystem: "pip"\n'
+                f'  - package-ecosystem: "{lang_eco}"\n'
                 '    directory: "/"\n'
                 "    schedule:\n"
                 '      interval: "weekly"\n'

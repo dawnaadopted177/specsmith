@@ -133,7 +133,7 @@ integrations: [agents-md, warp, claude-code]
 
 ## Specification
 
-See [`AGENT-WORKFLOW-SPEC.md`](AGENT-WORKFLOW-SPEC.md) for the complete workflow specification.
+See [`docs/AGENT-WORKFLOW-SPEC.md`](docs/AGENT-WORKFLOW-SPEC.md) for the complete workflow specification.
 
 ## Development
 

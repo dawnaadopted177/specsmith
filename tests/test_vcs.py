@@ -38,6 +38,28 @@ def fpga_config() -> ProjectConfig:
     )
 
 
+@pytest.fixture
+def rust_config() -> ProjectConfig:
+    return ProjectConfig(
+        name="test-rust",
+        type=ProjectType.CLI_RUST,
+        platforms=[Platform.LINUX],
+        language="rust",
+        git_init=False,
+    )
+
+
+@pytest.fixture
+def go_config() -> ProjectConfig:
+    return ProjectConfig(
+        name="test-go",
+        type=ProjectType.CLI_GO,
+        platforms=[Platform.LINUX],
+        language="go",
+        git_init=False,
+    )
+
+
 class TestPlatformRegistry:
     def test_list_platforms(self) -> None:
         platforms = list_platforms()
@@ -81,11 +103,35 @@ class TestGitHubPlatform:
         assert "ci.yml" in names
         assert "dependabot.yml" in names
 
-    def test_fpga_ci_has_placeholder(self, fpga_config: ProjectConfig, tmp_path: Path) -> None:
+    def test_fpga_ci_has_real_tools(self, fpga_config: ProjectConfig, tmp_path: Path) -> None:
         gh = GitHubPlatform()
         files = gh.generate_ci_config(fpga_config, tmp_path)
         content = files[0].read_text(encoding="utf-8")
-        assert "FPGA" in content
+        assert "vsg" in content
+        assert "ghdl" in content
+
+    def test_rust_ci_has_cargo(self, rust_config: ProjectConfig, tmp_path: Path) -> None:
+        gh = GitHubPlatform()
+        files = gh.generate_ci_config(rust_config, tmp_path)
+        content = files[0].read_text(encoding="utf-8")
+        assert "cargo clippy" in content
+        assert "cargo test" in content
+        assert "cargo audit" in content
+        assert "rust-toolchain" in content
+
+    def test_go_ci_has_go_tools(self, go_config: ProjectConfig, tmp_path: Path) -> None:
+        gh = GitHubPlatform()
+        files = gh.generate_ci_config(go_config, tmp_path)
+        content = files[0].read_text(encoding="utf-8")
+        assert "golangci-lint" in content
+        assert "go test" in content
+        assert "setup-go" in content
+
+    def test_dependabot_rust(self, rust_config: ProjectConfig, tmp_path: Path) -> None:
+        gh = GitHubPlatform()
+        files = gh.generate_dependency_config(rust_config, tmp_path)
+        content = files[0].read_text(encoding="utf-8")
+        assert "cargo" in content
 
     def test_cli_name(self) -> None:
         assert GitHubPlatform().cli_name == "gh"
@@ -118,6 +164,16 @@ class TestGitLabPlatform:
         assert GitLabPlatform().cli_name == "glab"
 
 
+class TestGitLabNonPython:
+    def test_rust_ci(self, rust_config: ProjectConfig, tmp_path: Path) -> None:
+        gl = GitLabPlatform()
+        files = gl.generate_ci_config(rust_config, tmp_path)
+        content = files[0].read_text(encoding="utf-8")
+        assert "cargo clippy" in content
+        assert "cargo test" in content
+        assert "rust:latest" in content
+
+
 class TestBitbucketPlatform:
     def test_generates_pipelines(self, python_config: ProjectConfig, tmp_path: Path) -> None:
         bb = BitbucketPlatform()
@@ -127,6 +183,7 @@ class TestBitbucketPlatform:
         content = files[0].read_text(encoding="utf-8")
         assert "pipelines:" in content
         assert "ruff" in content
+        assert "python:3.12-slim" in content
 
     def test_generates_renovate(self, python_config: ProjectConfig, tmp_path: Path) -> None:
         bb = BitbucketPlatform()

@@ -16,26 +16,12 @@ from specsmith.scaffolder import scaffold_project
 
 console = Console()
 
-PROJECT_TYPE_CHOICES = {
-    "1": ProjectType.BACKEND_FRONTEND,
-    "2": ProjectType.BACKEND_FRONTEND_TRAY,
-    "3": ProjectType.CLI_PYTHON,
-    "4": ProjectType.LIBRARY_PYTHON,
-    "5": ProjectType.EMBEDDED_HARDWARE,
-    "6": ProjectType.FPGA_RTL,
-    "7": ProjectType.YOCTO_BSP,
-    "8": ProjectType.PCB_HARDWARE,
-}
-
+PROJECT_TYPE_CHOICES = {str(i + 1): t for i, t in enumerate(ProjectType)}
 PROJECT_TYPE_LABELS = {
-    "1": "Python backend + web frontend",
-    "2": "Python backend + web frontend + tray",
-    "3": "CLI tool (Python)",
-    "4": "Library / SDK (Python)",
-    "5": "Embedded / hardware",
-    "6": "FPGA / RTL",
-    "7": "Yocto / embedded Linux BSP",
-    "8": "PCB / hardware design",
+    str(i + 1): label
+    for i, (t, label) in enumerate(
+        __import__("specsmith.config", fromlist=["_TYPE_LABELS"])._TYPE_LABELS.items()
+    )
 }
 
 
@@ -57,7 +43,8 @@ def main() -> None:
     "--output-dir", type=click.Path(), default=".", help="Parent directory for the new project."
 )
 @click.option("--no-git", is_flag=True, default=False, help="Skip git repository initialization.")
-def init(config_path: str | None, output_dir: str, no_git: bool) -> None:
+@click.option("--guided", is_flag=True, default=False, help="Run guided architecture definition.")
+def init(config_path: str | None, output_dir: str, no_git: bool, guided: bool) -> None:
     """Scaffold a new governed project."""
     if config_path:
         raw = _load_config_with_inheritance(config_path)
@@ -77,7 +64,15 @@ def init(config_path: str | None, output_dir: str, no_git: bool) -> None:
 
     for created in created_files:
         rel = created.relative_to(target)
-        console.print(f"  [green]✓[/green] {rel}")
+        console.print(f"  [green]\u2713[/green] {rel}")
+
+    # Guided architecture definition
+    if guided:
+        guided_files = _run_guided_architecture(cfg, target)
+        for path in guided_files:
+            rel = path.relative_to(target)
+            console.print(f"  [green]\u2713[/green] {rel} (guided)")
+        created_files.extend(guided_files)
 
     console.print(
         f"\n[bold green]Done.[/bold green] {len(created_files)} files created in {target}"
@@ -384,6 +379,140 @@ def diff(project_dir: str) -> None:
             console.print(f"  [red]✗[/red] {name} — missing")
         else:
             console.print(f"  [yellow]~[/yellow] {name} — differs from template")
+
+
+@main.command(name="import")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory to import.",
+)
+@click.option("--force", is_flag=True, default=False, help="Overwrite existing governance files.")
+def import_project(project_dir: str, force: bool) -> None:
+    """Import an existing project and generate governance overlay."""
+    from specsmith.importer import detect_project, generate_import_config, generate_overlay
+
+    root = Path(project_dir).resolve()
+    console.print(f"[bold]Analyzing[/bold] {root}...\n")
+
+    result = detect_project(root)
+
+    console.print(f"  Files: {result.file_count}")
+    console.print(f"  Language: [cyan]{result.primary_language or 'unknown'}[/cyan]")
+    console.print(f"  Build system: {result.build_system or 'not detected'}")
+    console.print(f"  Test framework: {result.test_framework or 'not detected'}")
+    console.print(f"  CI: {result.existing_ci or 'not detected'}")
+    console.print(f"  VCS: {result.vcs_platform or 'not detected'}")
+    inferred = result.inferred_type.value if result.inferred_type else "unknown"
+    console.print(f"  Inferred type: [cyan]{inferred}[/cyan]")
+
+    if result.modules:
+        console.print(f"  Modules: {', '.join(result.modules)}")
+    if result.existing_governance:
+        console.print(f"  Existing governance: {', '.join(result.existing_governance)}")
+    console.print()
+
+    # Allow override
+    if not click.confirm("Proceed with these settings?", default=True):
+        console.print("\nProject type:")
+        for k, v in PROJECT_TYPE_LABELS.items():
+            console.print(f"  {k}. {v}")
+        type_choice = click.prompt(
+            "Select type", type=click.Choice(list(PROJECT_TYPE_LABELS.keys()))
+        )
+        result.inferred_type = PROJECT_TYPE_CHOICES[type_choice]
+        result.primary_language = click.prompt("Primary language", default=result.primary_language)
+
+    config = generate_import_config(result)
+    created = generate_overlay(result, root, force=force)
+
+    for path in created:
+        rel = path.relative_to(root)
+        console.print(f"  [green]\u2713[/green] {rel}")
+
+    # Save scaffold.yml
+    config_out = root / "scaffold.yml"
+    if not config_out.exists() or force:
+        with open(config_out, "w") as fh:
+            yaml.dump(config.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
+        console.print("  [green]\u2713[/green] scaffold.yml")
+
+    console.print(f"\n[bold green]Done.[/bold green] {len(created)} governance files generated.")
+    console.print('Open this project in your AI agent and type [bold]"start"[/bold].')
+
+
+def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
+    """Run interactive architecture definition and generate REQ/TEST stubs."""
+    created: list[Path] = []
+
+    console.print("\n[bold]Guided Architecture Definition[/bold]\n")
+    console.print("Define your project's major components/modules (comma-separated):")
+    components_str = click.prompt("Components", default="core")
+    components = [c.strip() for c in components_str.split(",") if c.strip()]
+
+    # Generate REQUIREMENTS.md with REQ stubs
+    reqs_path = target / "docs" / "REQUIREMENTS.md"
+    reqs_content = "# Requirements\n\n"
+    for comp in components:
+        comp_upper = comp.upper().replace(" ", "-")
+        reqs_content += (
+            f"## REQ-{comp_upper}-001\n"
+            f"- **Component**: {comp}\n"
+            f"- **Status**: Draft\n"
+            f"- **Description**: [Core functionality for {comp}]\n\n"
+            f"## REQ-{comp_upper}-002\n"
+            f"- **Component**: {comp}\n"
+            f"- **Status**: Draft\n"
+            f"- **Description**: [Error handling for {comp}]\n\n"
+        )
+    reqs_path.write_text(reqs_content, encoding="utf-8")
+    created.append(reqs_path)
+
+    # Generate TEST_SPEC.md with TEST stubs
+    tests_path = target / "docs" / "TEST_SPEC.md"
+    tests_content = "# Test Specification\n\n"
+    test_num = 1
+    for comp in components:
+        comp_upper = comp.upper().replace(" ", "-")
+        tests_content += (
+            f"## TEST-{test_num:03d}\n"
+            f"- **Requirement**: REQ-{comp_upper}-001\n"
+            f"- **Type**: Unit\n"
+            f"- **Description**: Verify core {comp} functionality\n\n"
+        )
+        test_num += 1
+        tests_content += (
+            f"## TEST-{test_num:03d}\n"
+            f"- **Requirement**: REQ-{comp_upper}-002\n"
+            f"- **Type**: Unit\n"
+            f"- **Description**: Verify {comp} error handling\n\n"
+        )
+        test_num += 1
+    tests_path.write_text(tests_content, encoding="utf-8")
+    created.append(tests_path)
+
+    # Generate architecture.md
+    arch_path = target / "docs" / "architecture.md"
+    arch_content = f"# Architecture \u2014 {cfg.name}\n\n## Components\n\n"
+    for comp in components:
+        arch_content += (
+            f"### {comp}\n"
+            f"- **Purpose**: [Describe {comp} purpose]\n"
+            f"- **Interfaces**: [Define {comp} interfaces]\n"
+            f"- **Dependencies**: [List {comp} dependencies]\n\n"
+        )
+    arch_content += (
+        "## Data Flow\n\n"
+        "[Describe how data flows between components]\n\n"
+        "## Deployment\n\n"
+        f"- **Language**: {cfg.language}\n"
+        f"- **Platforms**: {', '.join(cfg.platform_names)}\n"
+    )
+    arch_path.write_text(arch_content, encoding="utf-8")
+    created.append(arch_path)
+
+    return created
 
 
 if __name__ == "__main__":

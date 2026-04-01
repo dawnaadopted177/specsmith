@@ -191,6 +191,75 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
                 target / "tools",
             ]
         )
+    elif config.type == ProjectType.WEB_FRONTEND:
+        dirs.extend(
+            [target / "src/components", target / "src/pages", target / "public", target / "tests"]
+        )
+    elif config.type == ProjectType.FULLSTACK_JS:
+        dirs.extend(
+            [
+                target / "client/src",
+                target / "server/src",
+                target / "shared",
+                target / "tests/client",
+                target / "tests/server",
+            ]
+        )
+    elif config.type in (ProjectType.CLI_RUST, ProjectType.LIBRARY_RUST):
+        dirs.extend([target / "src", target / "tests", target / "benches"])
+    elif config.type in (ProjectType.CLI_GO,):
+        dirs.extend([target / "cmd", target / "internal", target / "pkg", target / "tests"])
+    elif config.type in (ProjectType.CLI_C, ProjectType.LIBRARY_C):
+        dirs.extend(
+            [
+                target / "src",
+                target / "include",
+                target / "tests",
+                target / "build",
+            ]
+        )
+    elif config.type == ProjectType.DOTNET_APP:
+        dirs.extend([target / "src", target / "tests", target / "Properties"])
+    elif config.type == ProjectType.MOBILE_APP:
+        dirs.extend(
+            [
+                target / "lib",
+                target / "ios",
+                target / "android",
+                target / "tests",
+                target / "assets",
+            ]
+        )
+    elif config.type == ProjectType.DEVOPS_IAC:
+        dirs.extend(
+            [
+                target / "modules",
+                target / "environments/dev",
+                target / "environments/staging",
+                target / "environments/prod",
+                target / "tests",
+            ]
+        )
+    elif config.type == ProjectType.DATA_ML:
+        dirs.extend(
+            [
+                target / "data/raw",
+                target / "data/processed",
+                target / "notebooks",
+                target / "src/models",
+                target / "src/pipelines",
+                target / "tests",
+            ]
+        )
+    elif config.type == ProjectType.MICROSERVICES:
+        dirs.extend(
+            [
+                target / "services",
+                target / "shared/proto",
+                target / "deploy",
+                target / "tests/integration",
+            ]
+        )
 
     return dirs
 

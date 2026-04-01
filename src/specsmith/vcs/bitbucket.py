@@ -6,15 +6,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from specsmith.config import ProjectConfig, ProjectType
+from specsmith.config import ProjectConfig
+from specsmith.tools import LANG_CI_META, get_format_check_commands, get_tools
 from specsmith.vcs.base import CommandResult, PlatformStatus, VCSPlatform
-
-_PYTHON_TYPES = (
-    ProjectType.CLI_PYTHON,
-    ProjectType.LIBRARY_PYTHON,
-    ProjectType.BACKEND_FRONTEND,
-    ProjectType.BACKEND_FRONTEND_TRAY,
-)
 
 
 class BitbucketPlatform(VCSPlatform):
@@ -34,7 +28,6 @@ class BitbucketPlatform(VCSPlatform):
         return [ci_path]
 
     def generate_dependency_config(self, config: ProjectConfig, target: Path) -> list[Path]:
-        # Bitbucket uses renovate for dependency management
         renovate_path = target / "renovate.json"
         if not renovate_path.exists():
             renovate_path.write_text(
@@ -73,43 +66,70 @@ class BitbucketPlatform(VCSPlatform):
         )
 
     def _render_pipelines(self, config: ProjectConfig) -> str:
-        is_python = config.type in _PYTHON_TYPES
+        tools = get_tools(config)
+        meta = LANG_CI_META.get(config.language, {})
+        image = meta.get("docker_image", "ubuntu:latest")
+        install = meta.get("install", "")
+        bb_cache = meta.get("bb_cache", "")
+        is_python = config.language == "python"
 
-        if is_python:
-            return (
-                "image: python:3.12-slim\n\n"
-                "pipelines:\n"
-                "  default:\n"
-                "    - step:\n"
-                "        name: Lint\n"
-                "        caches:\n"
-                "          - pip\n"
-                "        script:\n"
-                "          - pip install ruff\n"
-                "          - ruff check src/ tests/\n"
-                "          - ruff format --check src/ tests/\n"
-                "    - step:\n"
-                "        name: Test\n"
-                "        caches:\n"
-                "          - pip\n"
-                "        script:\n"
-                '          - pip install -e ".[dev]"\n'
-                f"          - pytest --cov={config.package_name}"
-                " --cov-report=term-missing\n"
-                "    - step:\n"
-                "        name: Security\n"
-                "        caches:\n"
-                "          - pip\n"
-                "        script:\n"
-                "          - pip install pip-audit\n"
-                "          - pip install -e .\n"
-                "          - pip-audit\n"
+        ci = f"image: {image}\n\npipelines:\n  default:\n"
+
+        # Lint step
+        if tools.lint or tools.format:
+            ci += "    - step:\n        name: Lint\n"
+            if bb_cache:
+                ci += f"        caches:\n          - {bb_cache}\n"
+            ci += "        script:\n"
+            if install:
+                ci += f"          - {install}\n"
+            for cmd in tools.lint:
+                ci += f"          - {cmd}\n"
+            for cmd in get_format_check_commands(tools):
+                ci += f"          - {cmd}\n"
+
+        # Test step
+        if tools.test:
+            ci += "    - step:\n        name: Test\n"
+            if bb_cache:
+                ci += f"        caches:\n          - {bb_cache}\n"
+            ci += "        script:\n"
+            if install:
+                ci += f"          - {install}\n"
+            for cmd in tools.test:
+                if cmd == "pytest" and is_python:
+                    ci += (
+                        f"          - pytest --cov={config.package_name}"
+                        " --cov-report=term-missing\n"
+                    )
+                else:
+                    ci += f"          - {cmd}\n"
+
+        # Security step
+        if tools.security:
+            ci += "    - step:\n        name: Security\n"
+            if bb_cache:
+                ci += f"        caches:\n          - {bb_cache}\n"
+            ci += "        script:\n"
+            if is_python:
+                ci += "          - pip install -e .\n"
+            elif install:
+                ci += f"          - {install}\n"
+            for cmd in tools.security:
+                if cmd == "pip-audit":
+                    ci += "          - pip install pip-audit\n"
+                    ci += "          - pip-audit\n"
+                elif cmd == "cargo audit":
+                    ci += "          - cargo install cargo-audit\n"
+                    ci += "          - cargo audit\n"
+                else:
+                    ci += f"          - {cmd}\n"
+
+        # Fallback
+        if not any([tools.lint, tools.test, tools.security, tools.format]):
+            ci += (
+                "    - step:\n        name: Build\n        script:\n"
+                f"          - echo 'Add {config.type_label} build steps here'\n"
             )
-        return (
-            "pipelines:\n"
-            "  default:\n"
-            "    - step:\n"
-            "        name: Build\n"
-            "        script:\n"
-            f"          - echo 'Add {config.type_label} build steps here'\n"
-        )
+
+        return ci

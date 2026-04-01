@@ -12,14 +12,32 @@ from pydantic import BaseModel, Field
 class ProjectType(str, Enum):
     """Supported project types from the spec (Section 17)."""
 
+    # Python
     BACKEND_FRONTEND = "backend-frontend"
     BACKEND_FRONTEND_TRAY = "backend-frontend-tray"
     CLI_PYTHON = "cli-python"
     LIBRARY_PYTHON = "library-python"
+    # Hardware / Embedded
     EMBEDDED_HARDWARE = "embedded-hardware"
     FPGA_RTL = "fpga-rtl"
     YOCTO_BSP = "yocto-bsp"
     PCB_HARDWARE = "pcb-hardware"
+    # Web / JS / TS
+    WEB_FRONTEND = "web-frontend"
+    FULLSTACK_JS = "fullstack-js"
+    # Systems languages
+    CLI_RUST = "cli-rust"
+    CLI_GO = "cli-go"
+    CLI_C = "cli-c"
+    LIBRARY_RUST = "library-rust"
+    LIBRARY_C = "library-c"
+    # Other platforms
+    DOTNET_APP = "dotnet-app"
+    MOBILE_APP = "mobile-app"
+    # Infrastructure / Data
+    DEVOPS_IAC = "devops-iac"
+    DATA_ML = "data-ml"
+    MICROSERVICES = "microservices"
 
 
 class Platform(str, Enum):
@@ -101,6 +119,18 @@ class ProjectConfig(BaseModel):
         description="Accept branch protection rules from remote if already configured",
     )
 
+    # Verification tools (auto-populated from type+language, overridable)
+    verification_tools: dict[str, str] = Field(
+        default_factory=dict,
+        description="Tool overrides by category: lint, typecheck, test, security, build, format",
+    )
+
+    # Import detection (populated by specsmith import)
+    detected_build_system: str = Field(default="", description="Build system detected by import")
+    detected_test_framework: str = Field(
+        default="", description="Test framework detected by import"
+    )
+
     # Agent integrations
     integrations: list[str] = Field(
         default=["agents-md"],
@@ -146,29 +176,56 @@ class ProjectConfig(BaseModel):
     @property
     def type_label(self) -> str:
         """Human-readable project type label."""
-        labels = {
-            ProjectType.BACKEND_FRONTEND: "Python backend + web frontend",
-            ProjectType.BACKEND_FRONTEND_TRAY: "Python backend + web frontend + tray",
-            ProjectType.CLI_PYTHON: "CLI tool (Python)",
-            ProjectType.LIBRARY_PYTHON: "Library / SDK (Python)",
-            ProjectType.EMBEDDED_HARDWARE: "Embedded / hardware",
-            ProjectType.FPGA_RTL: "FPGA / RTL",
-            ProjectType.YOCTO_BSP: "Yocto / embedded Linux BSP",
-            ProjectType.PCB_HARDWARE: "PCB / hardware design",
-        }
-        return labels[self.type]
+        return _TYPE_LABELS.get(self.type, self.type.value)
 
     @property
     def section_ref(self) -> str:
         """Spec section reference for this project type."""
-        refs = {
-            ProjectType.BACKEND_FRONTEND: "17.1",
-            ProjectType.BACKEND_FRONTEND_TRAY: "17.2",
-            ProjectType.CLI_PYTHON: "17.3",
-            ProjectType.LIBRARY_PYTHON: "17.4",
-            ProjectType.EMBEDDED_HARDWARE: "17.5",
-            ProjectType.FPGA_RTL: "17.6",
-            ProjectType.YOCTO_BSP: "17.7",
-            ProjectType.PCB_HARDWARE: "17.8",
-        }
-        return refs[self.type]
+        return _SECTION_REFS.get(self.type, "17")
+
+
+_TYPE_LABELS: dict[ProjectType, str] = {
+    ProjectType.BACKEND_FRONTEND: "Python backend + web frontend",
+    ProjectType.BACKEND_FRONTEND_TRAY: "Python backend + web frontend + tray",
+    ProjectType.CLI_PYTHON: "CLI tool (Python)",
+    ProjectType.LIBRARY_PYTHON: "Library / SDK (Python)",
+    ProjectType.EMBEDDED_HARDWARE: "Embedded / hardware",
+    ProjectType.FPGA_RTL: "FPGA / RTL",
+    ProjectType.YOCTO_BSP: "Yocto / embedded Linux BSP",
+    ProjectType.PCB_HARDWARE: "PCB / hardware design",
+    ProjectType.WEB_FRONTEND: "Web frontend (SPA)",
+    ProjectType.FULLSTACK_JS: "Fullstack JS/TS",
+    ProjectType.CLI_RUST: "CLI tool (Rust)",
+    ProjectType.CLI_GO: "CLI tool (Go)",
+    ProjectType.CLI_C: "CLI tool (C/C++)",
+    ProjectType.LIBRARY_RUST: "Library / crate (Rust)",
+    ProjectType.LIBRARY_C: "Library (C/C++)",
+    ProjectType.DOTNET_APP: ".NET / C# application",
+    ProjectType.MOBILE_APP: "Mobile app",
+    ProjectType.DEVOPS_IAC: "DevOps / IaC",
+    ProjectType.DATA_ML: "Data / ML pipeline",
+    ProjectType.MICROSERVICES: "Microservices",
+}
+
+_SECTION_REFS: dict[ProjectType, str] = {
+    ProjectType.BACKEND_FRONTEND: "17.1",
+    ProjectType.BACKEND_FRONTEND_TRAY: "17.2",
+    ProjectType.CLI_PYTHON: "17.3",
+    ProjectType.LIBRARY_PYTHON: "17.4",
+    ProjectType.EMBEDDED_HARDWARE: "17.5",
+    ProjectType.FPGA_RTL: "17.6",
+    ProjectType.YOCTO_BSP: "17.7",
+    ProjectType.PCB_HARDWARE: "17.8",
+    ProjectType.WEB_FRONTEND: "17.9",
+    ProjectType.FULLSTACK_JS: "17.10",
+    ProjectType.CLI_RUST: "17.11",
+    ProjectType.CLI_GO: "17.12",
+    ProjectType.CLI_C: "17.13",
+    ProjectType.LIBRARY_RUST: "17.14",
+    ProjectType.LIBRARY_C: "17.15",
+    ProjectType.DOTNET_APP: "17.16",
+    ProjectType.MOBILE_APP: "17.17",
+    ProjectType.DEVOPS_IAC: "17.18",
+    ProjectType.DATA_ML: "17.19",
+    ProjectType.MICROSERVICES: "17.20",
+}

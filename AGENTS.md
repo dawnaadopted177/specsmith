@@ -28,7 +28,7 @@ Forge governed project scaffolds from the Agentic AI Development Workflow Specif
 - `docs/REQUIREMENTS.md` — formal requirements (37 REQs)
 - `docs/TEST_SPEC.md` — test specifications (30 TESTs)
 - `docs/governance/` — modular governance docs
-- `AGENT-WORKFLOW-SPEC.md` — the specification itself
+- `docs/AGENT-WORKFLOW-SPEC.md` — the specification itself
 
 ## Governance
 This project follows its own specification. See:

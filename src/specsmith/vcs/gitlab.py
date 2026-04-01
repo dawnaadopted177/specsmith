@@ -6,15 +6,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from specsmith.config import ProjectConfig, ProjectType
+from specsmith.config import ProjectConfig
+from specsmith.tools import LANG_CI_META, get_format_check_commands, get_tools
 from specsmith.vcs.base import CommandResult, PlatformStatus, VCSPlatform
-
-_PYTHON_TYPES = (
-    ProjectType.CLI_PYTHON,
-    ProjectType.LIBRARY_PYTHON,
-    ProjectType.BACKEND_FRONTEND,
-    ProjectType.BACKEND_FRONTEND_TRAY,
-)
 
 
 class GitLabPlatform(VCSPlatform):
@@ -34,7 +28,6 @@ class GitLabPlatform(VCSPlatform):
         return [ci_path]
 
     def generate_dependency_config(self, config: ProjectConfig, target: Path) -> list[Path]:
-        # GitLab uses renovate or built-in dependency scanning
         renovate_path = target / "renovate.json"
         renovate_path.write_text(
             '{\n  "$schema": "https://docs.renovatebot.com/renovate-schema.json",\n'
@@ -44,7 +37,6 @@ class GitLabPlatform(VCSPlatform):
         return [renovate_path]
 
     def generate_security_config(self, config: ProjectConfig, target: Path) -> list[Path]:
-        # Security scanning is included in the CI config via templates
         return []
 
     def check_status(self) -> PlatformStatus:
@@ -69,44 +61,82 @@ class GitLabPlatform(VCSPlatform):
         return self.run_command(["api", "projects/:id/vulnerability_findings", "--per-page", "20"])
 
     def _render_ci(self, config: ProjectConfig) -> str:
-        is_python = config.type in _PYTHON_TYPES
+        tools = get_tools(config)
+        meta = LANG_CI_META.get(config.language, {})
+        image = meta.get("docker_image", "ubuntu:latest")
+        install = meta.get("install", "")
+        is_python = config.language == "python"
 
-        ci = "stages:\n  - lint\n  - test\n  - security\n\n"
+        # Determine stages
+        stages: list[str] = []
+        if tools.lint or tools.format:
+            stages.append("lint")
+        if tools.typecheck:
+            stages.append("typecheck")
+        stages.append("test")
+        if tools.security:
+            stages.append("security")
 
+        ci = "stages:\n"
+        for s in stages:
+            ci += f"  - {s}\n"
+        ci += "\n"
+
+        # Lint stage
+        if tools.lint or tools.format:
+            ci += f"lint:\n  stage: lint\n  image: {image}\n  script:\n"
+            if install:
+                ci += f"    - {install}\n"
+            for cmd in tools.lint:
+                ci += f"    - {cmd}\n"
+            for cmd in get_format_check_commands(tools):
+                ci += f"    - {cmd}\n"
+            ci += "\n"
+
+        # Typecheck stage
+        if tools.typecheck:
+            ci += f"typecheck:\n  stage: typecheck\n  image: {image}\n  script:\n"
+            if install:
+                ci += f"    - {install}\n"
+            for cmd in tools.typecheck:
+                if cmd == "mypy" and is_python:
+                    ci += f"    - mypy src/{config.package_name}/\n"
+                else:
+                    ci += f"    - {cmd}\n"
+            ci += "\n"
+
+        # Test stage
+        ci += f"test:\n  stage: test\n  image: {image}\n  script:\n"
+        if install:
+            ci += f"    - {install}\n"
+        for cmd in tools.test:
+            if cmd == "pytest" and is_python:
+                ci += f"    - pytest --cov={config.package_name} --cov-report=term-missing\n"
+            else:
+                ci += f"    - {cmd}\n"
         if is_python:
-            ci += (
-                "lint:\n"
-                "  stage: lint\n"
-                "  image: python:3.12-slim\n"
-                "  script:\n"
-                "    - pip install ruff\n"
-                "    - ruff check src/ tests/\n"
-                "    - ruff format --check src/ tests/\n\n"
-                "test:\n"
-                "  stage: test\n"
-                "  image: python:3.12-slim\n"
-                "  script:\n"
-                '    - pip install -e ".[dev]"\n'
-                f"    - pytest --cov={config.package_name}"
-                " --cov-report=term-missing\n"
-                "  parallel:\n"
-                "    matrix:\n"
-                '      - PYTHON_VERSION: ["3.10", "3.12", "3.13"]\n\n'
-                "security:\n"
-                "  stage: security\n"
-                "  image: python:3.12-slim\n"
-                "  script:\n"
-                "    - pip install pip-audit\n"
-                "    - pip install -e .\n"
-                "    - pip-audit\n"
-                "  allow_failure: true\n"
-            )
-        else:
-            ci += (
-                "build:\n"
-                "  stage: test\n"
-                "  script:\n"
-                f"    - echo 'Add {config.type_label} build steps here'\n"
-            )
+            ci += '  parallel:\n    matrix:\n      - PYTHON_VERSION: ["3.10", "3.12", "3.13"]\n'
+        ci += "\n"
+
+        # Security stage
+        if tools.security:
+            ci += f"security:\n  stage: security\n  image: {image}\n  script:\n"
+            if is_python:
+                ci += "    - pip install -e .\n"
+            elif install:
+                ci += f"    - {install}\n"
+            for cmd in tools.security:
+                if cmd == "pip-audit":
+                    ci += "    - pip install pip-audit\n"
+                    ci += "    - pip-audit\n"
+                elif cmd == "cargo audit":
+                    ci += "    - cargo install cargo-audit\n"
+                    ci += "    - cargo audit\n"
+                elif "govulncheck" in cmd:
+                    ci += "    - go install golang.org/x/vuln/cmd/govulncheck@latest\n"
+                    ci += f"    - {cmd}\n"
+                else:
+                    ci += f"    - {cmd}\n"
+            ci += "  allow_failure: true\n"
 
         return ci

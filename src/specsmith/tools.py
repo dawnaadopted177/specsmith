@@ -1,0 +1,323 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
+"""Verification tool registry — maps project types to lint/test/security/build tools."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from specsmith.config import ProjectConfig
+
+from specsmith.config import ProjectType
+
+
+@dataclass(frozen=True)
+class ToolSet:
+    """Verification tools for a project type."""
+
+    lint: list[str] = field(default_factory=list)
+    typecheck: list[str] = field(default_factory=list)
+    test: list[str] = field(default_factory=list)
+    security: list[str] = field(default_factory=list)
+    build: list[str] = field(default_factory=list)
+    format: list[str] = field(default_factory=list)
+    compliance: list[str] = field(default_factory=list)
+
+
+# Default tool sets per project type
+_TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
+    # Python
+    ProjectType.CLI_PYTHON: ToolSet(
+        lint=["ruff check"],
+        typecheck=["mypy"],
+        test=["pytest"],
+        security=["pip-audit"],
+        format=["ruff format"],
+    ),
+    ProjectType.LIBRARY_PYTHON: ToolSet(
+        lint=["ruff check"],
+        typecheck=["mypy"],
+        test=["pytest"],
+        security=["pip-audit"],
+        format=["ruff format"],
+    ),
+    ProjectType.BACKEND_FRONTEND: ToolSet(
+        lint=["ruff check", "eslint"],
+        typecheck=["mypy", "tsc"],
+        test=["pytest", "vitest"],
+        security=["pip-audit", "npm audit"],
+        format=["ruff format", "prettier"],
+    ),
+    ProjectType.BACKEND_FRONTEND_TRAY: ToolSet(
+        lint=["ruff check", "eslint"],
+        typecheck=["mypy", "tsc"],
+        test=["pytest", "vitest"],
+        security=["pip-audit", "npm audit"],
+        format=["ruff format", "prettier"],
+    ),
+    # Hardware / Embedded
+    ProjectType.FPGA_RTL: ToolSet(
+        lint=["vsg", "verilator --lint-only"],
+        test=["ghdl", "cocotb", "iverilog"],
+        build=["vivado -mode batch", "quartus_sh"],
+        format=[],
+    ),
+    ProjectType.YOCTO_BSP: ToolSet(
+        lint=["oelint-adv"],
+        test=["bitbake"],
+        build=["kas build", "bitbake"],
+        security=[],
+    ),
+    ProjectType.PCB_HARDWARE: ToolSet(
+        lint=[],
+        test=["drc-check", "erc-check"],
+        build=["kicad-cli"],
+        compliance=["bom-validate"],
+    ),
+    ProjectType.EMBEDDED_HARDWARE: ToolSet(
+        lint=["clang-tidy", "cppcheck"],
+        typecheck=["cppcheck"],
+        test=["ctest", "unity"],
+        build=["cmake", "make"],
+        security=["flawfinder"],
+        format=["clang-format"],
+        compliance=["misra-c"],
+    ),
+    # Web / JS / TS
+    ProjectType.WEB_FRONTEND: ToolSet(
+        lint=["eslint"],
+        typecheck=["tsc"],
+        test=["vitest"],
+        security=["npm audit"],
+        format=["prettier"],
+    ),
+    ProjectType.FULLSTACK_JS: ToolSet(
+        lint=["eslint"],
+        typecheck=["tsc"],
+        test=["vitest", "jest"],
+        security=["npm audit"],
+        format=["prettier"],
+    ),
+    # Rust
+    ProjectType.CLI_RUST: ToolSet(
+        lint=["cargo clippy"],
+        typecheck=["cargo check"],
+        test=["cargo test"],
+        security=["cargo audit"],
+        build=["cargo build"],
+        format=["cargo fmt"],
+    ),
+    ProjectType.LIBRARY_RUST: ToolSet(
+        lint=["cargo clippy"],
+        typecheck=["cargo check"],
+        test=["cargo test"],
+        security=["cargo audit"],
+        build=["cargo build"],
+        format=["cargo fmt"],
+    ),
+    # Go
+    ProjectType.CLI_GO: ToolSet(
+        lint=["golangci-lint run"],
+        typecheck=["go vet"],
+        test=["go test ./..."],
+        security=["govulncheck ./..."],
+        build=["go build"],
+        format=["gofmt"],
+    ),
+    # C / C++
+    ProjectType.CLI_C: ToolSet(
+        lint=["clang-tidy"],
+        typecheck=["cppcheck"],
+        test=["ctest"],
+        security=["flawfinder"],
+        build=["cmake --build ."],
+        format=["clang-format"],
+        compliance=["misra-c"],
+    ),
+    ProjectType.LIBRARY_C: ToolSet(
+        lint=["clang-tidy"],
+        typecheck=["cppcheck"],
+        test=["ctest"],
+        security=["flawfinder"],
+        build=["cmake --build ."],
+        format=["clang-format"],
+    ),
+    # .NET
+    ProjectType.DOTNET_APP: ToolSet(
+        lint=["dotnet format --verify-no-changes"],
+        test=["dotnet test"],
+        security=["dotnet list package --vulnerable"],
+        build=["dotnet build"],
+        format=["dotnet format"],
+    ),
+    # Mobile
+    ProjectType.MOBILE_APP: ToolSet(
+        lint=["flutter analyze", "eslint"],
+        test=["flutter test", "jest"],
+        build=["flutter build"],
+    ),
+    # DevOps / IaC
+    ProjectType.DEVOPS_IAC: ToolSet(
+        lint=["tflint", "ansible-lint"],
+        test=["terratest"],
+        security=["tfsec", "checkov"],
+    ),
+    # Data / ML
+    ProjectType.DATA_ML: ToolSet(
+        lint=["ruff check"],
+        typecheck=["mypy"],
+        test=["pytest"],
+        security=["pip-audit"],
+        format=["ruff format"],
+    ),
+    # Microservices
+    ProjectType.MICROSERVICES: ToolSet(
+        lint=["ruff check", "eslint"],
+        test=["pytest", "jest"],
+        security=["pip-audit", "npm audit"],
+        build=["docker compose build"],
+    ),
+}
+
+
+def get_tools(config: ProjectConfig) -> ToolSet:
+    """Get the verification tool set for a project config.
+
+    Uses the tool registry defaults, overridden by any explicit verification_tools.
+    """
+    base = _TOOL_REGISTRY.get(config.type, ToolSet())
+
+    if not config.verification_tools:
+        return base
+
+    # Merge overrides
+    overrides = config.verification_tools
+    return ToolSet(
+        lint=overrides.get("lint", " ").split(",") if "lint" in overrides else base.lint,
+        typecheck=(
+            overrides.get("typecheck", "").split(",")
+            if "typecheck" in overrides
+            else base.typecheck
+        ),
+        test=overrides.get("test", "").split(",") if "test" in overrides else base.test,
+        security=(
+            overrides.get("security", "").split(",") if "security" in overrides else base.security
+        ),
+        build=overrides.get("build", "").split(",") if "build" in overrides else base.build,
+        format=overrides.get("format", "").split(",") if "format" in overrides else base.format,
+        compliance=(
+            overrides.get("compliance", "").split(",")
+            if "compliance" in overrides
+            else base.compliance
+        ),
+    )
+
+
+def list_tools_for_type(project_type: ProjectType) -> ToolSet:
+    """Get default tools for a project type."""
+    return _TOOL_REGISTRY.get(project_type, ToolSet())
+
+
+# ---------------------------------------------------------------------------
+# CI environment metadata per language
+# ---------------------------------------------------------------------------
+
+LANG_CI_META: dict[str, dict[str, str]] = {
+    "python": {
+        "gh_setup": (
+            "      - uses: actions/setup-python@v6\n"
+            '        with:\n          python-version: "3.12"\n          cache: pip\n'
+        ),
+        "docker_image": "python:3.12-slim",
+        "install": 'pip install -e ".[dev]"',
+        "bb_cache": "pip",
+    },
+    "rust": {
+        "gh_setup": "      - uses: dtolnay/rust-toolchain@stable\n",
+        "docker_image": "rust:latest",
+        "install": "",
+    },
+    "go": {
+        "gh_setup": (
+            '      - uses: actions/setup-go@v5\n        with:\n          go-version: "1.22"\n'
+        ),
+        "docker_image": "golang:1.22",
+        "install": "",
+    },
+    "javascript": {
+        "gh_setup": (
+            "      - uses: actions/setup-node@v4\n"
+            '        with:\n          node-version: "20"\n          cache: npm\n'
+        ),
+        "docker_image": "node:20",
+        "install": "npm ci",
+        "bb_cache": "node",
+    },
+    "typescript": {
+        "gh_setup": (
+            "      - uses: actions/setup-node@v4\n"
+            '        with:\n          node-version: "20"\n          cache: npm\n'
+        ),
+        "docker_image": "node:20",
+        "install": "npm ci",
+        "bb_cache": "node",
+    },
+    "csharp": {
+        "gh_setup": "      - uses: actions/setup-dotnet@v4\n",
+        "docker_image": "mcr.microsoft.com/dotnet/sdk:8.0",
+        "install": "dotnet restore",
+    },
+    "dart": {
+        "gh_setup": "      - uses: subosito/flutter-action@v2\n",
+        "docker_image": "ghcr.io/cirruslabs/flutter:latest",
+        "install": "flutter pub get",
+    },
+    "c": {
+        "gh_setup": "",
+        "docker_image": "gcc:latest",
+        "install": "",
+    },
+    "cpp": {
+        "gh_setup": "",
+        "docker_image": "gcc:latest",
+        "install": "",
+    },
+    "terraform": {
+        "gh_setup": "      - uses: hashicorp/setup-terraform@v3\n",
+        "docker_image": "hashicorp/terraform:latest",
+        "install": "terraform init",
+    },
+    "vhdl": {
+        "gh_setup": "",
+        "docker_image": "ghdl/ghdl:latest",
+        "install": "",
+    },
+    "verilog": {
+        "gh_setup": "",
+        "docker_image": "verilator/verilator:latest",
+        "install": "",
+    },
+}
+
+# Map format tool → CI check-mode command
+_FORMAT_CHECK_MAP: dict[str, str] = {
+    "ruff format": "ruff format --check .",
+    "cargo fmt": "cargo fmt -- --check",
+    "prettier": "npx prettier --check .",
+    "gofmt": 'test -z "$(gofmt -l .)"',
+    "clang-format": "clang-format --dry-run --Werror",
+    "dotnet format": "dotnet format --verify-no-changes",
+}
+
+
+def get_format_check_commands(tools: ToolSet) -> list[str]:
+    """Convert format commands to CI check-mode equivalents."""
+    checks: list[str] = []
+    for cmd in tools.format:
+        for prefix, check_cmd in _FORMAT_CHECK_MAP.items():
+            if cmd.startswith(prefix):
+                checks.append(check_cmd)
+                break
+    return checks

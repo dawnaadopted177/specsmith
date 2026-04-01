@@ -2,7 +2,7 @@
 * @tristenpierson
 
 # Specification
-AGENT-WORKFLOW-SPEC.md @tristenpierson
+docs/AGENT-WORKFLOW-SPEC.md @tristenpierson
 
 # Core CLI
 src/specsmith/ @tristenpierson
