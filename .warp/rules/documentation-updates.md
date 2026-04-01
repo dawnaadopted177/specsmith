@@ -54,6 +54,13 @@ Before every release:
 - Verify install commands say `pip install specsmith` (no `--pre` for stable)
 - Follow the full checklist in `docs/site/releasing.md`
 
+## Branch Protection
+
+- **NEVER tag a release on develop.** Tags must only be created on main.
+- **NEVER push tags from develop.** The release workflow publishes to PyPI — only main branch releases are allowed.
+- All feature work happens on develop. Releases merge develop → main first, then tag on main.
+- The release workflow has an `if:` guard but this is a process rule, not just a technical one.
+
 ## Rule
 
 If any documentation update is needed, make the updates in the SAME commit as the code changes — do not defer documentation to a separate commit.
