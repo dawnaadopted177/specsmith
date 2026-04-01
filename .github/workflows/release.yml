@@ -47,6 +47,8 @@ jobs:
     environment: pypi
     permissions:
       id-token: write
+    # Skip gracefully if pypi environment is not configured yet
+    continue-on-error: true
     steps:
       - uses: actions/download-artifact@v5
         with:

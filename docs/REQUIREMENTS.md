@@ -13,6 +13,8 @@
 - **REQ-CLI-009**: `specsmith init --guided` runs interactive architecture definition session
 - **REQ-CLI-010**: `specsmith status` shows CI status, alerts, and PRs from VCS platform CLI
 - **REQ-CLI-011**: `specsmith diff` compares governance files against spec templates
+- **REQ-CLI-012**: `specsmith export` generates compliance report with REQ coverage matrix, audit summary, tool status
+- **REQ-CLI-013**: `specsmith import --guided` runs architecture definition after import detection
 
 ## Scaffolding
 
@@ -26,7 +28,7 @@
 ## Configuration
 
 - **REQ-CFG-001**: ProjectConfig validates scaffold.yml input with pydantic
-- **REQ-CFG-002**: ProjectConfig supports 20 project types covering Python, Rust, Go, C/C++, JS/TS, .NET, mobile, DevOps, data/ML, and microservices
+- **REQ-CFG-002**: ProjectConfig supports 30 project types covering Python, Rust, Go, C/C++, JS/TS, .NET, mobile, DevOps, data/ML, microservices, documents, business, legal, and project management
 - **REQ-CFG-003**: ProjectConfig derives package_name from project name (hyphen → underscore)
 - **REQ-CFG-004**: ProjectConfig supports verification_tools overrides per tool category
 - **REQ-CFG-005**: ProjectConfig stores detected_build_system and detected_test_framework from import
@@ -39,6 +41,8 @@
 - **REQ-AUD-004**: Audit checks ledger size against threshold (default 500 lines)
 - **REQ-AUD-005**: Audit checks open TODO count in ledger
 - **REQ-AUD-006**: Audit checks governance file sizes against bloat thresholds
+- **REQ-AUD-007**: Audit checks CI config references expected verification tools for project type
+- **REQ-AUD-008**: `audit --fix` generates missing CI configs from tool registry
 
 ## Validation
 
@@ -88,9 +92,24 @@
 ## VCS Platforms
 
 - **REQ-VCS-001**: GitHub, GitLab, and Bitbucket platforms generate tool-aware CI configs from the registry
-- **REQ-VCS-002**: CI config generation supports all 20 project types with correct tool commands
+- **REQ-VCS-002**: CI config generation supports all 30 project types with correct tool commands
 - **REQ-VCS-003**: Dependabot/Renovate config uses correct package ecosystem per language
 - **REQ-VCS-004**: Mixed-language projects (e.g., Python+JS) get multi-runtime CI setup
+
+## Export
+
+- **REQ-EXP-001**: Export generates project summary from scaffold.yml
+- **REQ-EXP-002**: Export generates REQ↔TEST coverage matrix with percentage
+- **REQ-EXP-003**: Export includes audit summary with pass/fail/fixable counts
+- **REQ-EXP-004**: Export includes governance file inventory
+- **REQ-EXP-005**: Export supports --output flag for file output
+
+## Templates
+
+- **REQ-TPL-001**: Governance templates include type-specific verification tool listings
+- **REQ-TPL-002**: Requirements template generates domain-specific starters (patent, legal, business, API, research)
+- **REQ-TPL-003**: Test spec template generates domain-specific test stubs
+- **REQ-TPL-004**: Architecture template includes verification tools section
 
 ## Cross-Platform
 

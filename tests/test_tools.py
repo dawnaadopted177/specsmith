@@ -65,18 +65,15 @@ class TestToolRegistry:
         assert ts.lint == []
         assert ts.test == []
 
-    def test_all_20_types_have_entries(self) -> None:
-        for pt in ProjectType:
+    def test_all_30_types_have_entries(self) -> None:
+        types = list(ProjectType)
+        assert len(types) == 30, f"Expected 30 types, got {len(types)}"
+        for pt in types:
             ts = list_tools_for_type(pt)
             # Every type should have at least one tool category populated
             has_any = bool(
-                ts.lint
-                or ts.typecheck
-                or ts.test
-                or ts.security
-                or ts.build
-                or ts.format
-                or ts.compliance
+                ts.lint or ts.typecheck or ts.test or ts.security
+                or ts.build or ts.format or ts.compliance
             )
             assert has_any, f"{pt.value} has no tools registered"
 
