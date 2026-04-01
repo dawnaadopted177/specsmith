@@ -151,6 +151,9 @@ def detect_project(root: Path) -> DetectionResult:
         "venv",
         "node_modules",
         "__pycache__",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".mypy_cache",
         ".work",
         "build",
         "dist",
@@ -174,7 +177,7 @@ def detect_project(root: Path) -> DetectionResult:
     if lang_counter:
         result.primary_language = lang_counter.most_common(1)[0][0]
 
-    # Build system
+    # Build system — check root AND first-level subdirectories
     for indicator, system in _BUILD_SYSTEMS.items():
         if indicator.startswith("*"):
             if any(f.name.endswith(indicator[1:]) for f in all_files):
@@ -183,8 +186,18 @@ def detect_project(root: Path) -> DetectionResult:
         elif (root / indicator).exists():
             result.build_system = system
             break
+    if not result.build_system:
+        for subdir in root.iterdir():
+            if not subdir.is_dir() or subdir.name in skip_dirs or subdir.name.startswith("."):
+                continue
+            for indicator, system in _BUILD_SYSTEMS.items():
+                if not indicator.startswith("*") and (subdir / indicator).exists():
+                    result.build_system = system
+                    break
+            if result.build_system:
+                break
 
-    # Test framework
+    # Test framework — check root AND first-level subdirectories
     for indicator, framework in _TEST_INDICATORS.items():
         if indicator.endswith("/"):
             if (root / indicator.rstrip("/")).is_dir():
@@ -193,6 +206,20 @@ def detect_project(root: Path) -> DetectionResult:
         elif (root / indicator).exists():
             result.test_framework = framework
             break
+    if not result.test_framework:
+        for subdir in root.iterdir():
+            if not subdir.is_dir() or subdir.name in skip_dirs or subdir.name.startswith("."):
+                continue
+            for indicator, framework in _TEST_INDICATORS.items():
+                if indicator.endswith("/"):
+                    if (subdir / indicator.rstrip("/")).is_dir():
+                        result.test_framework = framework
+                        break
+                elif (subdir / indicator).exists():
+                    result.test_framework = framework
+                    break
+            if result.test_framework:
+                break
 
     # CI detection
     for indicator, platform in _CI_INDICATORS.items():
@@ -249,6 +276,7 @@ def detect_project(root: Path) -> DetectionResult:
 def _detect_modules(root: Path, language: str) -> list[str]:
     """Detect major modules/packages in the project."""
     modules: list[str] = []
+    _skip = {"tests", "test", ".git", ".venv", "venv", "node_modules", "__pycache__"}
 
     if language == "python":
         src = root / "src"
@@ -258,7 +286,19 @@ def _detect_modules(root: Path, language: str) -> list[str]:
                     modules.append(d.name)
         else:
             for d in root.iterdir():
-                if d.is_dir() and (d / "__init__.py").exists() and d.name != "tests":
+                if d.is_dir() and (d / "__init__.py").exists() and d.name not in _skip:
+                    modules.append(d.name)
+        # Also check first-level subdirs (e.g., backend/glossa_lab/)
+        for subdir in root.iterdir():
+            if not subdir.is_dir() or subdir.name in _skip or subdir.name.startswith("."):
+                continue
+            for d in subdir.iterdir():
+                if (
+                    d.is_dir()
+                    and (d / "__init__.py").exists()
+                    and d.name not in _skip
+                    and d.name not in modules
+                ):
                     modules.append(d.name)
     elif language == "rust":
         if (root / "src" / "lib.rs").exists():
@@ -372,11 +412,12 @@ def _infer_type(result: DetectionResult) -> ProjectType:
             if (result.root / "manage.py").exists():
                 return ProjectType.BACKEND_FRONTEND
             return ProjectType.LIBRARY_PYTHON
-        # Check for ML indicators
-        if any(
-            (result.root / f).exists()
-            for f in ("notebooks", "data", "models", "requirements-ml.txt")
-        ):
+        # Check for ML indicators — require strong signals, not just data/ dir
+        has_notebooks = any(f.suffix == ".ipynb" for f in result.root.rglob("*.ipynb"))
+        has_ml_marker = (result.root / "requirements-ml.txt").exists() or (
+            (result.root / "notebooks").is_dir() and has_notebooks
+        )
+        if has_ml_marker:
             return ProjectType.DATA_ML
         return ProjectType.CLI_PYTHON
 
