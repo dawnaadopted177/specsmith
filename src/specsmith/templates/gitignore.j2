@@ -36,3 +36,84 @@ htmlcov/
 # Build artifacts
 .work/
 *.log
+{% if project.type.value in ('cli-rust', 'library-rust') %}
+
+# Rust
+target/
+Cargo.lock
+{% endif %}
+{% if project.type.value in ('cli-go',) %}
+
+# Go
+bin/
+vendor/
+{% endif %}
+{% if project.type.value in ('web-frontend', 'fullstack-js', 'browser-extension', 'monorepo') %}
+
+# Node.js
+node_modules/
+.next/
+.nuxt/
+*.tsbuildinfo
+{% endif %}
+{% if project.type.value in ('mobile-app',) %}
+
+# Mobile / Android / Kotlin
+.gradle/
+local.properties
+*.apk
+*.aab
+*.ipa
+{% endif %}
+{% if project.type.value == 'dotnet-app' %}
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+{% endif %}
+{% if project.type.value == 'pcb-hardware' %}
+
+# KiCad
+*-backups/
+fp-info-cache
+*.kicad_pcb-bak
+*.kicad_sch-bak
+{% endif %}
+{% if project.type.value == 'fpga-rtl' %}
+
+# FPGA
+*.jou
+*.str
+work/
+xsim.dir/
+{% endif %}
+{% if project.type.value in ('yocto-bsp', 'embedded-hardware') %}
+
+# Embedded
+twister-out/
+sstate-cache/
+downloads/
+tmp/
+{% endif %}
+{% if project.type.value == 'research-paper' %}
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+{% endif %}
+{% if project.type.value == 'devops-iac' %}
+
+# Terraform / IaC
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+{% endif %}

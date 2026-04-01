@@ -95,6 +95,39 @@ def run_export(root: Path) -> str:
         sections.append(f"- {icon} {r.message}")
     sections.append("")
 
+    # --- Git activity ---
+    git_dir = root / ".git"
+    if git_dir.exists():
+        import subprocess
+
+        sections.append("## Recent Activity\n")
+        try:
+            log = subprocess.run(
+                ["git", "-C", str(root), "log", "--oneline", "-10"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if log.returncode == 0 and log.stdout.strip():
+                for line in log.stdout.strip().splitlines():
+                    sections.append(f"- `{line}`")
+                sections.append("")
+
+            # Contributors
+            contribs = subprocess.run(
+                ["git", "-C", str(root), "shortlog", "-sn", "--no-merges", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if contribs.returncode == 0 and contribs.stdout.strip():
+                sections.append("**Contributors:**")
+                for line in contribs.stdout.strip().splitlines()[:10]:
+                    sections.append(f"- {line.strip()}")
+                sections.append("")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            sections.append("*Could not read git history*\n")
+
     # --- Governance file inventory ---
     sections.append("## Governance File Inventory\n")
     gov_files = [

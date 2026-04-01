@@ -388,6 +388,42 @@ def diff(project_dir: str) -> None:
     default=".",
     help="Project root directory.",
 )
+def doctor(project_dir: str) -> None:
+    """Check if verification tools are installed locally."""
+    from specsmith.doctor import run_doctor
+
+    root = Path(project_dir).resolve()
+    report = run_doctor(root)
+
+    if not report.checks:
+        console.print("[yellow]No scaffold.yml found — cannot determine tools.[/yellow]")
+        return
+
+    console.print(f"[bold]Doctor[/bold] — checking {len(report.checks)} tools\n")
+    for check in report.checks:
+        if check.installed:
+            ver = f" ({check.version})" if check.version else ""
+            console.print(f"  [green]✓[/green] {check.category}: {check.name}{ver}")
+        else:
+            console.print(f"  [red]✗[/red] {check.category}: {check.name} — not found")
+
+    console.print()
+    if report.missing_count == 0:
+        console.print(f"[bold green]All {report.installed_count} tools available.[/bold green]")
+    else:
+        console.print(
+            f"[bold red]{report.missing_count} tool(s) missing.[/bold red] "
+            f"{report.installed_count} installed."
+        )
+
+
+@main.command()
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
 @click.option(
     "--output",
     type=click.Path(),

@@ -45,6 +45,9 @@ _EXT_LANG: dict[str, str] = {
     ".bib": "bibtex",
     ".md": "markdown",
     ".rst": "restructuredtext",
+    ".kicad_pcb": "kicad",
+    ".kicad_sch": "kicad",
+    ".kicad_pro": "kicad",
 }
 
 # Build system detection: file → build system name
@@ -58,8 +61,10 @@ _BUILD_SYSTEMS: dict[str, str] = {
     "package.json": "npm",
     "pom.xml": "maven",
     "build.gradle": "gradle",
+    "build.gradle.kts": "gradle",
     "meson.build": "meson",
     "bitbake": "bitbake",
+    "west.yml": "west",
     "pubspec.yaml": "flutter",
     "*.csproj": "dotnet",
     "*.sln": "dotnet",
@@ -307,6 +312,8 @@ def _infer_type(result: DetectionResult) -> ProjectType:
     if lang == "go":
         return ProjectType.CLI_GO
     if lang in ("c", "cpp", "h", "hpp"):
+        if build == "west":
+            return ProjectType.EMBEDDED_HARDWARE
         if build == "cmake":
             if any("lib" in m for m in result.modules):
                 return ProjectType.LIBRARY_C
@@ -316,6 +323,8 @@ def _infer_type(result: DetectionResult) -> ProjectType:
         return ProjectType.DOTNET_APP
     if lang in ("dart", "swift", "kotlin"):
         return ProjectType.MOBILE_APP
+    if lang == "kicad":
+        return ProjectType.PCB_HARDWARE
     if lang == "terraform":
         return ProjectType.DEVOPS_IAC
     if lang == "latex":
@@ -482,5 +491,46 @@ def generate_overlay(
         for lang_name, count in sorted(result.languages.items(), key=lambda x: -x[1]):
             arch += f"- {lang_name}: {count} files\n"
     _write("docs/architecture.md", arch)
+
+    # --- Modular governance files (merge: only create if missing) ---
+    _write(
+        "docs/governance/rules.md",
+        "# Rules\n\nH1: Never modify governance files without a proposal.\n"
+        "H2: All proposals require human approval.\n"
+        "H3: The ledger is append-only.\n",
+    )
+    _write(
+        "docs/governance/workflow.md",
+        "# Workflow\n\n1. Propose changes\n2. Get approval\n"
+        "3. Execute\n4. Verify\n5. Record in ledger\n",
+    )
+    _write(
+        "docs/governance/roles.md",
+        "# Roles\n\n- **Human**: Approves proposals\n- **Agent**: Proposes and executes\n",
+    )
+    _write(
+        "docs/governance/context-budget.md",
+        "# Context Budget\n\nKeep governance files small. Lazy-load per task.\n",
+    )
+    _write(
+        "docs/governance/verification.md",
+        "# Verification\n\nRun verification tools before marking tasks complete.\n",
+    )
+    _write(
+        "docs/governance/drift-metrics.md",
+        "# Drift Metrics\n\nUse `specsmith audit` to check governance health.\n",
+    )
+
+    # --- CI config (merge: only create if no CI detected) ---
+    if not result.existing_ci and result.vcs_platform:
+        try:
+            from specsmith.vcs import get_platform
+
+            config = generate_import_config(result)
+            platform = get_platform(result.vcs_platform)
+            ci_files = platform.generate_all(config, target)
+            created.extend(ci_files)
+        except (ValueError, Exception):  # noqa: BLE001
+            pass  # Best-effort
 
     return created

@@ -268,6 +268,11 @@ class TestSandboxImport:
             p = root / "docs" / f
             if p.exists():
                 p.unlink()
+        gov = root / "docs" / "governance"
+        if gov.exists():
+            import shutil
+
+            shutil.rmtree(gov)
 
         # Re-import
         runner.invoke(main, ["import", "--project-dir", str(root), "--force"], input="y\n")
