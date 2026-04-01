@@ -60,9 +60,8 @@ def main() -> None:
 def init(config_path: str | None, output_dir: str, no_git: bool) -> None:
     """Scaffold a new governed project."""
     if config_path:
-        with open(config_path) as f:
-            raw = yaml.safe_load(f)
-        cfg = ProjectConfig(**raw)
+        raw = _load_config_with_inheritance(config_path)
+        cfg = ProjectConfig(**raw)  # type: ignore[arg-type]
         if no_git:
             cfg.git_init = False
     else:
@@ -91,6 +90,43 @@ def init(config_path: str | None, output_dir: str, no_git: bool) -> None:
         yaml.dump(cfg.model_dump(mode="json"), fh, default_flow_style=False, sort_keys=False)
 
 
+def _load_config_with_inheritance(config_path: str) -> dict[str, object]:
+    """Load scaffold.yml, merging parent config if `extends` is set."""
+    with open(config_path) as f:
+        raw: dict[str, object] = yaml.safe_load(f)
+
+    extends = raw.get("extends", "")
+    if isinstance(extends, str) and extends and Path(extends).exists():
+        with open(extends) as f:
+            parent: dict[str, object] = yaml.safe_load(f) or {}
+        # Parent provides defaults; child overrides
+        merged: dict[str, object] = {
+            **parent,
+            **{k: v for k, v in raw.items() if k != "extends"},
+        }
+        return merged
+
+    return raw
+
+
+VCS_PLATFORM_CHOICES = {"1": "github", "2": "gitlab", "3": "bitbucket", "4": ""}
+VCS_PLATFORM_LABELS = {"1": "GitHub", "2": "GitLab", "3": "Bitbucket", "4": "None"}
+
+BRANCH_STRATEGY_CHOICES = {"1": "gitflow", "2": "trunk-based", "3": "github-flow"}
+BRANCH_STRATEGY_LABELS = {"1": "Gitflow", "2": "Trunk-based", "3": "GitHub Flow"}
+
+INTEGRATION_OPTIONS = [
+    ("agents-md", "AGENTS.md (always included)"),
+    ("warp", "Warp / Oz"),
+    ("claude-code", "Claude Code"),
+    ("copilot", "GitHub Copilot"),
+    ("cursor", "Cursor"),
+    ("gemini", "Gemini CLI"),
+    ("windsurf", "Windsurf"),
+    ("aider", "Aider"),
+]
+
+
 def _interactive_config(no_git: bool) -> ProjectConfig:
     """Gather project config interactively."""
     console.print("[bold]specsmith init[/bold] — interactive scaffold setup\n")
@@ -111,6 +147,33 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
     language = click.prompt("Primary language", default="python")
     description = click.prompt("Short description", default="")
 
+    # VCS platform
+    console.print("\nVCS platform:")
+    for k, v in VCS_PLATFORM_LABELS.items():
+        console.print(f"  {k}. {v}")
+    vcs_choice = click.prompt("Select platform", default="1")
+    vcs_platform = VCS_PLATFORM_CHOICES.get(vcs_choice, "github")
+
+    # Branching strategy
+    console.print("\nBranching strategy:")
+    for k, v in BRANCH_STRATEGY_LABELS.items():
+        console.print(f"  {k}. {v}")
+    branch_choice = click.prompt("Select strategy", default="1")
+    branching_strategy = BRANCH_STRATEGY_CHOICES.get(branch_choice, "gitflow")
+
+    # Agent integrations
+    console.print("\nAgent integrations (comma-separated numbers):")
+    for i, (_key, label) in enumerate(INTEGRATION_OPTIONS):
+        console.print(f"  {i + 1}. {label}")
+    int_input = click.prompt("Select integrations", default="1")
+    integrations = ["agents-md"]
+    for idx_str in int_input.split(","):
+        idx = int(idx_str.strip()) - 1
+        if 0 <= idx < len(INTEGRATION_OPTIONS):
+            name_val = INTEGRATION_OPTIONS[idx][0]
+            if name_val not in integrations:
+                integrations.append(name_val)
+
     return ProjectConfig(
         name=name,
         type=project_type,
@@ -118,6 +181,9 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
         language=language,
         description=description,
         git_init=not no_git,
+        vcs_platform=vcs_platform,
+        branching_strategy=branching_strategy,
+        integrations=integrations,
     )
 
 
@@ -150,7 +216,18 @@ def audit(fix: bool, project_dir: str) -> None:
             f"({report.fixable} fixable). {report.passed} checks passed."
         )
         if fix:
-            console.print("[yellow]Auto-fix not yet implemented.[/yellow]")
+            from specsmith.auditor import run_auto_fix
+
+            fixed = run_auto_fix(root, report)
+            if fixed:
+                for msg in fixed:
+                    console.print(f"  [cyan]⟳[/cyan] {msg}")
+                console.print(
+                    f"\n[bold cyan]{len(fixed)} issue(s) auto-fixed.[/bold cyan] "
+                    f"Re-run audit to verify."
+                )
+            else:
+                console.print("[yellow]No auto-fixable issues found.[/yellow]")
         raise SystemExit(1)
 
 
@@ -233,6 +310,80 @@ def upgrade(spec_version: str | None, project_dir: str) -> None:
     if result.skipped_files:
         for f in result.skipped_files:
             console.print(f"  [yellow]—[/yellow] {f} (not found, skipped)")
+
+
+@main.command()
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+def status(project_dir: str) -> None:
+    """Show VCS platform status (CI, alerts, PRs)."""
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+
+    if scaffold_path.exists():
+        with open(scaffold_path) as f:
+            raw = yaml.safe_load(f)
+        platform_name = raw.get("vcs_platform", "github")
+    else:
+        platform_name = "github"
+
+    if not platform_name:
+        console.print("[yellow]No VCS platform configured.[/yellow]")
+        return
+
+    from specsmith.vcs import get_platform
+
+    try:
+        platform = get_platform(platform_name)
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise SystemExit(1) from e
+
+    if not platform.is_cli_available():
+        console.print(
+            f"[red]{platform.cli_name} CLI not found.[/red] Install it to use status checks."
+        )
+        raise SystemExit(1)
+
+    console.print(f"[bold]Status[/bold] via {platform.cli_name}\n")
+    ps = platform.check_status()
+    for detail in ps.details:
+        console.print(f"  {detail}")
+
+    if ps.ci_passing is not None:
+        icon = "[green]✓[/green]" if ps.ci_passing else "[red]✗[/red]"
+        console.print(f"\n  CI: {icon}")
+
+
+@main.command()
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+def diff(project_dir: str) -> None:
+    """Compare governance files against spec templates."""
+    from specsmith.differ import run_diff
+
+    root = Path(project_dir).resolve()
+    results = run_diff(root)
+
+    if not results:
+        console.print("[bold green]All governance files match templates.[/bold green]")
+        return
+
+    for name, status in results:
+        if status == "match":
+            console.print(f"  [green]✓[/green] {name}")
+        elif status == "missing":
+            console.print(f"  [red]✗[/red] {name} — missing")
+        else:
+            console.print(f"  [yellow]~[/yellow] {name} — differs from template")
 
 
 if __name__ == "__main__":

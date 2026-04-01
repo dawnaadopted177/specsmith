@@ -48,6 +48,12 @@ specsmith compress --project-dir ./my-project
 
 # Upgrade governance to newer spec version
 specsmith upgrade --spec-version 0.2.0 --project-dir ./my-project
+
+# VCS platform status (CI, alerts, PRs)
+specsmith status --project-dir ./my-project
+
+# Compare governance files against templates
+specsmith diff --project-dir ./my-project
 ```
 
 ## Commands
@@ -55,10 +61,12 @@ specsmith upgrade --spec-version 0.2.0 --project-dir ./my-project
 | Command | Description |
 |---------|-------------|
 | `specsmith init` | Scaffold a new governed project (interactive or YAML-driven) |
-| `specsmith audit` | Drift detection and health checks (file existence, REQ↔TEST coverage, ledger health, context bloat) |
+| `specsmith audit [--fix]` | Drift detection and health checks; `--fix` auto-repairs missing files and oversized ledgers |
 | `specsmith validate` | Governance consistency (scaffold.yml, AGENTS.md refs, REQ uniqueness, arch↔req linkage) |
 | `specsmith compress` | Archive old ledger entries to `docs/ledger-archive.md` |
 | `specsmith upgrade` | Re-render governance files for a new spec version |
+| `specsmith status` | Show CI status, dependency alerts, and open PRs from VCS platform CLI |
+| `specsmith diff` | Compare governance files against what spec templates would generate |
 
 ## Project Types
 

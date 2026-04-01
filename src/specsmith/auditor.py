@@ -325,3 +325,47 @@ def run_audit(root: Path) -> AuditReport:
     report.results.extend(check_ledger_health(root))
     report.results.extend(check_context_size(root))
     return report
+
+
+def run_auto_fix(root: Path, report: AuditReport) -> list[str]:
+    """Attempt to auto-fix issues found by audit.
+
+    Returns list of human-readable fix descriptions.
+    """
+    fixed: list[str] = []
+
+    for result in report.results:
+        if result.passed:
+            continue
+
+        # Fix missing required files with minimal stubs
+        if result.name == "file-exists:AGENTS.md":
+            path = root / "AGENTS.md"
+            path.write_text(
+                "# AGENTS.md\n\nGovernance hub. Populate with project details.\n",
+                encoding="utf-8",
+            )
+            fixed.append("Created stub AGENTS.md")
+
+        elif result.name == "file-exists:LEDGER.md":
+            path = root / "LEDGER.md"
+            path.write_text("# Ledger\n\nNo entries yet.\n", encoding="utf-8")
+            fixed.append("Created stub LEDGER.md")
+
+        elif result.name.startswith("file-exists:docs/governance/"):
+            rel = result.name.split(":", 1)[1]
+            path = root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            fname = path.stem.replace("-", " ").title()
+            path.write_text(f"# {fname}\n\nPopulate per spec.\n", encoding="utf-8")
+            fixed.append(f"Created stub {rel}")
+
+        # Compress oversized ledger
+        elif result.name == "ledger-size" and result.fixable:
+            from specsmith.compressor import run_compress
+
+            compress_result = run_compress(root)
+            if compress_result.archived_entries > 0:
+                fixed.append(compress_result.message)
+
+    return fixed

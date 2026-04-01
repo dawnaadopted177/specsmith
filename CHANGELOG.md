@@ -8,19 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **specsmith CLI tool** (`specsmith init`): interactive or YAML-driven project scaffold generation with Jinja2 templates, pydantic config validation, and 8 project types.
-- **`specsmith audit`**: drift detection and health checks — governance file existence, REQ↔TEST coverage, ledger size/staleness, context bloat thresholds.
-- **`specsmith validate`**: governance consistency checks — scaffold.yml validation, AGENTS.md reference integrity, requirement ID uniqueness, architecture↔requirements linkage.
-- **`specsmith compress`**: ledger archival — moves old entries to `docs/ledger-archive.md`, keeps configurable recent entries.
-- **`specsmith upgrade`**: re-renders governance files from templates when spec version bumps.
-- **Agent integration adapters**: Warp/Oz (`.warp/skills/SKILL.md`), Claude Code (`CLAUDE.md`), Cursor (`.cursor/rules/governance.mdc`), GitHub Copilot (`.github/copilot-instructions.md`), with adapter registry.
-- **36 tests** covering config, scaffolder, auditor, validator, compressor, and all integration adapters.
+- **specsmith CLI tool** with 7 commands: `init`, `audit`, `validate`, `compress`, `upgrade`, `status`, `diff`.
+- **Interactive prompts** for VCS platform, branching strategy, and agent integrations during `specsmith init`.
+- **`specsmith status`**: pull CI status, dependency alerts, and open PRs from VCS platform CLI (gh/glab/bb).
+- **`specsmith diff`**: compare governance files against what spec templates would generate.
+- **`audit --fix`**: auto-repair missing governance files and compress oversized ledgers.
+- **Config inheritance**: `extends` field in scaffold.yml to inherit org-level defaults.
+- **7 agent integration adapters**: Warp/Oz, Claude Code, Cursor, Copilot, Gemini, Windsurf, Aider.
+- **3 VCS platform integrations**: GitHub (`gh`), GitLab (`glab`), Bitbucket (`bb`) with CI/CD, dependency, and security config generation.
+- **Domain-specific scaffold directories**: FPGA (rtl/src, constraints, testbenches, ip_cores), Yocto (meta-layer, kas, configs), PCB (schematics, layout, bom, fabrication, 3d-models), Embedded (firmware/src, include, drivers).
+- **Branching strategy config**: gitflow, trunk-based, github-flow with tuning knobs (require_pr_reviews, required_approvals, require_ci_pass, allow_force_push, use_remote_rules).
+- **59 tests** across 10 test files covering CLI, scaffolder, auditor, validator, compressor, integrations, VCS platforms.
 - **GitHub Actions CI**: lint (ruff), typecheck (mypy --strict), test (pytest, 3 OS × 3 Python), security audit (pip-audit).
-- **Release workflow**: tag-triggered build (sdist + wheel) → GitHub Release artifacts (no PyPI yet).
-- **Dependabot** for pip and GitHub Actions dependencies.
-- **Pre-commit config**: ruff lint/format, trailing whitespace, YAML/TOML checks.
-- **Docker local CI**: `Dockerfile.test` + `docker-compose.test.yml` for containerized lint/typecheck/test.
-- Formal `docs/REQUIREMENTS.md` (37 requirements) and `docs/TEST_SPEC.md` (30 test cases) for specsmith itself.
+- **Release workflow**: tag-triggered build (sdist + wheel) → GitHub Release artifacts.
+- Dependabot, pre-commit, Docker local CI.
+- SECURITY.md, MAINTAINERS.md, .github/CODEOWNERS.
+- SPDX-License-Identifier: MIT headers on all source files.
+- Self-hosted governance: AGENTS.md, LEDGER.md, CONTRIBUTING.md for specsmith itself.
+
+### Changed
+- **Windows scripts**: replaced all `.ps1` templates with `.cmd` for environment compatibility.
+- **GitHub Actions**: bumped to `checkout@v6` + `setup-python@v6`.
+- **Branch protection**: `main` branch protected via GitHub rulesets (no deletion, no force push).
+- Gitflow branching with `develop` branch created and synced.
 
 ## [0.1.0-alpha.1] - 2026-03-31
 

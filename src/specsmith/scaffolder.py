@@ -151,9 +151,44 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
             ]
         )
     elif config.type == ProjectType.LIBRARY_PYTHON:
+        dirs.extend([target / "examples"])
+    elif config.type == ProjectType.FPGA_RTL:
         dirs.extend(
             [
-                target / "examples",
+                target / "rtl/src",
+                target / "rtl/testbenches",
+                target / "constraints",
+                target / "ip_cores",
+                target / "simulation",
+                target / ".work",
+            ]
+        )
+    elif config.type == ProjectType.YOCTO_BSP:
+        dirs.extend(
+            [
+                target / f"meta-{config.package_name}/recipes-core",
+                target / f"meta-{config.package_name}/conf",
+                target / "kas",
+                target / "configs",
+            ]
+        )
+    elif config.type == ProjectType.PCB_HARDWARE:
+        dirs.extend(
+            [
+                target / "schematics",
+                target / "layout",
+                target / "bom",
+                target / "fabrication",
+                target / "3d-models",
+            ]
+        )
+    elif config.type == ProjectType.EMBEDDED_HARDWARE:
+        dirs.extend(
+            [
+                target / "firmware/src",
+                target / "firmware/include",
+                target / "firmware/drivers",
+                target / "tools",
             ]
         )
 

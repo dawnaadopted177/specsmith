@@ -36,6 +36,12 @@ class ProjectConfig(BaseModel):
     This model validates the scaffold.yml input file and interactive prompts.
     """
 
+    # Config inheritance
+    extends: str = Field(
+        default="",
+        description="Path or URL to parent scaffold.yml to inherit defaults from",
+    )
+
     name: str = Field(description="Project name (used for directory and package name)")
     type: ProjectType = Field(description="Project type from Section 17")
     platforms: list[Platform] = Field(
