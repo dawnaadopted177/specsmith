@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-04-01
+
+### Security
+- **Fix incomplete URL substring sanitization** (CodeQL alert #1): VCS platform detection in the importer now uses proper URL host parsing (`urllib.parse.urlparse` for HTTPS, explicit host extraction for SSH remotes) instead of substring matching. Prevents potential misidentification from spoofed hostnames.
+
 ## [0.1.0] - 2026-04-01
 
 ### Added
@@ -108,7 +113,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/BitConcepts/specsmith/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/BitConcepts/specsmith/compare/v0.1.0-alpha.2...v0.1.0
 [0.1.0-alpha.2]: https://github.com/BitConcepts/specsmith/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/BitConcepts/specsmith/releases/tag/v0.1.0-alpha.1
