@@ -1,0 +1,325 @@
+"""Auditor — drift detection and health checks (Spec Sections 23 + 26)."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from rich.console import Console
+
+console = Console()
+
+
+@dataclass
+class AuditResult:
+    """Result of a single audit check."""
+
+    name: str
+    passed: bool
+    message: str
+    fixable: bool = False
+
+
+@dataclass
+class AuditReport:
+    """Aggregate audit report."""
+
+    results: list[AuditResult] = field(default_factory=list)
+
+    @property
+    def passed(self) -> int:
+        return sum(1 for r in self.results if r.passed)
+
+    @property
+    def failed(self) -> int:
+        return sum(1 for r in self.results if not r.passed)
+
+    @property
+    def fixable(self) -> int:
+        return sum(1 for r in self.results if not r.passed and r.fixable)
+
+    @property
+    def healthy(self) -> bool:
+        return self.failed == 0
+
+
+# ---------------------------------------------------------------------------
+# Governance file existence checks
+# ---------------------------------------------------------------------------
+
+REQUIRED_FILES = [
+    "AGENTS.md",
+    "LEDGER.md",
+]
+
+GOVERNANCE_FILES = [
+    "docs/governance/rules.md",
+    "docs/governance/workflow.md",
+    "docs/governance/roles.md",
+    "docs/governance/context-budget.md",
+    "docs/governance/verification.md",
+    "docs/governance/drift-metrics.md",
+]
+
+RECOMMENDED_FILES = [
+    "docs/REQUIREMENTS.md",
+    "docs/TEST_SPEC.md",
+    "docs/architecture.md",
+]
+
+
+def check_governance_files(root: Path) -> list[AuditResult]:
+    """Check that all required governance files exist."""
+    results: list[AuditResult] = []
+
+    for f in REQUIRED_FILES:
+        path = root / f
+        results.append(
+            AuditResult(
+                name=f"file-exists:{f}",
+                passed=path.exists(),
+                message=f"Required file {f} {'exists' if path.exists() else 'MISSING'}",
+            )
+        )
+
+    # Modular governance: either all exist or AGENTS.md is self-contained (>200 lines)
+    agents_path = root / "AGENTS.md"
+    agents_lines = 0
+    if agents_path.exists():
+        agents_lines = len(agents_path.read_text(encoding="utf-8").splitlines())
+
+    if agents_lines > 200:
+        # Modular governance is REQUIRED
+        for f in GOVERNANCE_FILES:
+            path = root / f
+            results.append(
+                AuditResult(
+                    name=f"file-exists:{f}",
+                    passed=path.exists(),
+                    message=(
+                        f"Governance file {f} {'exists' if path.exists() else 'MISSING'}"
+                        f" (AGENTS.md is {agents_lines} lines — modular split required)"
+                    ),
+                )
+            )
+    else:
+        # Recommended but not required
+        for f in GOVERNANCE_FILES:
+            path = root / f
+            if path.exists():
+                results.append(
+                    AuditResult(
+                        name=f"file-exists:{f}",
+                        passed=True,
+                        message=f"Governance file {f} exists",
+                    )
+                )
+
+    for f in RECOMMENDED_FILES:
+        path = root / f
+        results.append(
+            AuditResult(
+                name=f"recommended:{f}",
+                passed=path.exists(),
+                message=f"Recommended file {f} {'exists' if path.exists() else 'missing'}",
+            )
+        )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Requirement ↔ Test consistency
+# ---------------------------------------------------------------------------
+
+_REQ_PATTERN = re.compile(r"\b(REQ-[A-Z]+-\d+)\b")
+_TEST_PATTERN = re.compile(r"\b(TEST-[A-Z]+-\d+)\b")
+_TEST_COVERS_PATTERN = re.compile(r"Covers:\s*(REQ-[A-Z]+-\d+(?:\s*,\s*REQ-[A-Z]+-\d+)*)")
+
+
+def check_req_test_consistency(root: Path) -> list[AuditResult]:
+    """Check that every REQ has at least one TEST and vice versa."""
+    results: list[AuditResult] = []
+
+    req_path = root / "docs" / "REQUIREMENTS.md"
+    test_path = root / "docs" / "TEST_SPEC.md"
+
+    if not req_path.exists() or not test_path.exists():
+        results.append(
+            AuditResult(
+                name="req-test-consistency",
+                passed=True,
+                message="Skipped: REQUIREMENTS.md or TEST_SPEC.md not found",
+            )
+        )
+        return results
+
+    req_text = req_path.read_text(encoding="utf-8")
+    test_text = test_path.read_text(encoding="utf-8")
+
+    req_ids = set(_REQ_PATTERN.findall(req_text))
+
+    # Find which REQs are covered by tests
+    covered_reqs: set[str] = set()
+    for match in _TEST_COVERS_PATTERN.finditer(test_text):
+        for req_id in _REQ_PATTERN.findall(match.group(0)):
+            covered_reqs.add(req_id)
+
+    uncovered = req_ids - covered_reqs
+    if uncovered:
+        results.append(
+            AuditResult(
+                name="req-test-coverage",
+                passed=False,
+                message=(
+                    f"{len(uncovered)} REQ(s) without test coverage: {', '.join(sorted(uncovered))}"
+                ),
+            )
+        )
+    else:
+        results.append(
+            AuditResult(
+                name="req-test-coverage",
+                passed=True,
+                message=f"All {len(req_ids)} REQ(s) have test coverage",
+            )
+        )
+
+    # Orphaned tests
+    orphaned = covered_reqs - req_ids
+    if orphaned:
+        results.append(
+            AuditResult(
+                name="orphaned-tests",
+                passed=False,
+                message=(
+                    f"{len(orphaned)} TEST(s) reference non-existent REQ(s): "
+                    f"{', '.join(sorted(orphaned))}"
+                ),
+            )
+        )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Ledger health
+# ---------------------------------------------------------------------------
+
+
+def check_ledger_health(root: Path) -> list[AuditResult]:
+    """Check ledger quality and staleness."""
+    results: list[AuditResult] = []
+    ledger_path = root / "LEDGER.md"
+
+    if not ledger_path.exists():
+        results.append(
+            AuditResult(
+                name="ledger-exists",
+                passed=False,
+                message="LEDGER.md not found",
+            )
+        )
+        return results
+
+    text = ledger_path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    line_count = len(lines)
+
+    # Size check
+    if line_count > 500:
+        results.append(
+            AuditResult(
+                name="ledger-size",
+                passed=False,
+                message=(
+                    f"LEDGER.md has {line_count} lines (threshold: 500). "
+                    f"Consider `specsmith compress`."
+                ),
+                fixable=True,
+            )
+        )
+    else:
+        results.append(
+            AuditResult(
+                name="ledger-size",
+                passed=True,
+                message=f"LEDGER.md has {line_count} lines (within threshold)",
+            )
+        )
+
+    # Open TODOs
+    open_todos = sum(1 for line in lines if "- [ ]" in line)
+    closed_todos = sum(1 for line in lines if "- [x]" in line)
+    if open_todos > 20:
+        results.append(
+            AuditResult(
+                name="ledger-open-todos",
+                passed=False,
+                message=f"{open_todos} open TODOs in ledger (may indicate stale items)",
+            )
+        )
+    else:
+        results.append(
+            AuditResult(
+                name="ledger-open-todos",
+                passed=True,
+                message=f"{open_todos} open, {closed_todos} closed TODOs",
+            )
+        )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Context size (governance bloat detection)
+# ---------------------------------------------------------------------------
+
+
+def check_context_size(root: Path) -> list[AuditResult]:
+    """Check governance file sizes against thresholds."""
+    results: list[AuditResult] = []
+    thresholds = {
+        "AGENTS.md": 200,
+        "docs/governance/rules.md": 300,
+        "docs/governance/workflow.md": 300,
+        "docs/governance/roles.md": 200,
+        "docs/governance/context-budget.md": 200,
+        "docs/governance/verification.md": 200,
+        "docs/governance/drift-metrics.md": 200,
+    }
+
+    for rel_path, max_lines in thresholds.items():
+        path = root / rel_path
+        if not path.exists():
+            continue
+        line_count = len(path.read_text(encoding="utf-8").splitlines())
+        ok = line_count <= max_lines
+        results.append(
+            AuditResult(
+                name=f"context-size:{rel_path}",
+                passed=ok,
+                message=(
+                    f"{rel_path}: {line_count} lines"
+                    + ("" if ok else f" (exceeds {max_lines} threshold)")
+                ),
+            )
+        )
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+
+def run_audit(root: Path) -> AuditReport:
+    """Run all audit checks and return a report."""
+    report = AuditReport()
+    report.results.extend(check_governance_files(root))
+    report.results.extend(check_req_test_consistency(root))
+    report.results.extend(check_ledger_health(root))
+    report.results.extend(check_context_size(root))
+    return report

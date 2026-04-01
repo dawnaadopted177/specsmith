@@ -49,9 +49,9 @@ dev = [
 specsmith = "specsmith.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/BitConcepts/agentic-scaffold"
-Repository = "https://github.com/BitConcepts/agentic-scaffold"
-Changelog = "https://github.com/BitConcepts/agentic-scaffold/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/BitConcepts/specsmith"
+Repository = "https://github.com/BitConcepts/specsmith"
+Changelog = "https://github.com/BitConcepts/specsmith/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]

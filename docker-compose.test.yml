@@ -1,0 +1,20 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+
+  lint:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: sh -c "ruff check src/ tests/ && ruff format --check src/ tests/"
+
+  typecheck:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: mypy src/specsmith/

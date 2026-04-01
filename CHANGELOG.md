@@ -47,5 +47,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[Unreleased]: https://github.com/BitConcepts/agentic-scaffold/compare/v0.1.0-alpha.1...HEAD
-[0.1.0-alpha.1]: https://github.com/BitConcepts/agentic-scaffold/releases/tag/v0.1.0-alpha.1
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.1.0-alpha.1...HEAD
+[0.1.0-alpha.1]: https://github.com/BitConcepts/specsmith/releases/tag/v0.1.0-alpha.1

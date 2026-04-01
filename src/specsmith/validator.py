@@ -1,0 +1,216 @@
+"""Validator — governance file consistency checks."""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
+
+@dataclass
+class ValidationResult:
+    """Result of a single validation check."""
+
+    name: str
+    passed: bool
+    message: str
+
+
+@dataclass
+class ValidationReport:
+    """Aggregate validation report."""
+
+    results: list[ValidationResult] = field(default_factory=list)
+
+    @property
+    def passed(self) -> int:
+        return sum(1 for r in self.results if r.passed)
+
+    @property
+    def failed(self) -> int:
+        return sum(1 for r in self.results if not r.passed)
+
+    @property
+    def valid(self) -> bool:
+        return self.failed == 0
+
+
+_REQ_PATTERN = re.compile(r"\b(REQ-[A-Z]+-\d+)\b")
+
+
+def _check_scaffold_yml(root: Path) -> list[ValidationResult]:
+    """Check that scaffold.yml exists and is valid YAML."""
+    results: list[ValidationResult] = []
+    scaffold_path = root / "scaffold.yml"
+
+    if not scaffold_path.exists():
+        results.append(
+            ValidationResult(
+                name="scaffold-yml",
+                passed=True,
+                message="No scaffold.yml found (project may not have been created by specsmith)",
+            )
+        )
+        return results
+
+    try:
+        import yaml
+
+        with open(scaffold_path) as f:
+            data = yaml.safe_load(f)
+        if not isinstance(data, dict):
+            results.append(
+                ValidationResult(
+                    name="scaffold-yml",
+                    passed=False,
+                    message="scaffold.yml is not a valid YAML mapping",
+                )
+            )
+        elif "name" not in data or "type" not in data:
+            results.append(
+                ValidationResult(
+                    name="scaffold-yml",
+                    passed=False,
+                    message="scaffold.yml missing required fields: name, type",
+                )
+            )
+        else:
+            results.append(
+                ValidationResult(
+                    name="scaffold-yml",
+                    passed=True,
+                    message=f"scaffold.yml valid: project={data['name']}, type={data['type']}",
+                )
+            )
+    except Exception as e:
+        results.append(
+            ValidationResult(
+                name="scaffold-yml",
+                passed=False,
+                message=f"scaffold.yml parse error: {e}",
+            )
+        )
+
+    return results
+
+
+def _check_agents_md_refs(root: Path) -> list[ValidationResult]:
+    """Check that AGENTS.md references governance files that exist."""
+    results: list[ValidationResult] = []
+    agents_path = root / "AGENTS.md"
+
+    if not agents_path.exists():
+        return results
+
+    text = agents_path.read_text(encoding="utf-8")
+
+    # Look for markdown links to local files
+    link_pattern = re.compile(r"\[.*?\]\((?!https?://)(.*?)\)")
+    for match in link_pattern.finditer(text):
+        ref = match.group(1).split("#")[0].strip()
+        if not ref:
+            continue
+        ref_path = root / ref
+        if not ref_path.exists():
+            results.append(
+                ValidationResult(
+                    name=f"agents-ref:{ref}",
+                    passed=False,
+                    message=f"AGENTS.md references {ref} but file does not exist",
+                )
+            )
+
+    if not results:
+        results.append(
+            ValidationResult(
+                name="agents-refs",
+                passed=True,
+                message="All AGENTS.md local references resolve",
+            )
+        )
+
+    return results
+
+
+def _check_req_ids_unique(root: Path) -> list[ValidationResult]:
+    """Check that requirement IDs are unique within REQUIREMENTS.md."""
+    results: list[ValidationResult] = []
+    req_path = root / "docs" / "REQUIREMENTS.md"
+
+    if not req_path.exists():
+        return results
+
+    text = req_path.read_text(encoding="utf-8")
+    req_ids = _REQ_PATTERN.findall(text)
+
+    seen: dict[str, int] = {}
+    for rid in req_ids:
+        seen[rid] = seen.get(rid, 0) + 1
+
+    duplicates = {k: v for k, v in seen.items() if v > 1}
+    if duplicates:
+        dup_str = ", ".join(f"{k}(×{v})" for k, v in sorted(duplicates.items()))
+        results.append(
+            ValidationResult(
+                name="req-unique",
+                passed=False,
+                message=f"Duplicate requirement IDs: {dup_str}",
+            )
+        )
+    else:
+        results.append(
+            ValidationResult(
+                name="req-unique",
+                passed=True,
+                message=f"{len(seen)} unique requirement IDs found",
+            )
+        )
+
+    return results
+
+
+def _check_architecture_reqs(root: Path) -> list[ValidationResult]:
+    """Check that architecture.md references requirements."""
+    results: list[ValidationResult] = []
+    arch_path = root / "docs" / "architecture.md"
+    req_path = root / "docs" / "REQUIREMENTS.md"
+
+    if not arch_path.exists() or not req_path.exists():
+        return results
+
+    req_text = req_path.read_text(encoding="utf-8")
+    arch_text = arch_path.read_text(encoding="utf-8")
+
+    req_ids = set(_REQ_PATTERN.findall(req_text))
+    arch_refs = set(_REQ_PATTERN.findall(arch_text))
+
+    if req_ids and not arch_refs:
+        results.append(
+            ValidationResult(
+                name="arch-req-refs",
+                passed=False,
+                message=(
+                    f"architecture.md references no REQ IDs, but REQUIREMENTS.md has {len(req_ids)}"
+                ),
+            )
+        )
+    else:
+        results.append(
+            ValidationResult(
+                name="arch-req-refs",
+                passed=True,
+                message=f"architecture.md references {len(arch_refs)} REQ IDs",
+            )
+        )
+
+    return results
+
+
+def run_validate(root: Path) -> ValidationReport:
+    """Run all validation checks and return a report."""
+    report = ValidationReport()
+    report.results.extend(_check_scaffold_yml(root))
+    report.results.extend(_check_agents_md_refs(root))
+    report.results.extend(_check_req_ids_unique(root))
+    report.results.extend(_check_architecture_reqs(root))
+    return report

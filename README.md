@@ -1,43 +1,83 @@
-# agentic-scaffold
+# specsmith
 
-Specification-first, constraint-governed workflow for AI-assisted software development.
+Forge governed project scaffolds from the Agentic AI Development Workflow Specification.
 
 ---
 
 ## What this is
 
-A portable reference specification and scaffolding system for projects that use AI agents as development assistants. It defines:
+`specsmith` is a CLI tool and specification system for projects that use AI agents as development assistants. It provides:
 
-- a closed-loop workflow (propose → check → execute → verify → record)
-- governance file schemas (AGENTS.md, LEDGER.md, REQUIREMENTS.md, TEST_SPEC.md)
-- session lifecycle rules (start, resume, save, commit, sync)
-- agent role boundaries (proposal generators, not decision-makers)
-- context window management strategies
-- project type templates (backend+frontend, CLI, library, embedded/hardware)
-- requirement and test specification formats
-- cross-platform rules and bootstrap contracts
+- **CLI tool** (`specsmith init`) — generate full governed project scaffolds interactively or from YAML config
+- **Agentic Workflow Spec** — closed-loop workflow (propose → check → execute → verify → record)
+- **Modular governance** — AGENTS.md hub + delegated docs (rules, roles, verification, drift-metrics, etc.)
+- **8 project types** — backend+frontend, CLI, library, embedded, FPGA/RTL, Yocto/BSP, PCB/hardware
+- **Health commands** — audit, validate, compress, upgrade for ongoing governance maintenance
+- **Agent integrations** — Warp/Oz, Claude Code, GitHub Copilot, Cursor, and more
+- **Execution safety** — timeout shims, non-interactive mandates, hung-process protection
 
 ## Core principle
 
 > Intelligence proposes. Constraints decide. The ledger remembers.
 
-## Who this is for
+## Install
 
-- Developers using AI agents (Claude, GPT, Copilot, etc.) for software development
-- Teams that want auditable, specification-first agentic workflows
-- Anyone bootstrapping a new project with built-in governance from day one
+```bash
+pip install specsmith
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/BitConcepts/specsmith.git
+cd specsmith
+pip install -e ".[dev]"
+```
 
 ## Quick start
 
-1. Read `AGENTIC-WORKFLOW-SPEC.md` — the complete workflow specification
-2. Choose a project type from Section 17
-3. Follow the scaffold bootstrap procedure in Section 18
-4. Hand the spec to your AI agent alongside your project goals
+```bash
+# Interactive scaffold
+specsmith init
 
-## Files
+# From config file
+specsmith init --config scaffold.yml
 
-- `AGENTIC-WORKFLOW-SPEC.md` — full workflow specification (start here)
-- `LICENSE` — MIT
+# Health checks
+specsmith audit
+specsmith validate
+
+# Ledger maintenance
+specsmith compress
+
+# Upgrade governance to newer spec version
+specsmith upgrade --spec-version 0.2.0
+```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `specsmith init` | Scaffold a new governed project |
+| `specsmith audit` | Run drift and health checks (Sections 23+26) |
+| `specsmith validate` | Check governance file consistency (req ↔ test ↔ arch) |
+| `specsmith compress` | Archive old ledger entries |
+| `specsmith upgrade` | Update governance files to newer spec version |
+
+## Project types
+
+1. Python backend + web frontend
+2. Python backend + web frontend + tray app
+3. CLI tool (Python)
+4. Library / SDK (Python)
+5. Embedded / hardware
+6. FPGA / RTL
+7. Yocto / embedded Linux BSP
+8. PCB / hardware design
+
+## Specification
+
+See `AGENT-WORKFLOW-SPEC.md` for the complete workflow specification.
 
 ## License
 

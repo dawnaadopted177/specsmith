@@ -121,32 +121,116 @@ def _interactive_config(no_git: bool) -> ProjectConfig:
 
 @main.command()
 @click.option("--fix", is_flag=True, default=False, help="Attempt to fix simple issues.")
-def audit(fix: bool) -> None:
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+def audit(fix: bool, project_dir: str) -> None:
     """Run drift and health checks (Section 23 + 26)."""
-    console.print("[yellow]audit command not yet implemented.[/yellow]")
-    raise SystemExit(0)
+    from specsmith.auditor import run_audit
+
+    root = Path(project_dir).resolve()
+    console.print(f"[bold]Auditing[/bold] {root}\n")
+    report = run_audit(root)
+
+    for r in report.results:
+        icon = "[green]✓[/green]" if r.passed else "[red]✗[/red]"
+        console.print(f"  {icon} {r.message}")
+
+    console.print()
+    if report.healthy:
+        console.print(f"[bold green]Healthy.[/bold green] {report.passed} checks passed.")
+    else:
+        console.print(
+            f"[bold red]{report.failed} issue(s)[/bold red] found "
+            f"({report.fixable} fixable). {report.passed} checks passed."
+        )
+        if fix:
+            console.print("[yellow]Auto-fix not yet implemented.[/yellow]")
+        raise SystemExit(1)
 
 
 @main.command()
-def validate() -> None:
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+def validate(project_dir: str) -> None:
     """Check governance file consistency (req ↔ test ↔ arch)."""
-    console.print("[yellow]validate command not yet implemented.[/yellow]")
-    raise SystemExit(0)
+    from specsmith.validator import run_validate
+
+    root = Path(project_dir).resolve()
+    console.print(f"[bold]Validating[/bold] {root}\n")
+    report = run_validate(root)
+
+    for r in report.results:
+        icon = "[green]✓[/green]" if r.passed else "[red]✗[/red]"
+        console.print(f"  {icon} {r.message}")
+
+    console.print()
+    if report.valid:
+        console.print(f"[bold green]Valid.[/bold green] {report.passed} checks passed.")
+    else:
+        console.print(
+            f"[bold red]{report.failed} issue(s)[/bold red] found. {report.passed} checks passed."
+        )
+        raise SystemExit(1)
 
 
 @main.command()
-def compress() -> None:
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--threshold",
+    type=int,
+    default=500,
+    help="Only compress if ledger exceeds this many lines.",
+)
+@click.option(
+    "--keep-recent",
+    type=int,
+    default=10,
+    help="Number of recent entries to keep.",
+)
+def compress(project_dir: str, threshold: int, keep_recent: int) -> None:
     """Archive old ledger entries (Section 26.3)."""
-    console.print("[yellow]compress command not yet implemented.[/yellow]")
-    raise SystemExit(0)
+    from specsmith.compressor import run_compress
+
+    root = Path(project_dir).resolve()
+    result = run_compress(root, threshold=threshold, keep_recent=keep_recent)
+    console.print(result.message)
 
 
 @main.command()
 @click.option("--spec-version", default=None, help="Target spec version to upgrade to.")
-def upgrade(spec_version: str | None) -> None:
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+def upgrade(spec_version: str | None, project_dir: str) -> None:
     """Update governance files to match a newer spec version."""
-    console.print("[yellow]upgrade command not yet implemented.[/yellow]")
-    raise SystemExit(0)
+    from specsmith.upgrader import run_upgrade
+
+    root = Path(project_dir).resolve()
+    result = run_upgrade(root, target_version=spec_version)
+    console.print(result.message)
+
+    if result.updated_files:
+        for f in result.updated_files:
+            console.print(f"  [green]✓[/green] {f}")
+    if result.skipped_files:
+        for f in result.skipped_files:
+            console.print(f"  [yellow]—[/yellow] {f} (not found, skipped)")
 
 
 if __name__ == "__main__":

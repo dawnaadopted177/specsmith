@@ -1,0 +1,56 @@
+"""Claude Code integration adapter."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from specsmith.config import ProjectConfig
+from specsmith.integrations.base import AgentAdapter
+
+
+class ClaudeCodeAdapter(AgentAdapter):
+    """Generate CLAUDE.md for Claude Code / Claude CLI."""
+
+    @property
+    def name(self) -> str:
+        return "claude-code"
+
+    @property
+    def description(self) -> str:
+        return "Claude Code CLAUDE.md"
+
+    def generate(self, config: ProjectConfig, target: Path) -> list[Path]:
+        claude_path = target / "CLAUDE.md"
+        content = self._render(config)
+        claude_path.write_text(content, encoding="utf-8")
+        return [claude_path]
+
+    def _render(self, config: ProjectConfig) -> str:
+        return f"""# CLAUDE.md
+
+This project follows the Agentic AI Development Workflow Specification (v{config.spec_version}).
+
+## Start here
+1. Read `AGENTS.md` for project identity, governance hub, and file registry
+2. Read `LEDGER.md` for session state and open TODOs
+3. Read `docs/governance/rules.md` for hard rules
+
+## Workflow
+All changes follow: propose → check → execute → verify → record.
+Never modify code without a proposal in the ledger first.
+
+## Project type
+{config.type_label} (Spec Section {config.section_ref})
+
+## Key constraints
+- AGENTS.md is the governance hub — keep it under 200 lines
+- Modular governance docs live in `docs/governance/`
+- All agent-invoked commands must have timeouts
+- Use `scripts/exec.ps1` or `scripts/exec.sh` for bounded execution
+- Record every session in LEDGER.md
+
+## Health commands
+- `specsmith audit` — drift and health checks
+- `specsmith validate` — governance consistency
+- `specsmith compress` — archive old ledger entries
+"""

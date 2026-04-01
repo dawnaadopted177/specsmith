@@ -52,6 +52,18 @@ def scaffold_project(config: ProjectConfig, target: Path) -> list[Path]:
         gitkeep.write_text("", encoding="utf-8")
         created.append(gitkeep)
 
+    # Agent integrations
+    for integration_name in config.integrations:
+        if integration_name == "agents-md":
+            continue  # AGENTS.md is always generated via templates
+        try:
+            from specsmith.integrations import get_adapter
+
+            adapter = get_adapter(integration_name)
+            created.extend(adapter.generate(config, target))
+        except ValueError:
+            pass  # Unknown adapter — skip silently
+
     # Git init
     if config.git_init:
         subprocess.run(  # noqa: S603
