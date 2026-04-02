@@ -182,7 +182,7 @@ class TestSandboxImport:
         assert (root / "LEDGER.md").exists()
         assert (root / "docs" / "REQUIREMENTS.md").exists()
         assert (root / "docs" / "TEST_SPEC.md").exists()
-        assert (root / "docs" / "architecture.md").exists()
+        assert (root / "docs" / "ARCHITECTURE.md").exists()
 
         # ---- Step 4: Verify overlay content ----
         agents = (root / "AGENTS.md").read_text(encoding="utf-8")
