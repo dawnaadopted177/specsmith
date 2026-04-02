@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-02
+
+### Added
+- **Process execution with PID tracking**: `specsmith exec`, `specsmith ps`, `specsmith abort` — cross-platform (Windows taskkill / POSIX SIGTERM+SIGKILL) process tracking and abort. PID files in `.specsmith/pids/`.
+- **`specsmith upgrade --full`**: full sync of infrastructure files — regenerates exec shims, CI configs, agent integrations. Creates missing community/config files. Safe: never overwrites user docs.
+- **Language-specific scaffold templates** (#41): Rust (Cargo.toml, main.rs), Go (go.mod, main.go), JS/TS (package.json for web-frontend, fullstack-js).
+- **ReadTheDocs templates** (#38): `.readthedocs.yaml` and `mkdocs.yml` for Python/doc projects.
+- **Release workflow templates** (#44): `.github/workflows/release.yml` with test gate, language-aware build, GitHub Release, PyPI OIDC publish.
+- **PyPI integration** (#36): OIDC-based trusted publishing via release workflow template.
+
+### Changed
+- **Template directory restructured** (#45): `pyproject.toml.j2` moved to `python/`. Templates organized into `python/`, `rust/`, `go/`, `js/`, `community/`, `governance/`, `docs/`, `scripts/`, `workflows/`.
+- **CI-gated releases**: both dev-release and stable release workflows now run full test suite (ruff check+format, mypy, pytest) before PyPI publish.
+- Exec shims (`exec.cmd`, `exec.sh`) now write PID files for `specsmith ps`/`specsmith abort`.
+
 ## [0.2.0] - 2026-04-02
 
 ### Added
@@ -171,7 +186,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **G9**: Session start file list now marks services.md as conditional ("if it exists").
 - **G10**: Open TODOs format specified as `- [ ]` / `- [x]` checkbox syntax.
 
-[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/BitConcepts/specsmith/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/BitConcepts/specsmith/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/BitConcepts/specsmith/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/BitConcepts/specsmith/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/BitConcepts/specsmith/compare/v0.1.1...v0.1.2
