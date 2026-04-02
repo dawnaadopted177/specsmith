@@ -1358,6 +1358,141 @@ def session_end_cmd(project_dir: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Credits
+# ---------------------------------------------------------------------------
+
+
+@main.group()
+def credits() -> None:
+    """AI credit/token spend tracking and analysis."""
+
+
+@credits.command(name="summary")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--month", default="", help="Filter by month (YYYY-MM).")
+def credits_summary(project_dir: str, month: str) -> None:
+    """Show credit spend summary."""
+    from specsmith.credits import get_summary
+
+    root = Path(project_dir).resolve()
+    s = get_summary(root, month=month)
+    console.print(f"  Tokens in:  {s.total_tokens_in:,}")
+    console.print(f"  Tokens out: {s.total_tokens_out:,}")
+    console.print(f"  Cost:       ${s.total_cost_usd:.4f}")
+    console.print(f"  Sessions:   {s.session_count}")
+    console.print(f"  Entries:    {s.entry_count}")
+    if s.by_model:
+        console.print("\n  By model:")
+        for model, cost in sorted(s.by_model.items(), key=lambda x: -x[1]):
+            console.print(f"    {model}: ${cost:.4f}")
+    if s.alerts:
+        console.print()
+        for alert in s.alerts:
+            console.print(f"  [yellow]\u26a0[/yellow] {alert}")
+
+
+@credits.command(name="record")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--model", default="unknown", help="AI model used.")
+@click.option("--provider", default="unknown", help="AI provider (openai, anthropic, etc.).")
+@click.option("--tokens-in", type=int, default=0, help="Input tokens.")
+@click.option("--tokens-out", type=int, default=0, help="Output tokens.")
+@click.option("--task", default="", help="Task description.")
+@click.option("--cost", type=float, default=None, help="Actual cost in USD (overrides estimate).")
+def credits_record(
+    project_dir: str,
+    model: str,
+    provider: str,
+    tokens_in: int,
+    tokens_out: int,
+    task: str,
+    cost: float | None,
+) -> None:
+    """Record a credit usage entry."""
+    from specsmith.credits import record_usage
+
+    root = Path(project_dir).resolve()
+    entry = record_usage(
+        root,
+        model=model,
+        provider=provider,
+        tokens_in=tokens_in,
+        tokens_out=tokens_out,
+        task=task,
+        cost_usd=cost,
+    )
+    console.print(
+        f"[green]\u2713[/green] Recorded: {entry.model} "
+        f"{entry.tokens_in:,}+{entry.tokens_out:,} tokens "
+        f"(${entry.estimated_cost_usd:.4f})"
+    )
+
+
+@credits.command(name="report")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--output", default="", help="Write to file instead of stdout.")
+def credits_report(project_dir: str, output: str) -> None:
+    """Generate credit spend report."""
+    from specsmith.credits import generate_report
+
+    root = Path(project_dir).resolve()
+    report = generate_report(root)
+    if output:
+        Path(output).write_text(report, encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Report written to {output}")
+    else:
+        console.print(report)
+
+
+@credits.command(name="analyze")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def credits_analyze(project_dir: str) -> None:
+    """Analyze spend patterns and get optimization recommendations."""
+    from specsmith.credit_analyzer import generate_analysis_report
+
+    root = Path(project_dir).resolve()
+    report = generate_analysis_report(root)
+    console.print(report)
+
+
+@credits.command(name="budget")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--cap", type=float, default=None, help="Monthly cap in USD (0=unlimited).")
+@click.option("--alert-pct", type=int, default=None, help="Alert at this % of cap.")
+@click.option(
+    "--watermarks", default=None, help="Comma-separated USD watermark alerts (e.g. 5,10,25,50)."
+)
+def credits_budget(
+    project_dir: str, cap: float | None, alert_pct: int | None, watermarks: str | None,
+) -> None:
+    """View or set credit budget and alert thresholds."""
+    from specsmith.credits import load_budget, save_budget
+
+    root = Path(project_dir).resolve()
+    budget = load_budget(root)
+
+    if cap is not None:
+        budget.monthly_cap_usd = cap
+    if alert_pct is not None:
+        budget.alert_threshold_pct = alert_pct
+    if watermarks is not None:
+        budget.alert_watermarks_usd = [float(w.strip()) for w in watermarks.split(",") if w.strip()]
+
+    if any(x is not None for x in (cap, alert_pct, watermarks)):
+        save_budget(root, budget)
+        console.print("[green]\u2713[/green] Budget updated.")
+
+    cap_note = " (unlimited)" if budget.monthly_cap_usd == 0 else ""
+    console.print(f"  Monthly cap:   ${budget.monthly_cap_usd:.2f}{cap_note}")
+    console.print(f"  Alert at:      {budget.alert_threshold_pct}%")
+    console.print(f"  Watermarks:    {', '.join(f'${w:.2f}' for w in budget.alert_watermarks_usd)}")
+    console.print(f"  Enabled:       {budget.enabled}")
+
+
+main.add_command(credits)
+
+
+# ---------------------------------------------------------------------------
 # Plugin system
 # ---------------------------------------------------------------------------
 
