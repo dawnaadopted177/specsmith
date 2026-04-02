@@ -286,14 +286,16 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
 def check_context_size(root: Path) -> list[AuditResult]:
     """Check governance file sizes against thresholds."""
     results: list[AuditResult] = []
+    # AGENTS.md is strict (loaded every session). Modular governance files
+    # are lazily loaded per task type so can be larger.
     thresholds = {
         "AGENTS.md": 200,
-        "docs/governance/rules.md": 300,
-        "docs/governance/workflow.md": 300,
-        "docs/governance/roles.md": 200,
-        "docs/governance/context-budget.md": 200,
-        "docs/governance/verification.md": 200,
-        "docs/governance/drift-metrics.md": 200,
+        "docs/governance/rules.md": 800,
+        "docs/governance/workflow.md": 400,
+        "docs/governance/roles.md": 300,
+        "docs/governance/context-budget.md": 300,
+        "docs/governance/verification.md": 400,
+        "docs/governance/drift-metrics.md": 300,
     }
 
     for rel_path, max_lines in thresholds.items():
