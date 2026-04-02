@@ -18,7 +18,8 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: ruff check src/
+      - run: ruff check src/ tests/
+      - run: ruff format --check src/ tests/
       - run: mypy src/specsmith --ignore-missing-imports
       - run: pytest tests/ -x -q
 
@@ -54,7 +55,8 @@ jobs:
         run: |
           gh release create "${{ github.ref_name }}" dist/* \
             --title "${{ github.ref_name }}" \
-            --generate-notes
+            --generate-notes \
+            --latest || echo "Release already exists — skipping"
 
   pypi-publish:
     needs: build
