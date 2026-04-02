@@ -132,6 +132,7 @@ def check_governance_files(root: Path) -> list[AuditResult]:
                 name=f"recommended:{f}",
                 passed=found,
                 message=f"Recommended file {f} {'exists' if found else 'missing'}",
+                fixable=not found,
             )
         )
 
@@ -564,5 +565,43 @@ def run_auto_fix(root: Path, report: AuditReport) -> list[str]:
                         )
                 except Exception:  # noqa: BLE001
                     pass  # Best-effort
+
+        # Fix missing recommended files
+        elif result.name == "recommended:docs/architecture.md" and not result.passed:
+            from specsmith.architect import generate_architecture
+
+            try:
+                generate_architecture(root)
+                fixed.append("Generated docs/architecture.md from project scan")
+            except Exception:  # noqa: BLE001
+                # Fallback stub
+                path = root / "docs" / "architecture.md"
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    f"# Architecture — {root.name}\n\n"
+                    "[Run `specsmith architect` to populate]\n",
+                    encoding="utf-8",
+                )
+                fixed.append("Created stub docs/architecture.md")
+
+        elif result.name == "recommended:docs/REQUIREMENTS.md" and not result.passed:
+            path = root / "docs" / "REQUIREMENTS.md"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                "# Requirements\n\nNo requirements defined yet.\n\n"
+                "## REQ-CORE-001\n- **Component**: core\n"
+                "- **Status**: Draft\n- **Description**: [Define]\n",
+                encoding="utf-8",
+            )
+            fixed.append("Created stub docs/REQUIREMENTS.md")
+
+        elif result.name == "recommended:docs/TEST_SPEC.md" and not result.passed:
+            path = root / "docs" / "TEST_SPEC.md"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                "# Test Specification\n\nNo tests defined yet.\n",
+                encoding="utf-8",
+            )
+            fixed.append("Created stub docs/TEST_SPEC.md")
 
     return fixed

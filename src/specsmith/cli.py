@@ -646,6 +646,68 @@ def _run_guided_architecture(cfg: ProjectConfig, target: Path) -> list[Path]:
     return created
 
 
+@main.command()
+@click.option("--project-dir", type=click.Path(exists=True), default=".", help="Project root.")
+@click.option("--non-interactive", is_flag=True, default=False, help="Skip prompts, auto-generate.")
+def architect(project_dir: str, non_interactive: bool) -> None:
+    """Generate or enrich architecture documentation.
+
+    Scans the project for modules, languages, dependencies, git history,
+    then optionally interviews you about components and data flow.
+    """
+    from specsmith.architect import generate_architecture, scan_project_structure
+
+    root = Path(project_dir).resolve()
+    console.print(f"[bold]Scanning[/bold] {root}...\n")
+    scan = scan_project_structure(root)
+
+    modules: list[str] = list(scan.get("modules", []) or [])  # type: ignore[call-overload]
+    deps_list: list[str] = list(scan.get("dependencies", []) or [])  # type: ignore[call-overload]
+    eps_list: list[str] = list(scan.get("entry_points", []) or [])  # type: ignore[call-overload]
+    existing: list[str] = list(scan.get("existing_arch_docs", []) or [])  # type: ignore[call-overload]
+
+    console.print(f"  Languages: {scan.get('primary_language', '?')}")
+    console.print(f"  Modules: {', '.join(modules) or 'none'}")
+    console.print(f"  Dependencies: {len(deps_list)}")
+    console.print(f"  Entry points: {', '.join(eps_list) or 'none'}")
+    if existing:
+        console.print(f"  Existing arch docs: {', '.join(existing)}")
+    console.print()
+
+    components: list[dict[str, str]] | None = None
+    data_flow = ""
+    deployment = ""
+
+    if not non_interactive:
+        console.print("[bold]Architecture Interview[/bold]\n")
+        comp_str = click.prompt(
+            "Major components (comma-separated)",
+            default=", ".join(modules or ["core"]),
+        )
+        components = []
+        for name in [c.strip() for c in comp_str.split(",") if c.strip()]:
+            purpose = click.prompt(f"  {name} purpose", default="")
+            interfaces = click.prompt(f"  {name} interfaces", default="")
+            components.append({"name": name, "purpose": purpose, "interfaces": interfaces})
+
+        data_flow = click.prompt("\nData flow description", default="")
+        deployment = click.prompt("Deployment notes", default="")
+
+    path = generate_architecture(
+        root, components=components, data_flow=data_flow, deployment=deployment, scan=scan
+    )
+    rel = path.relative_to(root)
+    console.print(f"\n[green]\u2713[/green] Generated {rel}")
+    if existing:
+        console.print(
+            f"  [yellow]Note:[/yellow] Existing docs at {', '.join(existing)} "
+            "are referenced but not merged. Review manually."
+        )
+    console.print(
+        "  [dim]Run \"specsmith audit --project-dir .\" to verify governance health.[/dim]"
+    )
+
+
 # ---------------------------------------------------------------------------
 # Ledger subcommands
 # ---------------------------------------------------------------------------
