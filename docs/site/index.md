@@ -29,8 +29,8 @@ When you run `specsmith init` or `specsmith import`, your project gets:
 - **Agent integration files** — Warp SKILL.md, CLAUDE.md, Copilot instructions, Cursor rules, etc.
 
 !!! note "Documentation Versions"
-    **Stable:** [specsmith.readthedocs.io/en/latest/](https://specsmith.readthedocs.io/en/latest/) — matches the latest PyPI release.
-    **Dev:** [specsmith.readthedocs.io/en/develop/](https://specsmith.readthedocs.io/en/develop/) — matches the develop branch (`pip install --pre specsmith`).
+    **Stable:** [specsmith.readthedocs.io/en/stable/](https://specsmith.readthedocs.io/en/stable/) — matches `pip install specsmith`
+    **Dev:** [specsmith.readthedocs.io/en/develop/](https://specsmith.readthedocs.io/en/develop/) — matches `pip install --pre specsmith`
 
 ## Quick Start
 
