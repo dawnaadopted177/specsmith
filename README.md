@@ -36,13 +36,35 @@ pip install specsmith
 ## Quick Start
 
 ```bash
-specsmith init                                     # New project (interactive)
-specsmith init --config scaffold.yml               # New project (from config)
-specsmith import --project-dir ./my-project        # Adopt existing project
-specsmith audit --project-dir ./my-project         # Health check
-specsmith export --project-dir ./my-project        # Compliance report
-specsmith doctor --project-dir ./my-project        # Tool check
+# Install
+pip install specsmith
+
+# New project (interactive)
+specsmith init
+
+# Adopt an existing project
+specsmith import --project-dir ./my-project
+
+# Check governance health
+specsmith audit --project-dir ./my-project
+
+# Generate architecture docs interactively
+specsmith architect --project-dir ./my-project
+
+# Start an AI agent session (universal pattern)
+# From any governed repo root:
+/agent AGENTS.md
 ```
+
+### Starting an AI Agent Session
+
+The universal pattern for any specsmith-governed project:
+
+```
+/agent AGENTS.md
+```
+
+This works in Warp, Claude Code, Cursor, and any agent that reads markdown context files. The agent loads AGENTS.md (the governance hub), reads LEDGER.md for session state, and picks up from the last recorded action.
 
 ## 30 Project Types
 

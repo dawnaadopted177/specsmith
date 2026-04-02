@@ -13,12 +13,12 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from specsmith.config import ProjectConfig
 
 _GOVERNANCE_FILES: list[tuple[str, str]] = [
-    ("governance/rules.md.j2", "docs/governance/rules.md"),
-    ("governance/workflow.md.j2", "docs/governance/workflow.md"),
-    ("governance/roles.md.j2", "docs/governance/roles.md"),
-    ("governance/context-budget.md.j2", "docs/governance/context-budget.md"),
-    ("governance/verification.md.j2", "docs/governance/verification.md"),
-    ("governance/drift-metrics.md.j2", "docs/governance/drift-metrics.md"),
+    ("governance/rules.md.j2", "docs/governance/RULES.md"),
+    ("governance/workflow.md.j2", "docs/governance/WORKFLOW.md"),
+    ("governance/roles.md.j2", "docs/governance/ROLES.md"),
+    ("governance/context-budget.md.j2", "docs/governance/CONTEXT-BUDGET.md"),
+    ("governance/verification.md.j2", "docs/governance/VERIFICATION.md"),
+    ("governance/drift-metrics.md.j2", "docs/governance/DRIFT-METRICS.md"),
 ]
 
 

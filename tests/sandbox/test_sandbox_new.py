@@ -128,8 +128,8 @@ class TestSandboxNew:
         assert cfg["type"] == "cli-python"
         assert cfg["vcs_platform"] == "github"
 
-        # ---- Step 8: verification.md has tools ----
-        verification = (gov / "verification.md").read_text(encoding="utf-8")
+        # ---- Step 8: VERIFICATION.md has tools ----
+        verification = (gov / "VERIFICATION.md").read_text(encoding="utf-8")
         assert "ruff" in verification
         assert "mypy" in verification
         assert "pytest" in verification
@@ -195,8 +195,8 @@ class TestSandboxNew:
             "AGENTS.md",
             "LEDGER.md",
             ".gitignore",
-            "docs/governance/rules.md",
-            "docs/governance/verification.md",
+            "docs/governance/RULES.md",
+            "docs/governance/VERIFICATION.md",
             "pyproject.toml",
             ".github/workflows/ci.yml",
         ]:

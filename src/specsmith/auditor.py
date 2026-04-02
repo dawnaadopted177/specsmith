@@ -56,18 +56,20 @@ REQUIRED_FILES = [
 ]
 
 GOVERNANCE_FILES = [
-    "docs/governance/rules.md",
-    "docs/governance/workflow.md",
-    "docs/governance/roles.md",
-    "docs/governance/context-budget.md",
-    "docs/governance/verification.md",
-    "docs/governance/drift-metrics.md",
+    "docs/governance/RULES.md",
+    "docs/governance/WORKFLOW.md",
+    "docs/governance/ROLES.md",
+    "docs/governance/CONTEXT-BUDGET.md",
+    "docs/governance/VERIFICATION.md",
+    "docs/governance/DRIFT-METRICS.md",
 ]
 
 RECOMMENDED_FILES = [
     "docs/REQUIREMENTS.md",
     "docs/TEST_SPEC.md",
-    "docs/architecture.md",
+    "docs/ARCHITECTURE.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
 ]
 
 
@@ -294,33 +296,33 @@ def check_ledger_health(root: Path) -> list[AuditResult]:
 # Default thresholds (used when no project type is detected)
 _DEFAULT_THRESHOLDS: dict[str, int] = {
     "AGENTS.md": 200,
-    "docs/governance/rules.md": 800,
-    "docs/governance/workflow.md": 400,
-    "docs/governance/roles.md": 300,
-    "docs/governance/context-budget.md": 300,
-    "docs/governance/verification.md": 400,
-    "docs/governance/drift-metrics.md": 300,
+    "docs/governance/RULES.md": 800,
+    "docs/governance/WORKFLOW.md": 400,
+    "docs/governance/ROLES.md": 300,
+    "docs/governance/CONTEXT-BUDGET.md": 300,
+    "docs/governance/VERIFICATION.md": 400,
+    "docs/governance/DRIFT-METRICS.md": 300,
 }
 
 # Type-specific overrides — hardware/embedded projects have denser rules.
 _TYPE_THRESHOLD_OVERRIDES: dict[str, dict[str, int]] = {
     "fpga-rtl": {
-        "docs/governance/rules.md": 1000,
-        "docs/governance/workflow.md": 500,
-        "docs/governance/verification.md": 600,
+        "docs/governance/RULES.md": 1000,
+        "docs/governance/WORKFLOW.md": 500,
+        "docs/governance/VERIFICATION.md": 600,
     },
     "yocto-bsp": {
-        "docs/governance/rules.md": 1000,
-        "docs/governance/workflow.md": 500,
-        "docs/governance/verification.md": 500,
+        "docs/governance/RULES.md": 1000,
+        "docs/governance/WORKFLOW.md": 500,
+        "docs/governance/VERIFICATION.md": 500,
     },
     "embedded-hardware": {
-        "docs/governance/rules.md": 1000,
-        "docs/governance/verification.md": 500,
+        "docs/governance/RULES.md": 1000,
+        "docs/governance/VERIFICATION.md": 500,
     },
     "pcb-hardware": {
-        "docs/governance/rules.md": 900,
-        "docs/governance/verification.md": 500,
+        "docs/governance/RULES.md": 900,
+        "docs/governance/VERIFICATION.md": 500,
     },
 }
 
@@ -567,22 +569,22 @@ def run_auto_fix(root: Path, report: AuditReport) -> list[str]:
                     pass  # Best-effort
 
         # Fix missing recommended files
-        elif result.name == "recommended:docs/architecture.md" and not result.passed:
+        elif result.name == "recommended:docs/ARCHITECTURE.md" and not result.passed:
             from specsmith.architect import generate_architecture
 
             try:
                 generate_architecture(root)
-                fixed.append("Generated docs/architecture.md from project scan")
+                fixed.append("Generated docs/ARCHITECTURE.md from project scan")
             except Exception:  # noqa: BLE001
                 # Fallback stub
-                path = root / "docs" / "architecture.md"
+                path = root / "docs" / "ARCHITECTURE.md"
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text(
                     f"# Architecture — {root.name}\n\n"
                     "[Run `specsmith architect` to populate]\n",
                     encoding="utf-8",
                 )
-                fixed.append("Created stub docs/architecture.md")
+                fixed.append("Created stub docs/ARCHITECTURE.md")
 
         elif result.name == "recommended:docs/REQUIREMENTS.md" and not result.passed:
             path = root / "docs" / "REQUIREMENTS.md"

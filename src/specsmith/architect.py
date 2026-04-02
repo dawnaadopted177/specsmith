@@ -148,7 +148,7 @@ def generate_architecture(
         doc += "\n"
 
     # Write
-    arch_path = root / "docs" / "architecture.md"
+    arch_path = root / "docs" / "ARCHITECTURE.md"
     arch_path.parent.mkdir(parents=True, exist_ok=True)
     arch_path.write_text(doc, encoding="utf-8")
     return arch_path

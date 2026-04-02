@@ -48,7 +48,7 @@ Project type: {config.type_label}. Description: {config.description or "See READ
 ## Start here
 1. Read `AGENTS.md` for project identity, governance hub, and file registry
 2. Read `LEDGER.md` for session state and open TODOs
-3. Read `docs/governance/rules.md` for hard rules
+3. Read `docs/governance/RULES.md` for hard rules
 
 ## Workflow
 All changes follow: propose → check → execute → verify → record.

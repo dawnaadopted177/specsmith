@@ -166,7 +166,7 @@ specsmith architect --project-dir ./my-project
 specsmith architect --project-dir ./my-project --non-interactive
 ```
 
-**What it does:** Scans for modules, languages, dependencies, git history, and existing architecture docs. In interactive mode, prompts for component names, purposes, interfaces, data flow, and deployment notes. Generates a rich `docs/architecture.md`.
+**What it does:** Scans for modules, languages, dependencies, git history, and existing architecture docs. In interactive mode, prompts for component names, purposes, interfaces, data flow, and deployment notes. Generates a rich `docs/ARCHITECTURE.md`.
 
 **Options:**
 

@@ -517,14 +517,14 @@ def import_project(project_dir: str, force: bool, guided: bool, dry_run: bool) -
             "LEDGER.md",
             "docs/REQUIREMENTS.md",
             "docs/TEST_SPEC.md",
-            "docs/architecture.md",
+            "docs/ARCHITECTURE.md",
             "scaffold.yml",
-            "docs/governance/rules.md",
-            "docs/governance/workflow.md",
-            "docs/governance/roles.md",
-            "docs/governance/context-budget.md",
-            "docs/governance/verification.md",
-            "docs/governance/drift-metrics.md",
+            "docs/governance/RULES.md",
+            "docs/governance/WORKFLOW.md",
+            "docs/governance/ROLES.md",
+            "docs/governance/CONTEXT-BUDGET.md",
+            "docs/governance/VERIFICATION.md",
+            "docs/governance/DRIFT-METRICS.md",
         ]
         for f in overlay_files:
             exists = (root / f).exists()

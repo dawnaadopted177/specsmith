@@ -275,7 +275,7 @@ def detect_project(root: Path) -> DetectionResult:
         "GEMINI.md",
         "docs/REQUIREMENTS.md",
         "docs/TEST_SPEC.md",
-        "docs/architecture.md",
+        "docs/ARCHITECTURE.md",
     ):
         if (root / gov_file).exists():
             result.existing_governance.append(gov_file)
@@ -1033,8 +1033,8 @@ def generate_overlay(
         _write("docs/TEST_SPEC.md", tests)
 
     # docs/architecture.md — skip if project has architecture doc anywhere under docs/
-    existing_arch = list(target.glob("docs/**/architecture*")) + list(
-        target.glob("docs/**/ARCHITECTURE*")
+    existing_arch = list(target.glob("docs/**/ARCHITECTURE*")) + list(
+        target.glob("docs/**/architecture*")
     )
     if not (existing_arch and not force):
         arch = (
@@ -1059,18 +1059,18 @@ def generate_overlay(
             arch += "## Language Distribution\n"
             for lang_name, count in sorted(result.languages.items(), key=lambda x: -x[1]):
                 arch += f"- {lang_name}: {count} files\n"
-        _write("docs/architecture.md", arch)
+        _write("docs/ARCHITECTURE.md", arch)
 
     # --- Modular governance files ---
     # If AGENTS.md exists and is rich, extract sections from it.
     # Otherwise use generic stubs.
     gov = _extract_governance_sections(target)
-    _write("docs/governance/rules.md", gov["rules"])
-    _write("docs/governance/workflow.md", gov["workflow"])
-    _write("docs/governance/roles.md", gov["roles"])
-    _write("docs/governance/context-budget.md", gov["context-budget"])
-    _write("docs/governance/verification.md", gov["verification"])
-    _write("docs/governance/drift-metrics.md", gov["drift-metrics"])
+    _write("docs/governance/RULES.md", gov["rules"])
+    _write("docs/governance/WORKFLOW.md", gov["workflow"])
+    _write("docs/governance/ROLES.md", gov["roles"])
+    _write("docs/governance/CONTEXT-BUDGET.md", gov["context-budget"])
+    _write("docs/governance/VERIFICATION.md", gov["verification"])
+    _write("docs/governance/DRIFT-METRICS.md", gov["drift-metrics"])
 
     # If existing AGENTS.md is oversized, back it up and replace with a hub.
     agents_path = target / "AGENTS.md"
@@ -1091,17 +1091,17 @@ def generate_overlay(
                 "## Governance File Registry\n\n"
                 "| File | Content | Load timing |\n"
                 "| ---- | ------- | ----------- |\n"
-                "| `docs/governance/rules.md` | Hard rules, stop conditions, "
+                "| `docs/governance/RULES.md` | Hard rules, stop conditions, "
                 "project-specific rules | Every session start |\n"
-                "| `docs/governance/workflow.md` | Session lifecycle, "
+                "| `docs/governance/WORKFLOW.md` | Session lifecycle, "
                 "save/push protocol | Every session start |\n"
-                "| `docs/governance/roles.md` | Agent role boundaries | "
+                "| `docs/governance/ROLES.md` | Agent role boundaries | "
                 "Every session start |\n"
-                "| `docs/governance/context-budget.md` | Context management | "
+                "| `docs/governance/CONTEXT-BUDGET.md` | Context management | "
                 "Every session start |\n"
-                "| `docs/governance/verification.md` | Verification, "
+                "| `docs/governance/VERIFICATION.md` | Verification, "
                 "consistency | When verifying |\n"
-                "| `docs/governance/drift-metrics.md` | Environment, "
+                "| `docs/governance/DRIFT-METRICS.md` | Environment, "
                 "platform | On audit |\n\n"
                 "Other project documents:\n\n"
                 "| File | Content |\n"
@@ -1109,7 +1109,7 @@ def generate_overlay(
                 "| `LEDGER.md` | Append-only work record |\n"
                 "| `docs/REQUIREMENTS.md` | Formal requirements |\n"
                 "| `docs/TEST_SPEC.md` | Test cases |\n"
-                "| `docs/architecture.md` | Architecture |\n\n"
+                "| `docs/ARCHITECTURE.md` | Architecture |\n\n"
                 "---\n\n"
                 f"*Original AGENTS.md ({agents_lines} lines) backed up "
                 "to AGENTS.md.bak. Content extracted into modular "
@@ -1125,6 +1125,21 @@ def generate_overlay(
 
         save_budget(target, CreditBudget())  # unlimited by default
         created.append(target / ".specsmith" / "credit-budget.json")
+
+    # --- Community files (only create if missing) ---
+    _write(
+        "CONTRIBUTING.md",
+        f"# Contributing to {name}\n\n"
+        "See `AGENTS.md` for governance and `LEDGER.md` for session state.\n\n"
+        "## Workflow\n"
+        "All changes follow: propose \u2192 check \u2192 execute \u2192 verify \u2192 record.\n",
+    )
+    _write(
+        "SECURITY.md",
+        f"# Security Policy\n\n"
+        f"To report a vulnerability in {name}, please use the repository's "
+        "private vulnerability reporting feature. Do not open a public issue.\n",
+    )
 
     # --- CI config (merge: only create if no CI detected) ---
     if not result.existing_ci and result.vcs_platform:
