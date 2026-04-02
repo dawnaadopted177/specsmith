@@ -478,7 +478,10 @@ def import_project(project_dir: str, force: bool, guided: bool, dry_run: bool) -
     result = detect_project(root)
 
     console.print(f"  Files: {result.file_count}")
-    console.print(f"  Language: [cyan]{result.primary_language or 'unknown'}[/cyan]")
+    lang_display = result.primary_language or "unknown"
+    if result.secondary_languages:
+        lang_display += f" + {', '.join(result.secondary_languages)}"
+    console.print(f"  Languages: [cyan]{lang_display}[/cyan]")
     console.print(f"  Build system: {result.build_system or 'not detected'}")
     console.print(f"  Test framework: {result.test_framework or 'not detected'}")
     console.print(f"  CI: {result.existing_ci or 'not detected'}")
@@ -1203,6 +1206,50 @@ def update_cmd(check_only: bool, auto_yes: bool, project_dir: str) -> None:
             actions = run_migration(root)
             for a in actions:
                 console.print(f"  [green]\u2713[/green] {a}")
+
+
+@main.command(name="self-update")
+@click.option(
+    "--channel",
+    type=click.Choice(["stable", "dev"]),
+    default=None,
+    help="Force channel (default: auto-detect from installed version).",
+)
+@click.option("--version", "target_version", default="", help="Install a specific version.")
+def self_update_cmd(channel: str | None, target_version: str) -> None:
+    """Update specsmith to the latest version.
+
+    Auto-detects channel: stable builds upgrade to latest stable,
+    dev builds upgrade to latest dev. Use --channel to override.
+    Use --version to pin a specific version.
+    """
+    from specsmith.updater import check_latest_version, get_update_channel, run_self_update
+
+    current_channel = get_update_channel()
+    effective_channel = channel or current_channel
+
+    if target_version:
+        console.print(f"[bold]Installing specsmith {target_version}...[/bold]")
+        success, msg = run_self_update(target_version=target_version)
+    else:
+        current, latest, effective_channel = check_latest_version(channel=effective_channel)
+        if not latest:
+            console.print("[yellow]Could not reach PyPI.[/yellow]")
+            return
+        if current == latest:
+            console.print(
+                f"[green]\u2713[/green] specsmith {current} is up to date ({effective_channel})."
+            )
+            return
+        console.print(f"  Current: {current} ({current_channel})")
+        console.print(f"  Latest:  {latest} ({effective_channel})")
+        success, msg = run_self_update(channel=effective_channel)
+
+    if success:
+        console.print("[green]\u2713[/green] Updated successfully.")
+        console.print("  Restart your shell to use the new version.")
+    else:
+        console.print(f"[red]\u2717[/red] Update failed: {msg}")
 
 
 @main.command(name="migrate-project")

@@ -101,6 +101,7 @@ class DetectionResult:
     root: Path
     languages: dict[str, int] = field(default_factory=dict)
     primary_language: str = ""
+    secondary_languages: list[str] = field(default_factory=list)
     build_system: str = ""
     test_framework: str = ""
     vcs_platform: str = ""
@@ -183,6 +184,14 @@ def detect_project(root: Path) -> DetectionResult:
     result.languages = dict(lang_counter.most_common())
     if lang_counter:
         result.primary_language = lang_counter.most_common(1)[0][0]
+        # Secondary languages: all others above a minimum threshold (5 files or 5%)
+        total = sum(lang_counter.values())
+        threshold = max(5, int(total * 0.05))
+        result.secondary_languages = [
+            lang
+            for lang, count in lang_counter.most_common()
+            if lang != result.primary_language and count >= threshold
+        ]
 
     # Build system — check root AND first-level subdirectories
     for indicator, system in _BUILD_SYSTEMS.items():
@@ -847,6 +856,8 @@ def generate_overlay(
 
     name = result.root.name
     lang = result.primary_language or "unknown"
+    all_langs = [lang] + (result.secondary_languages or [])
+    lang_display = ", ".join(all_langs) if len(all_langs) > 1 else lang
     today = date.today().isoformat()
     ptype = result.inferred_type.value if result.inferred_type else "unknown"
 
@@ -857,7 +868,7 @@ def generate_overlay(
         "This project was imported by specsmith. The governance files contain "
         "detected structure. Review and enrich with your agent.\n\n"
         "## Project Summary\n"
-        f"- **Language**: {lang}\n"
+        f"- **Languages**: {lang_display}\n"
         f"- **Build system**: {result.build_system or 'not detected'}\n"
         f"- **Test framework**: {result.test_framework or 'not detected'}\n"
         f"- **Files detected**: {result.file_count}\n"
@@ -915,7 +926,7 @@ def generate_overlay(
         f"# Architecture — {name}\n\n"
         "Architecture auto-generated from project detection.\n\n"
         "## Overview\n"
-        f"- **Language**: {lang}\n"
+        f"- **Languages**: {lang_display}\n"
         f"- **Build system**: {result.build_system or 'not detected'}\n"
         f"- **Test framework**: {result.test_framework or 'not detected'}\n\n"
     )

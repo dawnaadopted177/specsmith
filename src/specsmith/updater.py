@@ -59,17 +59,22 @@ def is_outdated() -> bool:
     return current != latest
 
 
-def run_self_update(*, channel: str = "") -> tuple[bool, str]:
+def run_self_update(
+    *, channel: str = "", target_version: str = "",
+) -> tuple[bool, str]:
     """Update specsmith via pip.
 
-    Uses --pre flag for dev channel.
+    If target_version is set, installs that exact version.
+    Otherwise uses --pre flag for dev channel, plain upgrade for stable.
     """
-    if not channel:
-        channel = get_update_channel()
-
-    cmd = ["pip", "install", "--upgrade", "specsmith"]
-    if channel == "dev":
-        cmd.insert(2, "--pre")
+    if target_version:
+        cmd = ["pip", "install", f"specsmith=={target_version}"]
+    else:
+        if not channel:
+            channel = get_update_channel()
+        cmd = ["pip", "install", "--upgrade", "specsmith"]
+        if channel == "dev":
+            cmd.insert(2, "--pre")
 
     try:
         result = subprocess.run(

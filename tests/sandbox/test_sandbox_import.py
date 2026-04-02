@@ -13,7 +13,6 @@ from textwrap import dedent
 
 import yaml
 from click.testing import CliRunner
-
 from specsmith.cli import main
 
 

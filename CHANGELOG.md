@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Dynamic versioning**: `__version__` now reads from `importlib.metadata` at runtime instead of hardcoded strings. Docs use `{{ version }}` placeholders resolved by MkDocs hook. Tests are version-agnostic.
+- **Multi-language detection**: importer now detects and reports all significant languages (primary + secondary). Architecture, AGENTS.md, and CLI display show the full language mix.
+- **`specsmith self-update`** command: auto-detects channel (stable/dev), supports `--channel` override and `--version` pinning.
 - **Dev-release workflow for managed projects** (#35): `specsmith init` with gitflow + GitHub + Python now generates `.github/workflows/dev-release.yml`.
 - **No-hardcoded-versions rule** (H10): governance template and WARP rule enforce `pyproject.toml` as single version source of truth.
 - **Separate PyPI badges**: README shows both stable (blue) and dev (orange) version badges.
+
+### Fixed
+- **Import with large AGENTS.md** (#46): extraction now uses broader keyword matching, unmatched sections go to rules.md, oversized AGENTS.md is backed up and replaced with a hub.
 
 ### Changed
 - RTD default version set to `stable`, default branch set to `develop` (`latest` now builds from develop).
