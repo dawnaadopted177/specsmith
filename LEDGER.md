@@ -149,3 +149,9 @@ Begin glossa-lab integration — AEESession for Indus hypothesis tracking. Separ
 - **Type**: migration
 - **Status**: complete
 - **Chain hash**: `5a6995207163ba49...`
+
+## 2026-04-05T15:57 — specsmith migration: 0.3.0a1.dev8 → 0.3.0
+- **Author**: specsmith
+- **Type**: migration
+- **Status**: complete
+- **Chain hash**: `30255640fa4f54c2...`

@@ -68,14 +68,15 @@ def run_doctor(root: Path) -> DoctorReport:
     ]:
         for cmd in cmds:
             tool_name = cmd.split()[0]
-            check = _check_tool(tool_name, category)
+            # Pass root so doctor can find tools in the project's .venv
+            check = _check_tool(tool_name, category, root=root)
             report.checks.append(check)
 
     return report
 
 
-def _check_tool(name: str, category: str) -> ToolCheck:
-    """Check if a tool is available on PATH."""
+def _check_tool(name: str, category: str, root: Path | None = None) -> ToolCheck:
+    """Check if a tool is available on PATH or in the project's .venv."""
     # Handle compound tool names (cargo clippy → cargo)
     exe = name.split()[0] if " " in name else name
 
@@ -85,7 +86,24 @@ def _check_tool(name: str, category: str) -> ToolCheck:
     elif exe in ("golangci-lint",):
         pass  # Already the executable name
 
+    # 1. Check system PATH
     path = shutil.which(exe)
+
+    # 2. Fall back to project's .venv (projects often don't install tools globally)
+    if not path and root is not None:
+        for venv_dir in (".venv", "venv", ".env"):
+            # POSIX layout: .venv/bin/<exe>
+            posix_path = root / venv_dir / "bin" / exe
+            # Windows layout: .venv\Scripts\<exe>.exe
+            win_path = root / venv_dir / "Scripts" / (exe + ".exe")
+            win_path_no_ext = root / venv_dir / "Scripts" / exe
+            for candidate in (posix_path, win_path, win_path_no_ext):
+                if candidate.exists():
+                    path = str(candidate)
+                    break
+            if path:
+                break
+
     if not path:
         return ToolCheck(name=name, category=category, installed=False)
 
@@ -93,7 +111,7 @@ def _check_tool(name: str, category: str) -> ToolCheck:
     version = ""
     try:
         result = subprocess.run(
-            [exe, "--version"],
+            [path, "--version"],
             capture_output=True,
             text=True,
             timeout=5,
