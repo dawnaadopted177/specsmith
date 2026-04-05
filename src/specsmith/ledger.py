@@ -1,12 +1,33 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 BitConcepts, LLC. All rights reserved.
-"""Ledger — structured change ledger management."""
+"""Ledger — structured change ledger management with cryptographic audit chain.
+
+The CryptoAuditChain class provides a SHA-256 chained hash over all ledger
+entries, making the ledger tamper-evident. This is directly inspired by the
+BLAKE3 audit chain in the Auto-Revision Epistemic Engine (ARE) and the
+Sovereign Trace Protocol in VERITAS (AionSystem).
+
+Each entry stores:
+  entry_hash  = SHA-256 of (content + prev_hash)
+  prev_hash   = SHA-256 of the previous entry ("0"*64 for genesis)
+
+Ledger entries also carry two new AEE fields:
+  epistemic_status     — confidence level of the work described (high/medium/low/unknown)
+  belief_artifacts     — comma-separated BeliefArtifact IDs touched in this session
+"""
 
 from __future__ import annotations
 
+import hashlib
 import re
 from datetime import datetime
 from pathlib import Path
+
+_GENESIS_HASH = "0" * 64
+
+
+def _sha256(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def add_entry(
@@ -17,10 +38,21 @@ def add_entry(
     author: str = "agent",
     reqs: str = "",
     status: str = "complete",
+    epistemic_status: str = "unknown",
+    belief_artifacts: str = "",
 ) -> str:
-    """Append a structured entry to LEDGER.md."""
+    """Append a structured entry to LEDGER.md with cryptographic chaining."""
     ledger_path = root / "LEDGER.md"
     now = datetime.now().strftime("%Y-%m-%dT%H:%M")
+
+    # Compute chain link
+    chain = CryptoAuditChain(root)
+    prev_hash = chain.latest_hash()
+    entry_body = (
+        f"{now}|{description}|{entry_type}|{author}|{status}|"
+        f"{epistemic_status}|{belief_artifacts}"
+    )
+    entry_hash = _sha256(f"{entry_body}:{prev_hash}")
 
     entry = f"\n## {now} — {description}\n"
     entry += f"- **Author**: {author}\n"
@@ -28,6 +60,11 @@ def add_entry(
     if reqs:
         entry += f"- **REQs affected**: {reqs}\n"
     entry += f"- **Status**: {status}\n"
+    if epistemic_status and epistemic_status != "unknown":
+        entry += f"- **Epistemic status**: {epistemic_status}\n"
+    if belief_artifacts:
+        entry += f"- **Belief artifacts**: {belief_artifacts}\n"
+    entry += f"- **Chain hash**: `{entry_hash[:16]}...`\n"
 
     if ledger_path.exists():
         content = ledger_path.read_text(encoding="utf-8")
@@ -36,7 +73,56 @@ def add_entry(
         content = "# Change Ledger\n" + entry
 
     ledger_path.write_text(content, encoding="utf-8")
+
+    # Persist hash to chain index
+    chain.append(entry_hash)
     return entry.strip()
+
+
+class CryptoAuditChain:
+    """SHA-256 chained audit trail for ledger entries.
+
+    Stores hashes in `.specsmith/ledger-chain.txt` — one hash per line.
+    The file is append-only. Each line is the SHA-256 hash of
+    (entry_content + previous_hash), forming a chain.
+
+    This makes the ledger tamper-evident: if any entry is modified,
+    its hash changes, which invalidates all subsequent hashes.
+    Verification is O(n) in the number of entries.
+    """
+
+    CHAIN_FILE = Path(".specsmith") / "ledger-chain.txt"
+
+    def __init__(self, root: Path) -> None:
+        self._path = root / self.CHAIN_FILE
+
+    def latest_hash(self) -> str:
+        """Return the hash of the most recent entry, or genesis hash if empty."""
+        if not self._path.exists():
+            return _GENESIS_HASH
+        lines = [
+            line.strip() for line in self._path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        return lines[-1] if lines else _GENESIS_HASH
+
+    def append(self, entry_hash: str) -> None:
+        """Append a new hash to the chain."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self._path, "a", encoding="utf-8") as fh:
+            fh.write(entry_hash + "\n")
+
+    def all_hashes(self) -> list[str]:
+        """Return all hashes in the chain (oldest first)."""
+        if not self._path.exists():
+            return []
+        return [
+            line.strip() for line in self._path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    def length(self) -> int:
+        return len(self.all_hashes())
 
 
 def list_entries(root: Path, *, since: str = "") -> list[dict[str, str]]:

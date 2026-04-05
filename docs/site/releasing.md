@@ -182,3 +182,55 @@ Dev releases let users test features before they ship in a stable release. The n
 - **PyPI classifiers are baked at upload time** — changing `Development Status` in pyproject.toml requires a new release to take effect on PyPI.
 - **shields.io badges cache for ~5 minutes** — don't panic if the badge shows the old version immediately after release.
 - **Hotfixes must include ALL changes** — not just the code fix. Version bump, CHANGELOG, docs, and classifiers must all be in the hotfix commit.
+
+## RTD "latest" and Dev Badge — Known Issues and Fixes
+
+### Root Cause: RTD "latest" always shows stable
+
+RTD's version model:
+- **`latest`** = build from the repository's **default branch** (set in RTD dashboard)
+- **`stable`** = build from the latest tagged release matching `v*`
+- **`develop`** = a named branch version (only at `/en/develop/`, never at `/en/latest/`)
+
+**The problem**: The repo's RTD default branch is set to `main`. So `/en/latest/` always shows whatever is on `main` — which is the last stable release. Dev changes on `develop` build the `/en/develop/` version but never update `/en/latest/`.
+
+**Fix Option A (recommended): Change RTD default branch to `develop`**
+
+1. Go to https://readthedocs.org/projects/specsmith/
+2. Click **Admin** → **Advanced Settings**
+3. Set **Default branch** to `develop`
+4. Save
+
+After this: every push to `develop` auto-rebuilds `/en/latest/`. The `docs-build` workflow curl is then optional (RTD auto-builds on push via webhook).
+
+**Fix Option B: Keep `main` as default, manually trigger `latest` from CI**
+
+In `.github/workflows/dev-release.yml`, uncomment the `latest` trigger block. This overwrites `/en/latest/` with `develop` content on every develop push. Trade-off: stable users who click the `/en/latest/` link will see dev docs.
+
+### Root Cause: `develop` RTD version isn't building
+
+Even with the RTD API curl call in `docs-build`, the `develop` version must be **activated** in the RTD dashboard. Inactive versions return 404 on build triggers.
+
+**Fix**:
+1. Go to https://readthedocs.org/projects/specsmith/versions/
+2. Find `develop` in the list
+3. Click **Activate** (toggle it on)
+4. Check **Hidden** if you don't want it in the public version dropdown
+
+### Root Cause: `RTD_TOKEN` may be unset or expired
+
+The `docs-build` workflow now prints HTTP status and error hints. If you see `HTTP 401`, the token is invalid. Generate a new one:
+
+1. https://readthedocs.org/accounts/tokens/
+2. Create a new token with the `Admin` scope for the specsmith project
+3. Add it to GitHub: repo Settings → Secrets → Actions → `RTD_TOKEN`
+
+### Root Cause: dev badge shows stable
+
+shields.io's `pypi/v` badge with `include_prereleases=true` shows `aN`/`bN`/`rcN` pre-releases but **NOT `.devN` dev builds** (PEP 440 development versions are excluded from the pre-release query).
+
+The badge `?include_prereleases=true` correctly shows `0.3.0a1` (alpha) because that IS a pre-release. But it will NOT show `0.3.0a1.dev5` because PyPI's API marks `.devN` versions differently.
+
+**What this means**: if the pyproject.toml version is `0.3.0a1`, the dev badge correctly shows `0.3.0a1` (the alpha pre-release). Dev builds go to PyPI as `0.3.0a1.devN` (accessible with `pip install --pre specsmith`) but won't appear on the badge.
+
+This is expected behavior, not a bug. The badge shows the latest installable pre-release (`pip install --pre specsmith` would install `0.3.0a1`). Users wanting dev builds specifically should use `pip install --pre specsmith` and check PyPI history.

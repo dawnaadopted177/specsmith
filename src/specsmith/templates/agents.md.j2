@@ -147,6 +147,25 @@ Other project documents:
 
 ---
 
+## Epistemic Governance (AEE)
+
+This project follows Applied Epistemic Engineering (AEE) principles. Every proposal MUST:
+- State its `Assumptions:` field (H13 — Epistemic Boundaries Required)
+- State its `Stress-test:` field — one adversarial challenge to the proposal's assumptions
+
+Run `specsmith epistemic-audit` to check epistemic health:
+- Equilibrium = all belief artifacts stress-tested with no critical failures
+- Certainty ≥ 0.7 (default threshold)
+- No Logic Knots (conflicting accepted requirements)
+
+`specsmith trace seal decision "<description>"` — seal any significant decision
+`specsmith stress-test` — adversarial challenges against REQUIREMENTS.md
+`specsmith belief-graph` — visualize BeliefArtifact dependency graph
+
+Stop condition (H13): P1 requirement with confidence below MEDIUM = work stops.
+
+---
+
 ## Session Lifecycle
 
 ### Start Protocol

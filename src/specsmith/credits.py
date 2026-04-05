@@ -33,6 +33,15 @@ class CreditBudget:
     alert_threshold_pct: int = 80  # warn at this % of cap
     alert_watermarks_usd: list[float] = field(default_factory=lambda: [5.0, 10.0, 25.0, 50.0])
     enabled: bool = True
+    enforcement_mode: str = "soft"  # soft (warn only) | hard (block when exceeded)
+
+    def is_exceeded(self, current_spend_usd: float) -> bool:
+        """True if the monthly cap is configured and exceeded."""
+        return self.monthly_cap_usd > 0 and current_spend_usd >= self.monthly_cap_usd
+
+    def should_block(self, current_spend_usd: float) -> bool:
+        """True if this is a hard cap AND it is exceeded."""
+        return self.enforcement_mode == "hard" and self.is_exceeded(current_spend_usd)
 
 
 @dataclass

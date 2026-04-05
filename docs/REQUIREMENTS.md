@@ -186,3 +186,122 @@
 
 - **REQ-XPL-001**: All CLI commands work on Windows, Linux, and macOS
 - **REQ-XPL-002**: Generated scripts include both .cmd and .sh variants
+
+## Applied Epistemic Engineering (AEE)
+
+- **REQ-AEE-001**: `BeliefArtifact` model captures id, propositions, epistemic boundary, confidence, and status
+- **REQ-AEE-002**: Requirements in `REQUIREMENTS.md` are parseable as `BeliefArtifact` instances via `parse_requirements_as_beliefs()`
+- **REQ-AEE-003**: `beliefs_from_dicts()` constructs BeliefArtifacts from plain dicts (JSON/YAML/DB)
+- **REQ-AEE-004**: `BeliefArtifact.add_evidence()` adds citation and elevates confidence from UNKNOWN to LOW
+- **REQ-AEE-005**: `BeliefArtifact.to_dict()` serialises to a JSON-compatible dict
+
+## Stress Testing
+
+- **REQ-STR-001**: `specsmith stress-test` applies adversarial challenges to all requirements and reports failure modes
+- **REQ-STR-002**: `StressTester` applies 8 challenge categories: vagueness, missing test, missing boundary, compound claim, no propositions, P1 confidence, circular links, logic knots
+- **REQ-STR-003**: `StressTester` detects Logic Knots (conflicting accepted requirements) via MUST/MUST NOT heuristic
+- **REQ-STR-004**: `StressTester` detects duplicate requirement IDs as Logic Knots
+- **REQ-STR-005**: `StressTestResult.equilibrium` is True when no critical failures and no logic knots
+
+## Failure-Mode Graph
+
+- **REQ-FMG-001**: `FailureModeGraph` maps stress-test results to breakpoints with severity and recovery paths
+- **REQ-FMG-002**: `specsmith belief-graph` renders dependency graph as text tree or Mermaid diagram
+- **REQ-FMG-003**: `FailureModeGraph.equilibrium_check()` returns True when S(G) yields no new failure modes
+- **REQ-FMG-004**: `FailureModeGraph.logic_knot_detect()` returns all detected Logic Knots
+- **REQ-FMG-005**: `FailureModeGraph` builds edges from `BeliefArtifact.inferential_links`
+
+## Certainty and Confidence
+
+- **REQ-CRT-001**: `CertaintyEngine` scores belief artifacts C = base × coverage × freshness ∈ [0, 1]
+- **REQ-CRT-002**: `CertaintyEngine` propagates confidence via weakest-link rule through inferential links
+- **REQ-CRT-003**: `CertaintyReport.component_averages` groups scores by component code
+- **REQ-CRT-004**: `specsmith epistemic-audit` reports per-artifact confidence and equilibrium status
+- **REQ-CRT-005**: `CertaintyEngine` threshold is configurable (default 0.7, overridable via `scaffold.yml`)
+
+## Trace Vault
+
+- **REQ-TRC-001**: `SealRecord` captures type, content hash, timestamp, and prev hash
+- **REQ-TRC-002**: `specsmith trace verify` validates full trace chain integrity
+- **REQ-TRC-003**: Ledger entries include `entry_hash` for tamper detection (CryptoAuditChain)
+- **REQ-TRC-004**: `TraceVault` stores seals in `.specsmith/trace.jsonl` (append-only)
+- **REQ-TRC-005**: `specsmith trace seal` creates a SealRecord for decisions, milestones, audit gates
+
+## Recovery
+
+- **REQ-RCV-001**: `RecoveryOperator` generates bounded `RecoveryProposal` objects for all failure modes
+- **REQ-RCV-002**: `RecoveryProposal` objects are never auto-applied; they require human approval
+- **REQ-RCV-003**: Recovery proposals are ranked by severity (CRITICAL=1, HIGH=2, MEDIUM=3, LOW=4)
+- **REQ-RCV-004**: `RecoveryOperator` generates proposals for Logic Knots with RESOLVE or DEPRECATE strategy
+
+## Agentic Client
+
+- **REQ-AGT-001**: `specsmith run` starts an interactive AEE-integrated REPL
+- **REQ-AGT-002**: `specsmith run --task` executes a single task non-interactively
+- **REQ-AGT-003**: Agentic client auto-detects LLM provider from environment variables
+- **REQ-AGT-004**: Agentic client supports Anthropic, OpenAI, Gemini, and Ollama providers
+- **REQ-AGT-005**: All LLM providers are optional extras (`pip install specsmith[anthropic]` etc.)
+- **REQ-AGT-006**: specsmith commands are registered as native agent tools
+- **REQ-AGT-007**: Skill files (SKILL.md) are loaded from project and built-in profiles
+- **REQ-AGT-008**: Hook system fires on PreTool, PostTool, SessionStart, SessionEnd events
+- **REQ-AGT-009**: H13 hook warns when AEE tools are called without epistemic boundary
+- **REQ-AGT-010**: `specsmith agent providers` shows available LLM providers and status
+
+## epistemic Library
+
+- **REQ-EPI-001**: `from epistemic import AEESession` works from any Python 3.10+ project after `pip install specsmith`
+- **REQ-EPI-002**: `epistemic` package has zero external dependencies beyond stdlib
+- **REQ-EPI-003**: `AEESession` bundles the full AEE pipeline in one object (add_belief, run, save, seal)
+- **REQ-EPI-004**: `AEESession.run()` executes Frame→Disassemble→Stress-Test→Failure-Graph→Certainty→Recovery
+- **REQ-EPI-005**: `AEESession.save()`/`load()` persists belief state as JSON
+- **REQ-EPI-006**: `specsmith.epistemic` module re-exports everything from `epistemic` (backward compat)
+- **REQ-EPI-007**: `epistemic` package includes `py.typed` marker for mypy support
+
+## Auth (#37)
+
+- **REQ-AUTH-001**: `specsmith auth set <platform>` stores API tokens securely (keyring > file; never logged)
+- **REQ-AUTH-002**: `specsmith auth list` shows configured platforms with masked token values
+- **REQ-AUTH-003**: `specsmith auth remove <platform>` deletes stored credentials
+- **REQ-AUTH-004**: `specsmith auth check` validates all required tokens for configured integrations
+- **REQ-AUTH-005**: Token resolution priority: env vars → OS keyring → encrypted file
+- **REQ-AUTH-006**: Token values NEVER written to logs, ledger, governance files, or CLI output
+
+## Workspace (#17)
+
+- **REQ-WRK-001**: `specsmith workspace init` creates workspace.yml governing multiple projects
+- **REQ-WRK-002**: `specsmith workspace audit` runs health checks across all workspace projects
+- **REQ-WRK-003**: `specsmith workspace export` generates combined compliance report
+- **REQ-WRK-004**: workspace.yml supports project list with paths and org-level defaults
+
+## Watch (#16)
+
+- **REQ-WCH-001**: `specsmith watch` monitors project directory and alerts on governance drift
+- **REQ-WCH-002**: Watch alerts when LEDGER.md not updated after code changes
+- **REQ-WCH-003**: Watch uses polling fallback when watchdog is not installed
+
+## Patent (#10)
+
+- **REQ-PAT-001**: `specsmith patent search <query>` searches USPTO ODP API for patents
+- **REQ-PAT-002**: `specsmith patent prior-art <claim>` analyzes prior art with key-term extraction
+- **REQ-PAT-003**: Patent commands require USPTO_API_KEY or `specsmith auth set uspto`
+- **REQ-PAT-004**: Prior art reports saved to prior-art/ directory with markdown format
+
+## Auto-Update
+
+- **REQ-AUP-001**: Every specsmith command checks scaffold.yml spec_version vs installed version
+- **REQ-AUP-002**: If outdated, prompt Y/n to migrate project (calls migrate-project)
+- **REQ-AUP-003**: Auto-update prompt skippable via SPECSMITH_NO_AUTO_UPDATE=1 env var
+- **REQ-AUP-004**: Meta-commands (update, self-update, migrate-project) skip the version check
+
+## Credit Hard Cap (#52)
+
+- **REQ-CHC-001**: CreditBudget has enforcement_mode field: soft (warn) | hard (block)
+- **REQ-CHC-002**: `specsmith credits check` shows spend vs budget with visual bar
+- **REQ-CHC-003**: Hard cap mode exits with code 2 when cap is exceeded
+- **REQ-CHC-004**: `specsmith credits budget --enforcement hard` enables hard cap mode
+
+## Scaffolder Epistemic
+
+- **REQ-SCF-EPI-001**: `specsmith init` for epistemic project types renders 4 epistemic governance templates
+- **REQ-SCF-EPI-002**: `enable_epistemic=true` adds epistemic governance to any project type
+- **REQ-SCF-EPI-003**: Epistemic project types get domain-specific directory structures

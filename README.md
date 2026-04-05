@@ -3,43 +3,90 @@
 [![CI](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml)
 [![Docs](https://readthedocs.org/projects/specsmith/badge/?version=stable)](https://specsmith.readthedocs.io/en/stable/)
 [![PyPI Stable](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
-[![PyPI Dev](https://img.shields.io/pypi/v/specsmith?include_prereleases&label=dev&style=flat&color=orange&cacheSeconds=60)](https://pypi.org/project/specsmith/#history)
+[![PyPI Dev](https://img.shields.io/pypi/v/specsmith?include_prereleases=true&label=dev&style=flat&color=orange&cacheSeconds=60)](https://pypi.org/project/specsmith/#history)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Governed project scaffolds for AI-assisted development.**
+**Applied Epistemic Engineering toolkit for AI-assisted development.**
 
 > Intelligence proposes. Constraints decide. The ledger remembers.
+
+specsmith treats belief systems like code: codable, testable, and deployable. It scaffolds
+epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
+cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
+
+It also co-installs the standalone `epistemic` Python library for direct use in any project:
+
+```python
+from epistemic import AEESession         # works in any Python 3.10+ project
+from epistemic import BeliefArtifact, StressTester, CertaintyEngine
+```
+
+---
+
+## What is Applied Epistemic Engineering?
+
+AEE treats beliefs — requirements, hypotheses, decisions, constraints — like code:
+
+- **Codable**: every claim is a `BeliefArtifact` with propositions and boundaries
+- **Testable**: the `StressTester` applies adversarial challenges to surface failure modes
+- **Deployable**: beliefs that survive stress-testing can be sealed with cryptographic proof
+
+The 4-step AEE core method: **Frame → Disassemble → Stress-Test → Reconstruct**
+
+The 5 foundational axioms:
+1. **Observability** — every belief must be inspectable (hidden assumptions = stop condition)
+2. **Falsifiability** — every belief must be challengeable (unchallenged claims = dogma)
+3. **Irreducibility** — beliefs decompose to atomic primitives (compound claims hide Logic Knots)
+4. **Reconstructability** — every failed belief can be reconstructed (scope may narrow)
+5. **Convergence** — S+R iteration always converges to Equilibrium E
 
 ---
 
 ## The Problem
 
-AI coding agents are powerful but unstructured. Without governance, they skip verification, lose context between sessions, and produce inconsistent results. specsmith generates the governance layer — the rules, verification tools, CI pipelines, and documentation — that makes AI-assisted development auditable and repeatable.
+AI coding agents produce knowledge claims (requirements, code, decisions) but have no
+mechanism to assess their epistemic quality. Without governance:
+- Requirements are vague, compound, or untestable
+- Conflicting claims (Logic Knots) silently accumulate
+- Confidence in critical requirements is never measured
+- Decisions lack tamper-evident audit trails
+
+specsmith solves this by making the governance layer epistemically aware: requirements
+become BeliefArtifacts, audits run stress-tests, decisions seal to the trace vault.
 
 ## What specsmith Does
 
-**For new projects:** `specsmith init` generates a complete project scaffold with governance files, CI/CD, verification tools, and agent integration files tailored to your project type.
+**For new projects:** `specsmith init` generates a complete epistemically-governed scaffold
+with governance files, CI/CD, AEE belief registry, and agent integration files.
 
-**For existing projects:** `specsmith import` detects your project's language, build system, and test framework, then generates governance overlay files without modifying your source code. Existing files are preserved.
+**For existing projects:** `specsmith import` generates governance overlay files without
+modifying source code. Existing files are preserved.
 
-**For ongoing governance:** `specsmith audit` checks health, `specsmith export` generates compliance reports, `specsmith doctor` verifies your tools are installed.
+**For AEE workflows:** `specsmith stress-test` runs adversarial challenges against
+requirements. `specsmith epistemic-audit` runs the full AEE pipeline. `specsmith trace
+seal` creates tamper-evident decision records.
 
-Every governed project follows the closed-loop workflow: **propose → check → execute → verify → record**.
+**As a Python library:** `from epistemic import AEESession` — zero specsmith coupling,
+works in any Python 3.10+ project (research, compliance, AI alignment, etc.).
+
+**As an agentic client:** `specsmith run` — AEE-integrated REPL supporting Claude,
+GPT, Gemini, and local Ollama models, with skills, hooks, and tool loops.
+
+Every governed project follows: **propose → check → execute → verify → record**.
 
 ## Install
 
 ```bash
-pip install specsmith
+pip install specsmith             # core + epistemic library
+pip install specsmith[anthropic]  # + Claude support (specsmith run)
+pip install specsmith[openai]     # + GPT/O-series support
 ```
 
 ## Quick Start
 
 ```bash
-# Install
-pip install specsmith
-
-# New project (interactive)
+# New project
 specsmith init
 
 # Adopt an existing project
@@ -48,13 +95,36 @@ specsmith import --project-dir ./my-project
 # Check governance health
 specsmith audit --project-dir ./my-project
 
-# Generate architecture docs interactively
-specsmith architect --project-dir ./my-project
+# Run AEE stress-test on requirements
+specsmith stress-test --project-dir ./my-project
 
-# Start an AI agent session (universal pattern)
-# From any governed repo root:
-/agent AGENTS.md
+# Run full epistemic audit
+specsmith epistemic-audit --project-dir ./my-project
+
+# Start the agentic REPL (requires a provider installed)
+specsmith run --project-dir ./my-project
+
+# Run a single task non-interactively
+specsmith run --task "run audit and fix issues"
 ```
+
+### Using the epistemic library in any Python project
+
+```python
+from epistemic import AEESession
+
+session = AEESession("my-project")
+session.add_belief(
+    artifact_id="HYP-001",
+    propositions=["The API always returns valid JSON"],
+    epistemic_boundary=["Valid auth token required"],
+)
+session.accept("HYP-001")
+result = session.run()
+print(result.summary())
+```
+
+See [epistemic library documentation](https://specsmith.readthedocs.io/en/stable/epistemic-library/) for full API reference and examples including linguistics research (glossa-lab), compliance pipelines, and AI alignment workflows.
 
 ### Starting an AI Agent Session
 
@@ -66,7 +136,30 @@ The universal pattern for any specsmith-governed project:
 
 This works in Warp, Claude Code, Cursor, and any agent that reads markdown context files. The agent loads AGENTS.md (the governance hub), reads LEDGER.md for session state, and picks up from the last recorded action.
 
-## 30 Project Types
+## 50+ CLI Commands
+
+| Command | Purpose |
+|---------|---------|
+| `init` | Scaffold a new epistemically-governed project |
+| `import` | Adopt an existing project |
+| `audit` | Drift detection and health checks |
+| `stress-test` | AEE adversarial stress-tests on requirements |
+| `epistemic-audit` | Full AEE pipeline (stress-test + certainty + recovery) |
+| `belief-graph` | Render belief artifact dependency graph |
+| `trace seal/verify/log` | Cryptographic decision sealing (STP-inspired) |
+| `integrate <tool>` | Epistemic impact analysis before tool integration |
+| `run` | Start AEE-integrated agentic REPL |
+| `agent providers/tools/skills` | Configure agentic client |
+| `validate` | Governance consistency checks |
+| `export` | Compliance report with REQ↔TEST coverage |
+| `architect` | Interactive architecture generation |
+| `credits` | AI credit tracking, analysis, budgets |
+| `exec / ps / abort` | Tracked process execution with timeouts |
+| `commit / push / sync` | Governance-aware VCS operations |
+| `req list/trace/gaps` | Requirement management |
+| `ledger add/list/stats` | Change ledger management |
+
+## 33 Project Types
 
 **Software:** Python, Rust, Go, C/C++, .NET, JS/TS, mobile, monorepo, microservices, DevOps/IaC, data/ML, browser extensions.
 

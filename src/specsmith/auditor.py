@@ -503,6 +503,34 @@ def check_type_mismatch(root: Path) -> list[AuditResult]:
     return results
 
 
+def check_trace_chain_integrity(root: Path) -> list[AuditResult]:
+    """Check trace vault chain integrity if it exists."""
+    trace_path = root / ".specsmith" / "trace.jsonl"
+    if not trace_path.exists():
+        return []  # No trace vault configured — skip silently
+
+    try:
+        from epistemic.trace import TraceVault
+        vault = TraceVault(root / ".specsmith")
+        valid, errors = vault.verify()
+        if valid:
+            return [AuditResult(
+                name="trace-chain-integrity",
+                passed=True,
+                message=f"Trace vault intact ({vault.count()} seals)",
+            )]
+        else:
+            return [AuditResult(
+                name="trace-chain-integrity",
+                passed=False,
+                message=f"Trace vault integrity failure: {'; '.join(errors[:2])}",
+            )]
+    except ImportError:
+        return []  # epistemic package not installed
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def run_audit(root: Path) -> AuditReport:
     """Run all audit checks and return a report."""
     report = AuditReport()
@@ -512,6 +540,7 @@ def run_audit(root: Path) -> AuditReport:
     report.results.extend(check_context_size(root))
     report.results.extend(check_tool_configuration(root))
     report.results.extend(check_type_mismatch(root))
+    report.results.extend(check_trace_chain_integrity(root))
     return report
 
 

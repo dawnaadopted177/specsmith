@@ -269,3 +269,86 @@
   Covers: REQ-CLI-012
 - **TEST-CLI-008**: `specsmith import --guided` runs architecture after import
   Covers: REQ-CLI-013
+
+### Applied Epistemic Engineering
+
+- **TEST-AEE-001**: `BeliefArtifact` creates with required fields (id, propositions, boundary, confidence, status)
+  Covers: REQ-AEE-001
+- **TEST-AEE-002**: `BeliefArtifact.add_evidence()` elevates confidence from UNKNOWN to LOW
+  Covers: REQ-AEE-004
+- **TEST-AEE-003**: `BeliefArtifact.to_dict()` returns JSON-serializable dict
+  Covers: REQ-AEE-005
+- **TEST-AEE-004**: `parse_requirements_as_beliefs()` parses REQUIREMENTS.md correctly
+  Covers: REQ-AEE-002
+- **TEST-AEE-005**: `beliefs_from_dicts()` constructs BeliefArtifacts from plain dicts
+  Covers: REQ-AEE-003
+
+### Stress Testing
+
+- **TEST-STR-001**: `StressTester` flags empty propositions as CRITICAL failure
+  Covers: REQ-STR-001, REQ-STR-002
+- **TEST-STR-002**: `StressTester` detects vagueness (imprecise language)
+  Covers: REQ-STR-002
+- **TEST-STR-003**: `StressTester` equilibrium is True for clean draft artifact
+  Covers: REQ-STR-005
+- **TEST-STR-004**: Accepted artifact without test coverage gets HIGH failure
+  Covers: REQ-STR-002
+- **TEST-STR-005**: Duplicate accepted IDs detected as Logic Knot
+  Covers: REQ-STR-003, REQ-STR-004
+
+### Failure-Mode Graph
+
+- **TEST-FMG-001**: `FailureModeGraph.equilibrium_check()` passes with no failures
+  Covers: REQ-FMG-001, REQ-FMG-003
+- **TEST-FMG-002**: `equilibrium_check()` fails when critical failures present
+  Covers: REQ-FMG-003
+- **TEST-FMG-003**: `logic_knot_detect()` returns detected knots
+  Covers: REQ-FMG-004
+- **TEST-FMG-004**: `render_text()` shows equilibrium status
+  Covers: REQ-FMG-002
+- **TEST-FMG-005**: `render_mermaid()` produces valid Mermaid graph TD output
+  Covers: REQ-FMG-002
+
+### Certainty Engine
+
+- **TEST-CRT-001**: UNKNOWN confidence + no propositions = score 0.0
+  Covers: REQ-CRT-001
+- **TEST-CRT-002**: MEDIUM confidence + test coverage ≈ 0.55
+  Covers: REQ-CRT-001
+- **TEST-CRT-003**: Weakest-link propagation: dependent score ≤ upstream score
+  Covers: REQ-CRT-002
+- **TEST-CRT-004**: `component_averages` groups scores by component code
+  Covers: REQ-CRT-003
+- **TEST-CRT-005**: `below_threshold` contains IDs of low-scoring artifacts
+  Covers: REQ-CRT-004
+
+### Trace Vault
+
+- **TEST-TRC-001**: `TraceVault` chain verification passes for intact chain
+  Covers: REQ-TRC-001, REQ-TRC-002
+- **TEST-TRC-002**: `TraceVault` detects tampered entry (hash mismatch)
+  Covers: REQ-TRC-002
+- **TEST-TRC-003**: First seal uses genesis hash; second seal chains to first
+  Covers: REQ-TRC-001, REQ-TRC-004
+
+### AEESession
+
+- **TEST-EPI-001**: `AEESession.run()` returns AEEResult with summary
+  Covers: REQ-EPI-003, REQ-EPI-004
+- **TEST-EPI-002**: `AEESession.save()` and `load()` round-trip belief state
+  Covers: REQ-EPI-005
+- **TEST-EPI-003**: `from epistemic import AEESession` imports cleanly
+  Covers: REQ-EPI-001, REQ-EPI-002
+- **TEST-EPI-004**: `specsmith.epistemic` re-exports `BeliefArtifact` from `epistemic`
+  Covers: REQ-EPI-006
+
+### Agentic Client
+
+- **TEST-AGT-001**: `AgentRunner` initializes without a provider (deferred to first call)
+  Covers: REQ-AGT-001, REQ-AGT-003
+- **TEST-AGT-002**: `build_tool_registry()` returns 20+ tools including `audit` and `epistemic_audit`
+  Covers: REQ-AGT-006
+- **TEST-AGT-003**: `load_skills()` finds built-in profiles (epistemic-auditor, planner, verifier)
+  Covers: REQ-AGT-007
+- **TEST-AGT-004**: `HookRegistry` fires H13 warning when AEE tool called
+  Covers: REQ-AGT-008, REQ-AGT-009

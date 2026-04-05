@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0a1] - 2026-04-05
+
+### Added — Applied Epistemic Engineering
+
+- **`epistemic` standalone library** (`src/epistemic/`): zero-dep Python library co-installed with specsmith. `from epistemic import AEESession` works in any Python 3.10+ project. Seven modules: `belief.py`, `stress_tester.py`, `failure_graph.py`, `recovery.py`, `certainty.py`, `session.py`, `trace.py`.
+- **`AEESession`**: high-level facade bundling the full AEE pipeline (add_belief, accept, add_evidence, run, save, load, seal, verify_trace). Primary entry point for non-specsmith projects including glossa-lab, cpac, and compliance pipelines.
+- **`BeliefArtifact`**: fundamental AEE primitive. Requirements, decisions, and hypotheses are all BeliefArtifacts with propositions, epistemic boundaries, confidence levels, and failure modes.
+- **`StressTester`**: 8-category adversarial challenge engine (vagueness, falsifiability, observability, irreducibility, compound claim, no propositions, P1 confidence, logic knots).
+- **`FailureModeGraph`**: directed graph of stress-test→breakpoint relations with `equilibrium_check()` and `logic_knot_detect()`. Mermaid diagram rendering.
+- **`CertaintyEngine`**: CERTUS-inspired confidence scoring. C = base × coverage × freshness. Weakest-link propagation through inferential links.
+- **`RecoveryOperator`**: generates bounded `RecoveryProposal` objects for all failure modes. Never auto-applies. Ranked by severity.
+- **`TraceVault`** (`src/epistemic/trace.py`): STP-inspired cryptographic decision sealing. SHA-256 chain, append-only `.specsmith/trace.jsonl`.
+- **`CryptoAuditChain`** in `ledger.py`: SHA-256 chained hashes for all ledger entries. Tamper-evident history.
+- **`specsmith.epistemic`**: backward-compatible shim that re-exports everything from `epistemic`.
+
+### Added — New CLI Commands
+
+- **`specsmith stress-test`**: AEE adversarial stress-tests on `docs/REQUIREMENTS.md`. Text and Mermaid output.
+- **`specsmith epistemic-audit`**: full AEE pipeline — stress-test + failure graph + certainty scoring + recovery proposals. `--threshold` and `--mermaid` options.
+- **`specsmith belief-graph`**: render belief artifact dependency graph by component. Text and Mermaid.
+- **`specsmith trace seal/verify/log`**: cryptographic trace vault management.
+- **`specsmith integrate <tool>`**: epistemic impact analysis before tool adapter scaffolding.
+- **`specsmith run`**: AEE-integrated agentic REPL. Auto-detects provider. `--task`, `--provider`, `--model`, `--tier` options.
+- **`specsmith agent providers/tools/skills`**: configure and inspect the agentic client.
+
+### Added — Agentic Client
+
+- **`src/specsmith/agent/`**: minimal, cross-platform Python agentic client.
+  - `core.py`: `Message`, `Tool`, `CompletionResponse`, `ModelTier`, `BaseProvider` protocol
+  - `providers/`: Anthropic, OpenAI (incl. Ollama via compat endpoint), Gemini, Ollama (stdlib-only)
+  - `tools.py`: 20 specsmith commands as native agent tools with epistemic contracts
+  - `hooks.py`: `HookRegistry` with Pre/PostTool, SessionStart, SessionEnd hooks. Built-in H13 enforcement.
+  - `skills.py`: SKILL.md loader with domain prioritization (epistemic > governance > verification > testing > vcs)
+  - `runner.py`: REPL loop with tool execution, model routing, session state, streaming support
+  - Built-in profiles: `planner.md`, `verifier.md`, `epistemic-auditor.md`
+- All LLM providers are optional extras: `pip install specsmith[anthropic]`, `specsmith[openai]`, `specsmith[gemini]`
+- Ollama support via stdlib `urllib` only (zero deps)
+- Model routing: `--tier fast/balanced/powerful` maps to appropriate models per provider
+
+### Added — Project Types and Config
+
+- **3 new project types**: `epistemic-pipeline` (ARE 8-phase), `knowledge-engineering`, `aee-research`
+- **`ProjectConfig.enable_epistemic`**: opt-in AEE governance layer
+- **`ProjectConfig.epistemic_threshold`**: configurable certainty threshold (default 0.7)
+- **`ProjectConfig.enable_trace_vault`**: opt-in cryptographic trace vault
+
+### Added — Governance Templates
+
+- **`epistemic-axioms.md.j2`**: 5 AEE axioms applied to the project
+- **`belief-registry.md.j2`**: catalog of BeliefArtifacts (decisions, assumptions, dependencies)
+- **`failure-modes.md.j2`**: Failure-Mode Graph document
+- **`uncertainty-map.md.j2`**: known unknowns and accepted uncertainties
+- **H13** added to `rules.md.j2`: Epistemic Boundaries Required — proposals must state assumptions
+- 3 new stop conditions in `rules.md.j2`: Logic Knot, P1 confidence, trace chain integrity
+
+### Added — Documentation
+
+- **`docs/site/aee-primer.md`**: 10-part comprehensive guide from zero AEE knowledge to full productivity. Covers theory, formal machinery, 4-step method, belief artifacts, logic knots, certainty engine, trace vault, practical workflow, domain examples, and references.
+- **`docs/site/epistemic-library.md`**: full API reference for the standalone `epistemic` library with integration examples for glossa-lab, compliance, and FastAPI.
+- RTD nav updated with "Applied Epistemic Engineering" section and "Agentic Client" section.
+- ECC reference cloned locally: `C:\Users\trist\Development\BitConcepts\everything-claude-code`
+
+### Changed
+
+- **Version**: 0.2.3 → 0.3.0a1
+- **Package description**: AEE-first framing
+- **pyproject.toml**: `epistemic` package in `package-data`, optional LLM extras (`[anthropic]`, `[openai]`, `[gemini]`, `[agent]`, `[all]`)
+- **AGENTS.md**: updated identity, spec version 0.3.0-alpha.1, new commands, ECC reference
+- **README.md**: leads with AEE identity, explains the paradigm shift, shows epistemic library usage
+- **mkdocs.yml**: AEE and Agentic Client nav sections, navigation.tabs feature
+
 ## [0.2.3] - 2026-04-03
 
 ### Fixed

@@ -1,5 +1,5 @@
 site_name: specsmith
-site_description: Forge governed project scaffolds from the Agentic AI Development Workflow Specification.
+site_description: Applied Epistemic Engineering toolkit — forge epistemically-governed scaffolds, stress-test belief systems, and run AEE pipelines.
 site_url: https://specsmith.readthedocs.io
 repo_url: https://github.com/BitConcepts/specsmith
 repo_name: BitConcepts/specsmith
@@ -28,17 +28,23 @@ theme:
     - navigation.expand
     - content.code.copy
     - search.suggest
+    - navigation.tabs
 
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Applied Epistemic Engineering:
+    - AEE Primer (Full Guide): aee-primer.md
+    - epistemic Library Reference: epistemic-library.md
   - CLI Commands: commands.md
+  - Agentic Client:
+    - Overview: agent-client.md
+    - Agent Integrations: agent-integrations.md
   - Project Types: project-types.md
   - Tool Registry: tool-registry.md
   - Importing Projects: importing.md
   - Configuration: configuration.md
   - Governance Model: governance.md
-  - Agent Integrations: agent-integrations.md
   - Doctor: doctor.md
   - Export & Compliance: export.md
   - Rate Limit Pacing: rate-limits.md

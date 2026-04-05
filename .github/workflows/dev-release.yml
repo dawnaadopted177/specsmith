@@ -81,8 +81,48 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - name: Trigger ReadTheDocs build for develop
+      - name: Trigger ReadTheDocs builds (develop + latest)
+        env:
+          RTD_TOKEN: ${{ secrets.RTD_TOKEN }}
         run: |
-          curl -s -X POST \
-            -H "Authorization: Token ${{ secrets.RTD_TOKEN }}" \
-            "https://readthedocs.org/api/v3/projects/specsmith/versions/develop/builds/"
+          if [ -z "$RTD_TOKEN" ]; then
+            echo "WARNING: RTD_TOKEN secret is not set. Skipping RTD build trigger."
+            echo "To fix: go to GitHub repo Settings → Secrets → Actions and add RTD_TOKEN."
+            echo "Get the token from: https://readthedocs.org/accounts/tokens/"
+            exit 0
+          fi
+
+          # Trigger the 'develop' RTD version build (accessible at /en/develop/)
+          echo "Triggering RTD build for 'develop' version..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Token $RTD_TOKEN" \
+            "https://readthedocs.org/api/v3/projects/specsmith/versions/develop/builds/")
+          echo "RTD develop build trigger: HTTP $STATUS"
+          if [ "$STATUS" != "202" ]; then
+            echo "WARNING: RTD develop build trigger returned HTTP $STATUS (expected 202)."
+            echo "Common causes:"
+            echo "  - 401: RTD_TOKEN is invalid or expired"
+            echo "  - 404: 'develop' version not activated in RTD dashboard"
+            echo "  Fix: https://readthedocs.org/projects/specsmith/versions/ → activate 'develop'"
+          fi
+
+          # NOTE about RTD 'latest' version:
+          # RTD 'latest' maps to the repository's DEFAULT BRANCH, which is 'main' (not 'develop').
+          # To make 'latest' show dev builds, you have TWO options:
+          #
+          # OPTION A (recommended): Change RTD default branch to 'develop'
+          #   - RTD dashboard → specsmith project → Admin → Advanced Settings
+          #   - Set 'Default branch' to 'develop'
+          #   - After this, every push to develop auto-rebuilds /en/latest/
+          #   - The separate curl below is then optional
+          #
+          # OPTION B: Keep 'main' as RTD default, trigger 'latest' manually from here
+          #   - Uncomment the block below
+          #   - This overwrites 'latest' docs with develop content on every develop push
+          #   - Downside: 'latest' will show dev docs even for stable users
+          #
+          # OPTION B (uncomment if needed):
+          # echo "Triggering RTD build for 'latest' version..."
+          # curl -s -X POST \
+          #   -H "Authorization: Token $RTD_TOKEN" \
+          #   "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/builds/"
