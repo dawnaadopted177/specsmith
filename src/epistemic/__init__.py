@@ -143,7 +143,7 @@ from epistemic.recovery import RecoveryOperator, RecoveryProposal, RecoveryStrat
 from epistemic.session import AEEResult, AEESession
 from epistemic.stress_tester import StressTester, StressTestResult
 
-__version__ = "0.3.0a1"
+__version__ = "0.3.0"
 
 __all__ = [
     # Session facade (primary entry point)

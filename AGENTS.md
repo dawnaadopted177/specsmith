@@ -3,7 +3,7 @@
 ## Identity
 - **Project**: specsmith
 - **Type**: CLI tool (Python) + AEE library — Spec Section 17.3
-- **Spec version**: 0.3.0-alpha.1
+- **Spec version**: 0.3.0
 - **Language**: Python 3.10+
 - **Platforms**: Windows, Linux, macOS
 
@@ -40,7 +40,7 @@ and local Ollama models.
 - `docs/REQUIREMENTS.md` — formal requirements
 - `docs/TEST_SPEC.md` — test specifications
 - `docs/governance/` — modular governance docs
-- `docs/AGENT-WORKFLOW-SPEC.md` — the specification itself (v0.3.0)
+- `docs/AGENT-WORKFLOW-SPEC.md` — the specification itself
 - `C:\Users\trist\Development\BitConcepts\everything-claude-code` — ECC reference (local clone)
 
 ## Governance

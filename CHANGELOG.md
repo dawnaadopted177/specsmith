@@ -5,9 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [0.3.0a1] - 2026-04-05
+## [Unreleased] — targeting 0.3.0
 
 ### Added — Applied Epistemic Engineering
 
@@ -71,10 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Version**: 0.2.3 → 0.3.0a1
+- **Version scheme**: switched to `X.Y.Z.devN` (no alpha/beta suffixes). `pyproject.toml` targets `0.3.0`; dev builds auto-publish as `0.3.0.devN`.
 - **Package description**: AEE-first framing
 - **pyproject.toml**: `epistemic` package in `package-data`, optional LLM extras (`[anthropic]`, `[openai]`, `[gemini]`, `[agent]`, `[all]`)
-- **AGENTS.md**: updated identity, spec version 0.3.0-alpha.1, new commands, ECC reference
+- **AGENTS.md**: updated identity, spec version 0.3.0, new commands, ECC reference
 - **README.md**: leads with AEE identity, explains the paradigm shift, shows epistemic library usage
 - **mkdocs.yml**: AEE and Agentic Client nav sections, navigation.tabs feature
 
