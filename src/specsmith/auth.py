@@ -157,10 +157,11 @@ def check_required(platforms: list[str]) -> dict[str, bool]:
 
 
 def _keyring_get(platform: str) -> str | None:
+    # keyring is an optional dep; CI uses --ignore-missing-imports
     try:
-        import keyring  # type: ignore[import]
+        import keyring
 
-        value = keyring.get_password(_KEYRING_SERVICE, platform)  # type: ignore[no-any-return]
+        value = keyring.get_password(_KEYRING_SERVICE, platform)
         return str(value) if value else None
     except Exception:  # noqa: BLE001
         return None
@@ -168,9 +169,9 @@ def _keyring_get(platform: str) -> str | None:
 
 def _keyring_set(platform: str, token: str) -> bool:
     try:
-        import keyring  # type: ignore[import]
+        import keyring
 
-        keyring.set_password(_KEYRING_SERVICE, platform, token)  # type: ignore[no-untyped-call]
+        keyring.set_password(_KEYRING_SERVICE, platform, token)
         return True
     except Exception:  # noqa: BLE001
         return False
@@ -178,9 +179,9 @@ def _keyring_set(platform: str, token: str) -> bool:
 
 def _keyring_delete(platform: str) -> bool:
     try:
-        import keyring  # type: ignore[import]
+        import keyring
 
-        keyring.delete_password(_KEYRING_SERVICE, platform)  # type: ignore[no-untyped-call]
+        keyring.delete_password(_KEYRING_SERVICE, platform)
         return True
     except Exception:  # noqa: BLE001
         return False

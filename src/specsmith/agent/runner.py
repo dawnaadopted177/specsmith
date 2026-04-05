@@ -31,7 +31,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from specsmith.agent.core import (
     CompletionResponse,
@@ -321,10 +321,11 @@ class AgentRunner:
 
     def _call_provider(self, messages: list[Message], silent: bool = False) -> CompletionResponse:
         """Call the LLM provider, streaming if enabled."""
+        provider: Any = self._provider  # provider is typed as Any at runtime for flexibility
         if self._stream and not silent:
             # Stream the response
             accumulated = ""
-            for token in self._provider.stream(messages, tools=self._tools):  # type: ignore[union-attr]
+            for token in provider.stream(messages, tools=self._tools):
                 if token.text:
                     self._print(token.text, end="", flush=True)
                     accumulated += token.text
@@ -333,14 +334,14 @@ class AgentRunner:
             # Re-call non-streaming for tool detection (some providers don't support tool streaming)
             # For now, do a second call if we didn't get tool calls
             if not accumulated.strip():
-                return self._provider.complete(messages, tools=self._tools)  # type: ignore[union-attr]
+                return cast(CompletionResponse, provider.complete(messages, tools=self._tools))
             # Return a synthetic response with the streamed content
             return CompletionResponse(
                 content=accumulated,
-                model=self._provider.model,  # type: ignore[union-attr]
+                model=str(provider.model),
             )
         else:
-            response: CompletionResponse = self._provider.complete(messages, tools=self._tools)  # type: ignore[union-attr]
+            response = cast(CompletionResponse, provider.complete(messages, tools=self._tools))
             if not silent and response.content:
                 self._print(response.content)
             return response
