@@ -106,23 +106,24 @@ jobs:
             echo "  Fix: https://readthedocs.org/projects/specsmith/versions/ → activate 'develop'"
           fi
 
-          # NOTE about RTD 'latest' version:
-          # RTD 'latest' maps to the repository's DEFAULT BRANCH, which is 'main' (not 'develop').
-          # To make 'latest' show dev builds, you have TWO options:
-          #
-          # OPTION A (recommended): Change RTD default branch to 'develop'
-          #   - RTD dashboard → specsmith project → Admin → Advanced Settings
-          #   - Set 'Default branch' to 'develop'
-          #   - After this, every push to develop auto-rebuilds /en/latest/
-          #   - The separate curl below is then optional
-          #
-          # OPTION B: Keep 'main' as RTD default, trigger 'latest' manually from here
-          #   - Uncomment the block below
-          #   - This overwrites 'latest' docs with develop content on every develop push
-          #   - Downside: 'latest' will show dev docs even for stable users
-          #
-          # OPTION B (uncomment if needed):
-          # echo "Triggering RTD build for 'latest' version..."
-          # curl -s -X POST \
-          #   -H "Authorization: Token $RTD_TOKEN" \
-          #   "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/builds/"
+          # Set RTD default branch to 'develop' so /en/latest/ always tracks dev builds.
+          # This is idempotent — safe to run on every push to develop.
+          echo "Setting RTD default branch to 'develop'..."
+          PATCH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            -H "Authorization: Token $RTD_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"default_branch": "develop"}' \
+            "https://readthedocs.org/api/v3/projects/specsmith/")
+          echo "RTD default_branch PATCH: HTTP $PATCH_STATUS"
+
+          # Trigger /en/latest/ build (tracks default branch = develop after above PATCH)
+          echo "Triggering RTD build for 'latest' version..."
+          LATEST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Token $RTD_TOKEN" \
+            "https://readthedocs.org/api/v3/projects/specsmith/versions/latest/builds/")
+          echo "RTD latest build trigger: HTTP $LATEST_STATUS"
+          if [ "$LATEST_STATUS" != "202" ]; then
+            echo "WARNING: RTD latest trigger returned HTTP $LATEST_STATUS"
+            echo "If 404: 'latest' version may not be active in RTD dashboard."
+            echo "Fix: https://readthedocs.org/projects/specsmith/versions/ -> activate 'latest'"
+          fi
