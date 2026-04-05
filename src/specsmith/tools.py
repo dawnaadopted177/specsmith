@@ -243,6 +243,27 @@ _TOOL_REGISTRY: dict[ProjectType, ToolSet] = {
         format=["prettier"],
         security=["npm audit"],
     ),
+    # --- AEE / Epistemic project types ---
+    ProjectType.EPISTEMIC_PIPELINE: ToolSet(
+        lint=["ruff check", "specsmith stress-test"],
+        typecheck=["mypy"],
+        test=["pytest", "specsmith epistemic-audit"],
+        format=["ruff format"],
+        compliance=["specsmith trace verify"],
+    ),
+    ProjectType.KNOWLEDGE_ENGINEERING: ToolSet(
+        lint=["ruff check", "specsmith stress-test"],
+        typecheck=["mypy"],
+        test=["pytest", "specsmith epistemic-audit"],
+        format=["ruff format"],
+        compliance=["specsmith trace verify"],
+    ),
+    ProjectType.AEE_RESEARCH: ToolSet(
+        lint=["vale", "specsmith stress-test"],
+        test=["pytest", "specsmith epistemic-audit"],
+        format=["prettier"],
+        compliance=["specsmith trace verify"],
+    ),
 }
 
 
