@@ -2920,5 +2920,45 @@ def credits_check_cmd(project_dir: str) -> None:
         console.print(f"  [yellow]\u26a0[/yellow] {alert}")
 
 
+# ---------------------------------------------------------------------------
+# GUI Workbench
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="gui")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root to open as the first tab.",
+)
+@click.option(
+    "--provider",
+    "provider_name",
+    default=None,
+    help="Default LLM provider for new sessions.",
+)
+@click.option("--model", default=None, help="Default model for new sessions.")
+def gui_cmd(project_dir: str, provider_name: str | None, model: str | None) -> None:
+    """Launch the AEE Workbench — multi-tab epistemic engineering GUI.
+
+    Requires: pip install specsmith[gui]
+    """
+    try:
+        from specsmith.gui.app import launch
+    except ImportError:
+        console.print(
+            "[red]PySide6 is required for the GUI.[/red]\n"
+            "Install it: [bold]pip install specsmith[gui][/bold]"
+        )
+        raise SystemExit(1) from None
+
+    launch(
+        project_dir=str(Path(project_dir).resolve()),
+        provider_name=provider_name,
+        model=model,
+    )
+
+
 if __name__ == "__main__":
     main()

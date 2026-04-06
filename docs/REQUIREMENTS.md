@@ -305,3 +305,19 @@
 - **REQ-SCF-EPI-001**: `specsmith init` for epistemic project types renders 4 epistemic governance templates
 - **REQ-SCF-EPI-002**: `enable_epistemic=true` adds epistemic governance to any project type
 - **REQ-SCF-EPI-003**: Epistemic project types get domain-specific directory structures
+
+## GUI Workbench
+
+- **REQ-GUI-001**: `specsmith gui` launches a cross-platform Qt6 desktop workbench (Windows, Linux, macOS)
+- **REQ-GUI-002**: Workbench supports multiple independent agent sessions as tabs, each with its own project directory, provider, model, and conversation history
+- **REQ-GUI-003**: Chat view renders user, assistant, tool call, and system messages in visually distinct styles
+- **REQ-GUI-004**: Token meter displays context window fill percentage, input/output token counts, and estimated cost in real time
+- **REQ-GUI-005**: Optimization banner appears at 70% context fill with actionable suggestions (clear history, compress ledger, summarize session)
+- **REQ-GUI-006**: Tool panel provides one-click access to all specsmith tools (audit, validate, doctor, stress-test, epistemic-audit, belief-graph, export, trace-verify, req-list, req-gaps) with pass/fail indicators
+- **REQ-GUI-007**: File upload injects text files as inline context; images and PDFs are routed through Mistral OCR
+- **REQ-GUI-008**: URL injection fetches page content and injects it as context prefix
+- **REQ-GUI-009**: Background update checker silently installs newer specsmith versions on startup and shows a status bar notification
+- **REQ-GUI-010**: Provider and model can be switched per tab without restarting the session
+- **REQ-GUI-011**: Agent calls run in a background QThread so the UI never blocks
+- **REQ-GUI-012**: Epistemic status strip shows current certainty score, last audit result, and last validate result
+- **REQ-GUI-013**: Input bar supports keyboard shortcut (Ctrl+Enter) to send and drag-and-drop of files

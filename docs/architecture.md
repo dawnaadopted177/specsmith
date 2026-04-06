@@ -60,6 +60,22 @@ Re-exports all symbols from `epistemic`. Allows `from specsmith.epistemic import
 - **`runner.py`** — REPL loop, tool execution, streaming, session state, model routing
 - **`profiles/`** — Built-in skill profiles: planner, verifier, epistemic-auditor
 
+## GUI Workbench (`src/specsmith/gui/`)
+
+PySide6 (Qt6) desktop application launched via `specsmith gui` (see REQ-GUI-001 through REQ-GUI-013).
+
+- **`app.py`** — `QApplication` bootstrap, dark AEE theme (deep-navy/teal/amber), `launch()` entry point
+- **`main_window.py`** — `MainWindow`: `QTabWidget` with new-session dialog, global status bar, menu bar
+- **`session_tab.py`** — per-tab widget: assembles chat view, input bar, token meter, tool panel, provider bar
+- **`worker.py`** — `GUIAgentRunner(AgentRunner)` overrides `_print`/`_call_provider`/`_execute_tool_calls` to emit Qt signals; `AgentWorker(QThread)` runs agent turns off the UI thread
+- **`theme.py`** — QSS stylesheet: `#0d1117` background, teal accents, amber warnings
+- **`widgets/chat_view.py`** — `QTextBrowser` with HTML message rendering per role
+- **`widgets/input_bar.py`** — `QPlainTextEdit` + Send/File/URL buttons + drag-drop accept
+- **`widgets/token_meter.py`** — `QProgressBar` (green→yellow→red at 70%/90%) + cost label
+- **`widgets/tool_panel.py`** — collapsible sidebar with `QToolButton`s per specsmith tool
+- **`widgets/provider_bar.py`** — `QComboBox` for provider and model selection
+- **`widgets/update_checker.py`** — `QThread` that checks PyPI on startup and silently upgrades
+
 ## Verification Tools
 
 **Lint:** ruff check

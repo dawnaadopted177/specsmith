@@ -538,3 +538,32 @@
   Covers: REQ-WFL-007
 - **TEST-WFL-010**: `specsmith session-end` reports unpushed commits and dirty files
   Covers: REQ-WFL-008
+
+### GUI Workbench
+
+- **TEST-GUI-001**: `specsmith gui` command is registered and exits cleanly when PySide6 not installed
+  Covers: REQ-GUI-001
+- **TEST-GUI-002**: `SessionTab` initialises a `GUIAgentRunner` with correct project dir and provider
+  Covers: REQ-GUI-002
+- **TEST-GUI-003**: `ChatView.append_user()`, `append_assistant()`, `append_tool()` produce distinct HTML
+  Covers: REQ-GUI-003
+- **TEST-GUI-004**: `TokenMeter.update()` updates bar value, token counts, and cost label
+  Covers: REQ-GUI-004
+- **TEST-GUI-005**: `TokenMeter` emits `optimize_suggested` signal when fill exceeds 70%
+  Covers: REQ-GUI-005
+- **TEST-GUI-006**: `ToolPanel` contains buttons for audit, validate, doctor, stress-test, and epistemic-audit
+  Covers: REQ-GUI-006
+- **TEST-GUI-007**: `InputBar.inject_file()` reads a text file and prepends content to input
+  Covers: REQ-GUI-007
+- **TEST-GUI-008**: `InputBar.inject_url()` fetches URL and prepends content to input
+  Covers: REQ-GUI-008
+- **TEST-GUI-009**: `UpdateChecker` emits `updated` signal when a newer version is detected
+  Covers: REQ-GUI-009
+- **TEST-GUI-010**: `ProviderBar` emits `provider_changed` and `model_changed` signals on selection
+  Covers: REQ-GUI-010
+- **TEST-GUI-011**: `AgentWorker` runs on a separate QThread and does not block the main thread
+  Covers: REQ-GUI-011
+- **TEST-GUI-012**: Status bar updates with epistemic score after each completed agent turn
+  Covers: REQ-GUI-012
+- **TEST-GUI-013**: Ctrl+Enter in `InputBar` triggers `send_requested` signal
+  Covers: REQ-GUI-013

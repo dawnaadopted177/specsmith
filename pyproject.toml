@@ -59,6 +59,7 @@ anthropic = ["anthropic>=0.56"]
 openai = ["openai>=1.0"]
 gemini = ["google-generativeai>=0.8"]
 mistral = ["openai>=1.0"]  # Mistral uses the openai SDK pointed at api.mistral.ai
+gui = ["PySide6>=6.6"]
 # Install all optional LLM providers
 agent = ["anthropic>=0.56", "openai>=1.0"]
 # Convenience bundle: everything
