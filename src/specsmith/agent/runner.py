@@ -184,6 +184,7 @@ class AgentRunner:
         max_tool_iterations: int = 10,
         optimize: bool = False,
         optimization_config: OptimizationConfig | None = None,
+        json_events: bool = False,
     ) -> None:
         self.project_dir = str(Path(project_dir).resolve())
         self._provider_name = provider_name
@@ -191,6 +192,7 @@ class AgentRunner:
         self._tier = tier
         self._stream = stream
         self._max_iterations = max_tool_iterations
+        self._json_events = json_events
 
         self._provider: Any = None
         self._state = SessionState(project_dir=self.project_dir)
@@ -291,13 +293,25 @@ class AgentRunner:
             except Exception as e:  # noqa: BLE001
                 error_msg = f"[Provider error] {e}"
                 if not silent:
-                    self._print(error_msg)
+                    if self._json_events:
+                        self._emit_event(type="error", message=error_msg)
+                    else:
+                        self._print(error_msg)
                 return error_msg
 
             # Update credit tracking
             self._state.total_input_tokens += response.input_tokens
             self._state.total_output_tokens += response.output_tokens
             self._state.total_cost_usd += response.estimated_cost_usd
+
+            # Emit token update event
+            if self._json_events and not silent:
+                self._emit_event(
+                    type="tokens",
+                    in_tokens=self._state.total_input_tokens,
+                    out_tokens=self._state.total_output_tokens,
+                    cost_usd=self._state.total_cost_usd,
+                )
 
             if response.content:
                 final_response = response.content
@@ -329,6 +343,14 @@ class AgentRunner:
                         tool_call_id=tr.tool_call_id,
                     )
                 )
+
+        # Emit turn-done event
+        if self._json_events and not silent:
+            self._emit_event(
+                type="turn_done",
+                total_tokens=self._state.session_tokens,
+                cost_usd=self._state.total_cost_usd,
+            )
 
         return final_response
 
@@ -362,7 +384,7 @@ class AgentRunner:
             messages = hint.messages
             tools = hint.tools
 
-        use_stream = self._stream and not silent and not tools
+        use_stream = self._stream and not silent and not tools and not self._json_events
         if use_stream:
             accumulated = ""
             for token in provider.stream(messages, tools=None):
@@ -375,7 +397,10 @@ class AgentRunner:
         else:
             response = cast(CompletionResponse, provider.complete(messages, tools=tools))
             if not silent and response.content:
-                self._print(response.content)
+                if self._json_events:
+                    self._emit_event(type="llm_chunk", text=response.content)
+                else:
+                    self._print(response.content)
 
         # ── Optimization post-call ───────────────────────────────────────────
         if self._optimizer is not None and hint is not None:
@@ -405,7 +430,10 @@ class AgentRunner:
             inputs = tc.get("input", {})
 
             if not silent:
-                self._print(f"\n[Tool: {name}]")
+                if self._json_events:
+                    self._emit_event(type="tool_started", name=name, args=inputs)
+                else:
+                    self._print(f"\n[Tool: {name}]")
 
             # Fire pre_tool hooks
             pre_ctx = HookContext(
@@ -451,9 +479,12 @@ class AgentRunner:
             elapsed = time.time() * 1000 - start_ms
 
             if not silent:
-                # Truncate long outputs for display
-                display = output[:500] + "..." if len(output) > 500 else output
-                self._print(f"  → {display}")
+                if self._json_events:
+                    self._emit_event(type="tool_finished", name=name, result=output, is_error=error)
+                else:
+                    # Truncate long outputs for display
+                    display = output[:500] + "..." if len(output) > 500 else output
+                    self._print(f"  → {display}")
 
             tr = ToolResult(
                 tool_name=name,
@@ -554,13 +585,23 @@ class AgentRunner:
     def _print_banner(self) -> None:
         provider = getattr(self._provider, "provider_name", "?")
         model = getattr(self._provider, "model", "?")
-        self._print(
-            f"\n[specsmith agent — AEE-integrated]"
-            f"\n  Project: {self.project_dir}"
-            f"\n  Provider: {provider}/{model}"
-            f"\n  Tools: {len(self._tools)} | Skills: {len(self._skills)}"
-            f"\n  Type /help for commands, exit to quit\n"
-        )
+        if self._json_events:
+            self._emit_event(
+                type="ready",
+                provider=provider,
+                model=model,
+                project_dir=self.project_dir,
+                tools=len(self._tools),
+                skills=len(self._skills),
+            )
+        else:
+            self._print(
+                f"\n[specsmith agent — AEE-integrated]"
+                f"\n  Project: {self.project_dir}"
+                f"\n  Provider: {provider}/{model}"
+                f"\n  Tools: {len(self._tools)} | Skills: {len(self._skills)}"
+                f"\n  Type /help for commands, exit to quit\n"
+            )
 
     def _print_status(self) -> None:
         self._print(
@@ -594,10 +635,22 @@ class AgentRunner:
     def _prompt(self) -> str:
         """Read a line of input from stdin."""
         try:
-            return input("\n> ")
+            # In json_events mode suppress the prompt string so stdout stays pure JSON
+            return input("" if self._json_events else "\n> ")
         except EOFError:
             raise
 
     def _print(self, text: str = "", end: str = "\n", flush: bool = False) -> None:
-        """Print to stdout."""
-        print(text, end=end, flush=flush)
+        """Print to stdout; in json_events mode emit a system event instead."""
+        if self._json_events:
+            if text.strip():
+                self._emit_event(type="system", message=text.strip())
+        else:
+            print(text, end=end, flush=flush)
+
+    def _emit_event(self, **kwargs: Any) -> None:
+        """Emit a newline-delimited JSON event to stdout (json_events mode only)."""
+        import json
+        import sys
+
+        print(json.dumps(kwargs), flush=True, file=sys.stdout)  # noqa: T201

@@ -1810,29 +1810,6 @@ def plugin_list() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Serve (API for React dashboard)
-# ---------------------------------------------------------------------------
-
-
-@main.command()
-@click.option("--port", default=8910, help="Port to serve on.")
-def serve(port: int) -> None:
-    """Start local API server for the web dashboard."""
-    console.print(f"[bold]Starting specsmith API server on port {port}...[/bold]")
-    console.print("[yellow]Not yet implemented. See issue #14.[/yellow]")
-    console.print(
-        "\nPlanned endpoints:\n"
-        "  GET  /api/projects          \u2014 list governed projects\n"
-        "  POST /api/projects/init     \u2014 scaffold new project\n"
-        "  POST /api/projects/import   \u2014 import existing project\n"
-        "  GET  /api/projects/:id/audit   \u2014 run audit\n"
-        "  GET  /api/projects/:id/export  \u2014 generate report\n"
-        "  GET  /api/types             \u2014 list all 30 project types\n"
-        "  GET  /api/tools/:type       \u2014 tool registry for a type"
-    )
-
-
-# ---------------------------------------------------------------------------
 # Process execution and abort
 # ---------------------------------------------------------------------------
 
@@ -1955,6 +1932,13 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
     default=False,
     help="Enable token optimization (caching, routing, context trim, tool filtering).",
 )
+@click.option(
+    "--json-events",
+    "json_events",
+    is_flag=True,
+    default=False,
+    help="Emit structured JSONL events to stdout (used by IDE clients like the VS Code extension).",
+)
 def run_cmd(
     project_dir: str,
     task: str,
@@ -1963,6 +1947,7 @@ def run_cmd(
     tier: str,
     no_stream: bool,
     optimize: bool,
+    json_events: bool,
 ) -> None:
     """Start the AEE-integrated agentic client REPL.
 
@@ -1994,6 +1979,7 @@ def run_cmd(
             tier=tier_map[tier],
             stream=not no_stream,
             optimize=optimize,
+            json_events=json_events,
         )
         if task:
             result = runner.run_task(task)
