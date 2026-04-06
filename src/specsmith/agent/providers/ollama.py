@@ -147,11 +147,29 @@ class OllamaProvider:
                     continue
 
     def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+        import urllib.error
+
         req = urllib.request.Request(  # noqa: S310
             f"{self._base_url}{path}",
             data=json.dumps(payload).encode(),
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
-            result: dict[str, Any] = json.loads(resp.read())
-            return result
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
+                result: dict[str, Any] = json.loads(resp.read())
+                return result
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                raise RuntimeError(
+                    f"Ollama model not found: '{self.model}'\n"
+                    f"  Check installed models: specsmith ollama list\n"
+                    f"  Download it:            specsmith ollama pull {self.model}"
+                ) from e
+            raise
+        except OSError as e:
+            if "Connection refused" in str(e) or "ECONNREFUSED" in str(e):
+                raise RuntimeError(
+                    f"Ollama not running at {self._base_url}\n"
+                    "  Start it: ollama serve   (or open the Ollama desktop app)"
+                ) from e
+            raise
