@@ -7,7 +7,7 @@ name = "specsmith"
 version = "0.3.0"
 description = "Applied Epistemic Engineering toolkit — forge epistemically-governed scaffolds, stress-test belief systems, and run AEE pipelines."
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.10"
 authors = [
     {name = "BitConcepts"},
@@ -22,7 +22,6 @@ classifiers = [
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",

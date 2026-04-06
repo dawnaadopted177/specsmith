@@ -42,10 +42,11 @@ jobs:
       - name: Set dev version
         run: |
           # Use pyproject.toml version as the base (no patch bump).
-          # pyproject.toml should always hold the NEXT release version (e.g. 0.2.3).
-          # Dev builds publish as 0.2.3.devN — PEP 440 pre-release of the upcoming release.
+          # pyproject.toml should always hold the NEXT release version (e.g. 0.3.0).
+          # Dev builds publish as 0.3.0.devN — PEP 440 pre-release of the upcoming release.
+          # N = total commit count (monotonically increasing, unique per push).
           BASE_VERSION=$(grep 'version = ' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-          COMMIT_COUNT=$(git rev-list --count HEAD ^$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD~100) 2>/dev/null || echo 0)
+          COMMIT_COUNT=$(git rev-list --count HEAD)
           DEV_VERSION="${BASE_VERSION}.dev${COMMIT_COUNT}"
           echo "DEV_VERSION=${DEV_VERSION}" >> $GITHUB_ENV
 
