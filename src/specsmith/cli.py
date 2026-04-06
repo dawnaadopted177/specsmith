@@ -49,9 +49,14 @@ class _AutoUpdateGroup(click.Group):
         import os
 
         # Skip if explicitly disabled or if this is a meta-command
-        # ctx.protected_args is deprecated in Click 9.0; args will carry all tokens
-        all_args = (ctx.protected_args or []) + (ctx.args or [])
-        subcommand = all_args[0] if all_args else ""
+        # ctx.protected_args is deprecated in Click 9.0; suppress the warning
+        # on access (it still works in 8.x). In 9.0 the subcommand moves to args.
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            protected = list(ctx.protected_args)  # [subcommand] in 8.x, [] in 9.0
+        subcommand = protected[0] if protected else (ctx.args[0] if ctx.args else "")
         skip = (
             os.environ.get("SPECSMITH_NO_AUTO_UPDATE", "").strip() in ("1", "true", "yes")
             or subcommand in self._SKIP_COMMANDS
