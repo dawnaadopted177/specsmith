@@ -76,10 +76,30 @@ Every governed project follows: **propose → check → execute → verify → r
 
 ## Install
 
+**Recommended — global install via [pipx](https://pipx.pypa.io) (isolated, no dependency conflicts):**
+
 ```bash
-pip install specsmith             # core + epistemic library
-pip install specsmith[anthropic]  # + Claude support (specsmith run)
-pip install specsmith[openai]     # + GPT/O-series support
+pipx install specsmith                    # core CLI + epistemic library
+pipx inject specsmith anthropic           # + Claude support
+pipx inject specsmith openai             # + GPT / O-series support
+pipx inject specsmith google-generativeai # + Gemini support
+pipx inject specsmith PySide6            # + GUI (specsmith gui)
+```
+
+**Or with pip (into your active environment):**
+
+```bash
+pip install specsmith                # core
+pip install "specsmith[anthropic]"  # + Claude
+pip install "specsmith[openai]"     # + GPT/O-series
+pip install "specsmith[gui]"        # + GUI
+```
+
+**Update:**
+
+```bash
+pipx upgrade specsmith     # pipx install
+specsmith self-update      # pip install
 ```
 
 ## Quick Start

@@ -215,3 +215,16 @@ Stop condition (H13): P1 requirement with confidence below MEDIUM = work stops.
 | `pr`           | `specsmith pr` (create PR with governance)     |
 | `update`       | `specsmith update` (check + install + migrate) |
 | `session-end`  | `specsmith session-end` (end checklist)        |
+
+**specsmith install / update:**
+
+```bash
+# Recommended — global isolated install
+pipx install specsmith
+pipx inject specsmith anthropic openai  # add LLM providers
+pipx upgrade specsmith                  # update
+
+# Or with pip
+pip install specsmith
+specsmith self-update
+```
