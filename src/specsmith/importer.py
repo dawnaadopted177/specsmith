@@ -952,6 +952,7 @@ def generate_import_config(result: DetectionResult) -> ProjectConfig:
     # never fires unnecessarily on first use.
     try:
         from specsmith import __version__ as _installed_ver
+
         spec_version = _installed_ver
     except Exception:  # noqa: BLE001
         spec_version = "0.3.0"  # safe fallback
