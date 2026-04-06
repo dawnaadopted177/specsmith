@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import click
 import yaml
@@ -25,10 +26,109 @@ PROJECT_TYPE_LABELS = {
 }
 
 
-@click.group()
+class _AutoUpdateGroup(click.Group):
+    """Click group that checks project spec_version on every command invocation.
+
+    If the project's scaffold.yml spec_version doesn't match the installed
+    specsmith version, prompts the user to migrate. Skippable with
+    SPECSMITH_NO_AUTO_UPDATE=1 or when running meta-commands (update, version).
+    """
+
+    # Commands that should not trigger the version check
+    _SKIP_COMMANDS = {
+        "update",
+        "self-update",
+        "migrate-project",
+        "verify-release",
+        "plugin",
+        "--version",
+        "help",
+    }
+
+    def invoke(self, ctx: click.Context) -> object:
+        import os
+
+        # Skip if explicitly disabled or if this is a meta-command
+        # ctx.protected_args is deprecated in Click 9.0; suppress the warning
+        # on access (it still works in 8.x). In 9.0 the subcommand moves to args.
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            protected = list(ctx.protected_args)  # [subcommand] in 8.x, [] in 9.0
+        subcommand = protected[0] if protected else (ctx.args[0] if ctx.args else "")
+        skip = (
+            os.environ.get("SPECSMITH_NO_AUTO_UPDATE", "").strip() in ("1", "true", "yes")
+            or subcommand in self._SKIP_COMMANDS
+        )
+
+        if not skip:
+            _maybe_prompt_project_update()
+
+        return super().invoke(ctx)
+
+
+def _maybe_prompt_project_update() -> None:
+    """Check if the project's scaffold.yml is behind the installed version.
+
+    If so, print a one-line prompt and offer Y/n to migrate.
+    Runs in under 5ms for projects that are up to date (no network call).
+    """
+    import os
+    from pathlib import Path
+
+    # Look for scaffold.yml in CWD
+    scaffold_path = Path(".") / "scaffold.yml"
+    if not scaffold_path.exists():
+        return  # Not a specsmith project — skip silently
+
+    try:
+        import yaml
+
+        with open(scaffold_path) as f:
+            raw = yaml.safe_load(f) or {}
+        project_ver = raw.get("spec_version", "")
+        if not project_ver or project_ver == __version__:
+            return  # Up to date or no version recorded
+
+        # Only prompt once per shell session (track via env var)
+        session_key = f"SPECSMITH_CHECKED_{project_ver}_{__version__}"
+        if os.environ.get(session_key):
+            return
+        os.environ[session_key] = "1"
+
+        console.print(
+            f"\n[yellow]⚠[/yellow] Project spec [bold]{project_ver}[/bold] → "
+            f"specsmith [bold]{__version__}[/bold] installed. "
+            rf"Migrate now? [bold]\[Y/n][/bold] ",
+            end="",
+        )
+        try:
+            answer = input().strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            console.print()
+            return
+
+        if answer in ("", "y", "yes"):
+            from specsmith.updater import run_migration
+
+            console.print("[cyan]Migrating project...[/cyan]")
+            actions = run_migration(Path("."))
+            for a in actions:
+                console.print(f"  [green]✓[/green] {a}")
+        else:
+            console.print(
+                "  [dim]Skipped. Run [bold]specsmith migrate-project[/bold] when ready. "
+                "Set SPECSMITH_NO_AUTO_UPDATE=1 to suppress this prompt.[/dim]"
+            )
+    except Exception:  # noqa: BLE001
+        pass  # Never break the actual command on version check errors
+
+
+@click.group(cls=_AutoUpdateGroup)
 @click.version_option(version=__version__, prog_name="specsmith")
 def main() -> None:
-    """specsmith — Forge governed project scaffolds."""
+    """specsmith — AEE toolkit. Forge epistemically-governed project scaffolds."""
 
 
 @main.command()
@@ -675,7 +775,7 @@ def architect(project_dir: str, non_interactive: bool) -> None:
     modules: list[str] = list(scan.get("modules", []) or [])  # type: ignore[call-overload]
     deps_list: list[str] = list(scan.get("dependencies", []) or [])  # type: ignore[call-overload]
     eps_list: list[str] = list(scan.get("entry_points", []) or [])  # type: ignore[call-overload]
-    existing: list[str] = list(scan.get("existing_arch_docs", []) or [])  # type: ignore[call-overload]
+    existing: list[str] = list(scan.get("existing_arch_docs", []) or [])  # type: ignore[call-overload]  # noqa: E501
 
     console.print(f"  Languages: {scan.get('primary_language', '?')}")
     console.print(f"  Modules: {', '.join(modules) or 'none'}")
@@ -1471,13 +1571,25 @@ def credits_analyze(project_dir: str) -> None:
 @click.option(
     "--watermarks", default=None, help="Comma-separated USD watermark alerts (e.g. 5,10,25,50)."
 )
+@click.option(
+    "--enforcement",
+    type=click.Choice(["soft", "hard"]),
+    default=None,
+    help="soft=warn only, hard=block agent sessions when cap exceeded.",
+)
 def credits_budget(
     project_dir: str,
     cap: float | None,
     alert_pct: int | None,
     watermarks: str | None,
+    enforcement: str | None,
 ) -> None:
-    """View or set credit budget and alert thresholds."""
+    """View or set credit budget and alert thresholds.
+
+    Enforcement modes:
+      soft (default) — warn when cap is exceeded but allow work to continue
+      hard           — block new agent sessions when monthly cap is exceeded
+    """
     from specsmith.credits import load_budget, save_budget
 
     root = Path(project_dir).resolve()
@@ -1489,8 +1601,10 @@ def credits_budget(
         budget.alert_threshold_pct = alert_pct
     if watermarks is not None:
         budget.alert_watermarks_usd = [float(w.strip()) for w in watermarks.split(",") if w.strip()]
+    if enforcement is not None:
+        budget.enforcement_mode = enforcement
 
-    if any(x is not None for x in (cap, alert_pct, watermarks)):
+    if any(x is not None for x in (cap, alert_pct, watermarks, enforcement)):
         save_budget(root, budget)
         console.print("[green]\u2713[/green] Budget updated.")
 
@@ -1498,6 +1612,7 @@ def credits_budget(
     console.print(f"  Monthly cap:   ${budget.monthly_cap_usd:.2f}{cap_note}")
     console.print(f"  Alert at:      {budget.alert_threshold_pct}%")
     console.print(f"  Watermarks:    {', '.join(f'${w:.2f}' for w in budget.alert_watermarks_usd)}")
+    console.print(f"  Enforcement:   {getattr(budget, 'enforcement_mode', 'soft')}")
     console.print(f"  Enabled:       {budget.enabled}")
 
 
@@ -1802,6 +1917,1171 @@ def abort_cmd(pid: int | None, abort_all_flag: bool, project_dir: str) -> None:
         for p in procs:
             console.print(f"  PID {p.pid}  {p.command}")
         console.print("\nUse --pid <N> or --all to abort.")
+
+
+# ---------------------------------------------------------------------------
+# Agentic client commands
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="run")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--task",
+    "task",
+    default="",
+    help="Run a single task non-interactively and exit.",
+)
+@click.option(
+    "--provider",
+    "provider_name",
+    default=None,
+    help="LLM provider: anthropic, openai, gemini, ollama (default: auto-detect)",
+)
+@click.option("--model", default=None, help="Model name override.")
+@click.option(
+    "--tier",
+    type=click.Choice(["fast", "balanced", "powerful"]),
+    default="balanced",
+    help="Model capability tier (default: balanced).",
+)
+@click.option(
+    "--no-stream", "no_stream", is_flag=True, default=False, help="Disable streaming output."
+)
+@click.option(
+    "--optimize",
+    "optimize",
+    is_flag=True,
+    default=False,
+    help="Enable token optimization (caching, routing, context trim, tool filtering).",
+)
+def run_cmd(
+    project_dir: str,
+    task: str,
+    provider_name: str | None,
+    model: str | None,
+    tier: str,
+    no_stream: bool,
+    optimize: bool,
+) -> None:
+    """Start the AEE-integrated agentic client REPL.
+
+    Auto-detects LLM provider from environment:
+      ANTHROPIC_API_KEY → Claude
+      OPENAI_API_KEY    → GPT/O-series
+      GOOGLE_API_KEY    → Gemini
+      Ollama running    → local LLMs (zero config)
+      SPECSMITH_PROVIDER=<name> → explicit override
+
+    Install a provider:
+      pip install specsmith[anthropic]   # Claude
+      pip install specsmith[openai]      # GPT/O-series
+    """
+    from specsmith.agent.core import ModelTier
+    from specsmith.agent.runner import AgentRunner
+
+    tier_map = {
+        "fast": ModelTier.FAST,
+        "balanced": ModelTier.BALANCED,
+        "powerful": ModelTier.POWERFUL,
+    }
+
+    try:
+        runner = AgentRunner(
+            project_dir=project_dir,
+            provider_name=provider_name,
+            model=model,
+            tier=tier_map[tier],
+            stream=not no_stream,
+            optimize=optimize,
+        )
+        if task:
+            result = runner.run_task(task)
+            console.print(result)
+        else:
+            runner.run_interactive()
+        if optimize and runner._optimizer:
+            report = runner._optimizer.report()
+            console.print(f"\n[dim]{report.summary()}[/dim]")
+    except Exception as e:  # noqa: BLE001
+        console.print(f"[red]{e}[/red]")
+        console.print(
+            "\nInstall a provider:\n"
+            "  pip install specsmith[anthropic]   # Claude\n"
+            "  pip install specsmith[openai]      # GPT\n"
+            "  pip install specsmith[gemini]      # Gemini\n"
+            "  # Ollama: install locally, no pip extra needed"
+        )
+        raise SystemExit(1) from None
+
+
+@main.group(name="agent")
+def agent_group() -> None:
+    """Manage the specsmith agentic client configuration."""
+
+
+@agent_group.command(name="providers")
+def agent_providers_cmd() -> None:
+    """Show available LLM providers and their status."""
+    from specsmith.agent.providers import list_providers
+
+    console.print("[bold]LLM Providers[/bold]\n")
+    for p in list_providers():
+        configured = "configured" in p["status"] or "available" in p["status"]
+        icon = "[green]\u2713[/green]" if configured else "[yellow]\u2014[/yellow]"
+        console.print(f"  {icon} {p['name']:12s} {p['status']}")
+
+    console.print("\nInstall providers:")
+    console.print("  pip install specsmith[anthropic]   # Claude")
+    console.print("  pip install specsmith[openai]      # GPT/O-series")
+    console.print("  pip install specsmith[gemini]      # Gemini")
+    console.print("  # Ollama: install from https://ollama.ai (no pip extra)")
+
+
+@agent_group.command(name="tools")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def agent_tools_cmd(project_dir: str) -> None:
+    """List all available agent tools."""
+    from specsmith.agent.tools import build_tool_registry
+
+    tools = build_tool_registry(project_dir)
+    console.print(f"[bold]Agent Tools[/bold] ({len(tools)})\n")
+    for t in tools:
+        claims = f" [{', '.join(t.epistemic_claims[:1])}]" if t.epistemic_claims else ""
+        console.print(f"  {t.name:25s} {t.description[:60]}{claims}")
+
+
+@agent_group.command(name="skills")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def agent_skills_cmd(project_dir: str) -> None:
+    """List loaded skills from the project and built-in profiles."""
+    from specsmith.agent.skills import load_skills
+
+    skills = load_skills(__import__("pathlib").Path(project_dir).resolve())
+    if not skills:
+        console.print("[yellow]No skills found.[/yellow]")
+        return
+    console.print(f"[bold]Loaded Skills[/bold] ({len(skills)})\n")
+    for s in skills:
+        console.print(f"  [{s.domain:12s}] {s.name}: {s.description[:60]}")
+
+
+main.add_command(agent_group)
+
+
+# ---------------------------------------------------------------------------
+# Applied Epistemic Engineering commands
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="stress-test")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--accepted-only",
+    is_flag=True,
+    default=False,
+    help="Only stress-test accepted requirements (skip drafts).",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "mermaid"]),
+    default="text",
+    help="Output format.",
+)
+def stress_test_cmd(project_dir: str, accepted_only: bool, output_format: str) -> None:
+    """Run AEE stress-tests against requirements (Frame → Disassemble → Stress-Test).
+
+    Parses docs/REQUIREMENTS.md as BeliefArtifacts, applies 8 adversarial
+    challenge functions, detects Logic Knots, and emits recovery proposals.
+    """
+    from specsmith.epistemic.belief import parse_requirements_as_beliefs
+    from specsmith.epistemic.failure_graph import FailureModeGraph
+    from specsmith.epistemic.recovery import RecoveryOperator
+    from specsmith.epistemic.stress_tester import StressTester
+
+    root = Path(project_dir).resolve()
+    req_path = root / "docs" / "REQUIREMENTS.md"
+    test_path = root / "docs" / "TEST_SPEC.md"
+
+    if not req_path.exists():
+        console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
+        raise SystemExit(1)
+
+    artifacts = parse_requirements_as_beliefs(req_path)
+    if accepted_only:
+        artifacts = [a for a in artifacts if a.is_accepted]
+
+    console.print(f"[bold]Stress-testing[/bold] {len(artifacts)} belief artifacts\n")
+
+    tester = StressTester(req_path=req_path, test_path=test_path)
+    result = tester.run(artifacts)
+
+    console.print(f"  Artifacts tested:   {result.artifacts_tested}")
+    console.print(f"  Failure modes:      {result.total_failures}")
+    console.print(f"  Critical failures:  {result.critical_count}")
+    console.print(f"  Logic knots:        {len(result.logic_knots)}")
+    eq_icon = "[green]✓[/green]" if result.equilibrium else "[red]✗[/red]"
+    console.print(f"  Equilibrium:        {eq_icon}")
+    console.print()
+
+    graph = FailureModeGraph()
+    graph.build(artifacts, result)
+
+    if output_format == "mermaid":
+        console.print(graph.render_mermaid())
+    else:
+        all_fms = [fm for a in artifacts for fm in a.failure_modes]
+        console.print(graph.render_text(all_failure_modes=all_fms))
+        console.print()
+
+        operator = RecoveryOperator()
+        proposals = operator.propose(artifacts, result)
+        console.print(operator.format_proposals(proposals))
+
+    if not result.equilibrium:
+        raise SystemExit(1)
+
+
+@main.command(name="belief-graph")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "mermaid"]),
+    default="text",
+    help="Output format (text tree or Mermaid diagram).",
+)
+@click.option(
+    "--component",
+    default="",
+    help="Filter by component code (e.g. CLI, AEE, TRC).",
+)
+def belief_graph_cmd(project_dir: str, output_format: str, component: str) -> None:
+    """Render the belief artifact dependency graph.
+
+    Shows all requirements as BeliefArtifacts with their inferential links,
+    confidence levels, and failure mode counts.
+    """
+    from specsmith.epistemic.belief import parse_requirements_as_beliefs
+    from specsmith.epistemic.certainty import CertaintyEngine
+    from specsmith.epistemic.stress_tester import _extract_covered_reqs
+
+    root = Path(project_dir).resolve()
+    req_path = root / "docs" / "REQUIREMENTS.md"
+    test_path = root / "docs" / "TEST_SPEC.md"
+
+    if not req_path.exists():
+        console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
+        raise SystemExit(1)
+
+    artifacts = parse_requirements_as_beliefs(req_path)
+    if component:
+        artifacts = [a for a in artifacts if a.component.upper() == component.upper()]
+
+    covered = _extract_covered_reqs(test_path) if test_path.exists() else set()
+    engine = CertaintyEngine(threshold=0.7)
+    report = engine.run(artifacts, covered_reqs=covered)
+    score_map = {s.artifact_id: s for s in report.scores}
+
+    if output_format == "mermaid":
+        from specsmith.epistemic.failure_graph import FailureModeGraph
+        from specsmith.epistemic.stress_tester import StressTestResult
+
+        graph = FailureModeGraph()
+        graph.build(artifacts, StressTestResult())
+        console.print(graph.render_mermaid())
+    else:
+        console.print(f"[bold]Belief Graph[/bold] — {len(artifacts)} artifacts\n")
+        by_comp: dict[str, list[Any]] = {}
+        for a in artifacts:
+            by_comp.setdefault(a.component or "OTHER", []).append(a)
+
+        for comp, group in sorted(by_comp.items()):
+            console.print(f"  [bold cyan]{comp}[/bold cyan]")
+            for a in group:
+                sc = score_map.get(a.artifact_id)
+                score_str = f"{sc.propagated_score:.2f}" if sc else "?"
+                icon = "[green]✓[/green]" if (sc and sc.above_threshold) else "[red]✗[/red]"
+                console.print(
+                    f"    {icon} {a.artifact_id:25s} [{a.status.value:15s}] "
+                    f"C={score_str}  {a.source_text[:50]}"
+                )
+        console.print()
+        console.print(f"  Overall certainty: {report.overall_score:.2f}")
+        console.print(f"  Below threshold ({report.threshold:.2f}): {len(report.below_threshold)}")
+
+
+@main.command(name="epistemic-audit")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--threshold",
+    type=float,
+    default=0.7,
+    help="Certainty threshold (default: 0.7).",
+)
+@click.option(
+    "--mermaid",
+    "emit_mermaid",
+    is_flag=True,
+    default=False,
+    help="Emit Mermaid failure-mode graph alongside text output.",
+)
+def epistemic_audit_cmd(project_dir: str, threshold: float, emit_mermaid: bool) -> None:
+    """Full AEE epistemic audit: certainty scores, logic knots, failure modes.
+
+    Runs the full AEE pipeline:\n
+    1. Parse REQUIREMENTS.md as BeliefArtifacts\n
+    2. Stress-test all accepted artifacts (apply S operator)\n
+    3. Build Failure-Mode Graph (G)\n
+    4. Check equilibrium S(G)\n
+    5. Compute certainty scores and propagate through dependency links\n
+    6. Emit recovery proposals (R operator) ranked by priority
+    """
+    from specsmith.epistemic.belief import parse_requirements_as_beliefs
+    from specsmith.epistemic.certainty import CertaintyEngine
+    from specsmith.epistemic.failure_graph import FailureModeGraph
+    from specsmith.epistemic.recovery import RecoveryOperator
+    from specsmith.epistemic.stress_tester import StressTester, _extract_covered_reqs
+
+    root = Path(project_dir).resolve()
+    req_path = root / "docs" / "REQUIREMENTS.md"
+    test_path = root / "docs" / "TEST_SPEC.md"
+
+    if not req_path.exists():
+        console.print("[red]docs/REQUIREMENTS.md not found.[/red]")
+        raise SystemExit(1)
+
+    artifacts = parse_requirements_as_beliefs(req_path)
+    covered = _extract_covered_reqs(test_path) if test_path.exists() else set()
+
+    console.print(f"[bold]Epistemic Audit[/bold] — {len(artifacts)} belief artifacts\n")
+
+    # Stress-test phase
+    tester = StressTester(req_path=req_path, test_path=test_path)
+    result = tester.run(artifacts)
+
+    # Failure-mode graph
+    graph = FailureModeGraph()
+    graph.build(artifacts, result)
+
+    # Certainty scoring
+    engine = CertaintyEngine(threshold=threshold)
+    certainty = engine.run(artifacts, covered_reqs=covered)
+
+    # Recovery proposals
+    operator = RecoveryOperator()
+    proposals = operator.propose(artifacts, result)
+
+    # Output
+    eq_icon = "[green]✓[/green]" if result.equilibrium else "[red]✗[/red]"
+    console.print(f"  Equilibrium:        {eq_icon} {'YES' if result.equilibrium else 'NO'}")
+    console.print(f"  Failure modes:      {result.total_failures}")
+    console.print(f"  Critical failures:  {result.critical_count}")
+    console.print(f"  Logic knots:        {len(result.logic_knots)}")
+    console.print(  # noqa: E501
+        f"  Overall certainty:  {certainty.overall_score:.2f} (threshold {threshold:.2f})"
+    )
+    console.print(f"  Below threshold:    {len(certainty.below_threshold)}")
+    console.print()
+
+    if result.logic_knots:
+        console.print("[bold red]⚠ Logic Knots (stop condition per H13):[/bold red]")
+        for id1, id2, reason in result.logic_knots:
+            console.print(f"  ✗ {id1} ⇔ {id2}")
+            console.print(f"    {reason}")
+        console.print()
+
+    console.print(certainty.format_text())
+    console.print()
+
+    if emit_mermaid:
+        console.print("[bold]Mermaid Failure-Mode Graph:[/bold]")
+        console.print(graph.render_mermaid())
+        console.print()
+
+    if proposals:
+        console.print(operator.format_proposals(proposals[:10]))  # Top 10
+
+    if not result.equilibrium or certainty.overall_score < threshold:
+        raise SystemExit(1)
+
+
+# ---------------------------------------------------------------------------
+# Trace vault commands
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="trace")
+def trace_group() -> None:
+    """Manage the cryptographic trace vault (STP-inspired decision sealing)."""
+
+
+@trace_group.command(name="seal")
+@click.argument(
+    "seal_type",
+    type=click.Choice(
+        ["decision", "milestone", "audit-gate", "logic-knot", "stress-test", "epistemic"]
+    ),
+)
+@click.argument("description")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--author", default="agent", help="Author of this seal.")
+@click.option("--artifacts", default="", help="Comma-separated artifact IDs.")
+def trace_seal_cmd(
+    seal_type: str,
+    description: str,
+    project_dir: str,
+    author: str,
+    artifacts: str,
+) -> None:
+    """Create a cryptographic seal for a decision, milestone, or audit gate."""
+    from specsmith.trace import TraceVault
+
+    root = Path(project_dir).resolve()
+    vault = TraceVault(root)
+    artifact_ids = [a.strip() for a in artifacts.split(",") if a.strip()]
+    record = vault.seal(
+        seal_type=seal_type,
+        description=description,
+        author=author,
+        artifact_ids=artifact_ids or None,
+    )
+    console.print(f"[green]✓[/green] Sealed as [bold]{record.seal_id}[/bold]")
+    console.print(f"  Type:  {record.seal_type}")
+    console.print(f"  Hash:  {record.entry_hash[:32]}...")
+    console.print(f"  Total seals: {vault.count()}")
+
+
+@trace_group.command(name="verify")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def trace_verify_cmd(project_dir: str) -> None:
+    """Verify cryptographic integrity of the trace chain."""
+    from specsmith.trace import TraceVault
+
+    vault = TraceVault(Path(project_dir).resolve())
+    if vault.count() == 0:
+        console.print("[yellow]Trace vault is empty.[/yellow]")
+        return
+
+    valid, errors = vault.verify()
+    if valid:
+        console.print(f"[bold green]✓ Chain intact[/bold green] — {vault.count()} seals verified.")
+    else:
+        console.print("[bold red]✗ Chain integrity violation![/bold red]")
+        for err in errors:
+            console.print(f"  [red]✗[/red] {err}")
+        raise SystemExit(1)
+
+
+@trace_group.command(name="log")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--limit", default=20, help="Number of recent seals to show.")
+@click.option("--type", "filter_type", default="", help="Filter by seal type.")
+def trace_log_cmd(project_dir: str, limit: int, filter_type: str) -> None:
+    """Show the trace vault log."""
+    from specsmith.trace import TraceVault
+
+    vault = TraceVault(Path(project_dir).resolve())
+    console.print(vault.format_log(limit=limit))
+
+
+main.add_command(trace_group)
+
+
+# ---------------------------------------------------------------------------
+# Integrate command (epistemic tool analysis)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="integrate")
+@click.argument("tool_name")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Emit impact report without generating adapter files.",
+)
+def integrate_cmd(tool_name: str, project_dir: str, dry_run: bool) -> None:
+    """Analyze epistemic impact of integrating a tool, then scaffold its adapter.
+
+    Before generating an adapter file, emits an epistemic impact report:
+    what belief artifacts this tool provides evidence for, what its
+    uncertainty bounds are, and what failure modes it might introduce.
+    """
+    root = Path(project_dir).resolve()
+    req_path = root / "docs" / "REQUIREMENTS.md"
+
+    console.print(f"[bold]Epistemic Impact Analysis[/bold]: {tool_name}\n")
+
+    if req_path.exists():
+        from specsmith.epistemic.belief import parse_requirements_as_beliefs
+
+        artifacts = parse_requirements_as_beliefs(req_path)
+        # Find relevant artifacts by matching tool name to component/description
+        relevant = [
+            a
+            for a in artifacts
+            if tool_name.lower() in a.source_text.lower()
+            or tool_name.lower() in a.component.lower()
+        ]
+        if relevant:
+            console.print(f"  Relevant belief artifacts ({len(relevant)}):")
+            for a in relevant[:10]:
+                console.print(f"    {a.artifact_id}: {a.source_text[:70]}")
+        else:
+            console.print("  No directly linked belief artifacts found.")
+            console.print(
+                "  [dim]Tip: Add requirements that reference this tool to docs/REQUIREMENTS.md.[/dim]"  # noqa: E501
+            )
+
+    console.print()
+    console.print("  [bold]Epistemic Contract[/bold] for this integration:")
+    console.print(f"    Tool:             {tool_name}")
+    console.print("    Claims:           [to be defined in adapter template]")
+    console.print("    Uncertainty:      [to be defined — what can this tool NOT detect?]")
+    console.print("    Evidence type:    [static analysis | runtime | human review | mixed]")
+    console.print("    Failure modes:    [what happens when this tool fails silently?]")
+    console.print()
+
+    if dry_run:
+        console.print("[dim](dry-run — no files written)[/dim]")
+        return
+
+    # Check if adapter already exists
+    try:
+        from specsmith.integrations import get_adapter
+
+        adapter = get_adapter(tool_name)
+        scaffold_path = root / "scaffold.yml"
+        if scaffold_path.exists():
+            import yaml
+
+            with open(scaffold_path) as f:
+                raw = yaml.safe_load(f)
+            config = ProjectConfig(**raw)
+            created = adapter.generate(config, root)
+            for path in created:
+                console.print(f"  [green]✓[/green] {path.relative_to(root)}")
+            console.print(f"\n[bold green]{len(created)} adapter file(s) generated.[/bold green]")
+        else:
+            console.print("[yellow]No scaffold.yml found. Run specsmith import first.[/yellow]")
+    except ValueError:
+        console.print(
+            f"[yellow]No built-in adapter for '{tool_name}'.[/yellow] "
+            "You can create a custom adapter by implementing BaseAdapter."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Auth — secure API key management (#37)
+# ---------------------------------------------------------------------------
+
+
+@main.group()
+def auth() -> None:
+    """Manage API keys and tokens for platform integrations."""
+
+
+@auth.command(name="set")
+@click.argument("platform")
+@click.option("--token", default="", help="Token value (if not provided, prompted securely).")
+def auth_set(platform: str, token: str) -> None:
+    """Store an API token for a platform (readthedocs, pypi, github, gitlab, uspto).
+
+    Token is stored in OS keyring (preferred) or encrypted file fallback.
+    NEVER passed as a log message or written to governance files.
+    """
+    from specsmith.auth import PLATFORMS, set_token
+
+    if not token:
+        import getpass
+
+        info = PLATFORMS.get(platform.lower(), {})
+        desc = info.get("description", platform)
+        url = info.get("url", "")
+        if url:
+            console.print(f"Get token from: [link]{url}[/link]")
+        token = getpass.getpass(f"Enter {desc}: ")
+
+    if not token.strip():
+        console.print("[yellow]No token provided. Cancelled.[/yellow]")
+        return
+
+    method = set_token(platform, token.strip())
+    console.print(f"[green]\u2713[/green] Token for [bold]{platform}[/bold] stored in {method}.")
+
+
+@auth.command(name="list")
+def auth_list() -> None:
+    """Show all configured platform credentials (masked)."""
+    from specsmith.auth import list_configured
+
+    entries = list_configured()
+    console.print("[bold]Platform Credentials[/bold]\n")
+    for e in entries:
+        if e["status"] == "configured":
+            console.print(
+                f"  [green]\u2713[/green] {e['platform']:14s} {e['masked']:20s} "
+                f"[dim]{e['source']}[/dim]"
+            )
+        else:
+            console.print(f"  [dim]\u2014[/dim] {e['platform']:14s} [dim]not set[/dim]")
+
+
+@auth.command(name="remove")
+@click.argument("platform")
+def auth_remove(platform: str) -> None:
+    """Remove a stored token for a platform."""
+    from specsmith.auth import remove_token
+
+    if remove_token(platform):
+        console.print(f"[green]\u2713[/green] Token for [bold]{platform}[/bold] removed.")
+    else:
+        console.print(f"[yellow]No token found for [bold]{platform}[/bold].[/yellow]")
+
+
+@auth.command(name="check")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def auth_check(project_dir: str) -> None:
+    """Check which platform tokens are available for this project."""
+    import yaml
+
+    from specsmith.auth import PLATFORMS, get_token
+
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+
+    # Determine which platforms are needed
+    needed: list[str] = []
+    if scaffold_path.exists():
+        with open(scaffold_path) as f:
+            raw = yaml.safe_load(f) or {}
+        vcs = raw.get("vcs_platform", "")
+        if vcs:
+            needed.append(vcs)
+        needed.append("readthedocs")
+        needed.append("pypi")
+    else:
+        needed = list(PLATFORMS.keys())
+
+    console.print("[bold]Token Check[/bold]\n")
+    all_ok = True
+    for platform in needed:
+        token = get_token(platform)
+        if token:
+            console.print(f"  [green]\u2713[/green] {platform:14s} configured")
+        else:
+            console.print(f"  [red]\u2717[/red] {platform:14s} [red]not set[/red]")
+            info = PLATFORMS.get(platform, {})
+            if info.get("url"):
+                console.print(f"              Get it: {info['url']}")
+            all_ok = False
+
+    console.print()
+    if all_ok:
+        console.print("[bold green]All required tokens configured.[/bold green]")
+    else:
+        console.print(  # noqa: E501
+            "[yellow]Some tokens missing. Run [bold]specsmith auth set <platform>[/bold].[/yellow]"
+        )
+
+
+main.add_command(auth)
+
+
+# ---------------------------------------------------------------------------
+# Workspace — multi-project management (#17)
+# ---------------------------------------------------------------------------
+
+
+@main.group()
+def workspace() -> None:
+    """Manage multi-project workspaces."""
+
+
+@workspace.command(name="init")
+@click.option("--name", default="", help="Workspace name.")
+@click.option("--dir", "workspace_dir", type=click.Path(), default=".", help="Workspace root.")
+@click.argument("projects", nargs=-1)
+def workspace_init(name: str, workspace_dir: str, projects: tuple[str, ...]) -> None:
+    """Create workspace.yml governing multiple projects.
+
+    PROJECTS: relative paths to project directories.
+
+    Example: specsmith workspace init my-org ./backend ./frontend ./shared-lib
+    """
+    from specsmith.workspace import init_workspace
+
+    root = Path(workspace_dir).resolve()
+    ws_name = name or root.name
+    project_list = list(projects) if projects else []
+
+    if not project_list:
+        console.print("[yellow]No projects specified. Creating empty workspace.[/yellow]")
+
+    ws_path = init_workspace(root, ws_name, project_list)
+    console.print(f"[green]\u2713[/green] Created [bold]{ws_path.relative_to(root)}[/bold]")
+    console.print(f"  Projects: {len(project_list)}")
+    console.print("  Edit workspace.yml to add/configure projects.")
+
+
+@workspace.command(name="audit")
+@click.option("--dir", "workspace_dir", type=click.Path(exists=True), default=".")
+def workspace_audit(workspace_dir: str) -> None:
+    """Run specsmith audit across all workspace projects."""
+    from specsmith.workspace import audit_workspace
+
+    root = Path(workspace_dir).resolve()
+    results = audit_workspace(root)
+
+    healthy = sum(1 for r in results if r.healthy)
+    console.print(f"[bold]Workspace Audit[/bold] — {healthy}/{len(results)} healthy\n")
+
+    for r in results:
+        icon = "[green]\u2713[/green]" if r.healthy else "[red]\u2717[/red]"
+        console.print(f"  {icon} [bold]{r.name}[/bold] ({r.path})")
+        if r.error:
+            console.print(f"      [red]Error: {r.error}[/red]")
+        else:
+            console.print(f"      {r.passed} passed, {r.failed} failed")
+            for issue in r.issues[:3]:
+                console.print(f"      [yellow]⚠[/yellow] {issue}")
+
+    if healthy == len(results):
+        console.print(f"\n[bold green]All {len(results)} projects healthy.[/bold green]")
+    else:
+        console.print(f"\n[bold red]{len(results) - healthy} project(s) need attention.[/bold red]")
+        raise SystemExit(1)
+
+
+@workspace.command(name="export")
+@click.option("--dir", "workspace_dir", type=click.Path(exists=True), default=".")
+@click.option("--output", default="", help="Write to file instead of stdout.")
+def workspace_export(workspace_dir: str, output: str) -> None:
+    """Generate combined compliance report for all workspace projects."""
+    from specsmith.workspace import export_workspace
+
+    root = Path(workspace_dir).resolve()
+    report = export_workspace(root)
+
+    if output:
+        Path(output).write_text(report, encoding="utf-8")
+        console.print(f"[green]\u2713[/green] Report written to {output}")
+    else:
+        console.print(report)
+
+
+main.add_command(workspace)
+
+
+# ---------------------------------------------------------------------------
+# Watch — live governance daemon (#16)
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="watch")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--interval", default=5, help="Polling interval in seconds (default: 5).")
+@click.option(
+    "--no-notify",
+    is_flag=True,
+    default=False,
+    help="Suppress desktop notifications (always just prints to terminal).",
+)
+def watch_cmd(project_dir: str, interval: int, no_notify: bool) -> None:
+    """Watch for governance drift and alert in real time.
+
+    Polls the project directory and alerts when:
+    - LEDGER.md hasn't been updated after code changes
+    - REQ\u2194TEST coverage drops
+    - CI config diverges from tool registry
+
+    Press Ctrl+C to stop.
+    """
+    import time
+
+    root = Path(project_dir).resolve()
+    console.print(f"[bold]specsmith watch[/bold] — monitoring {root}")
+    console.print(f"  Interval: {interval}s | Press Ctrl+C to stop\n")
+
+    # Check if watchdog is available (optional dep)
+    try:
+        import importlib.util as _iutil  # noqa: F401
+
+        _has_watchdog = _iutil.find_spec("watchdog") is not None
+    except Exception:  # noqa: BLE001
+        _has_watchdog = False
+    if not _has_watchdog:
+        console.print(
+            "[dim]watchdog not installed — using polling mode. "
+            "For faster detection: pip install watchdog[/dim]\n"
+        )
+
+    from specsmith.auditor import run_audit
+
+    last_alert: dict[str, str] = {}
+    ledger_mtime: float = 0.0
+    code_mtime: float = 0.0
+
+    ledger_path = root / "LEDGER.md"
+    if ledger_path.exists():
+        ledger_mtime = ledger_path.stat().st_mtime
+
+    def _check() -> None:
+        nonlocal ledger_mtime, code_mtime
+
+        # Check for code changes without ledger update
+        src_dirs = [root / d for d in ["src", "lib", "backend", "frontend", "app"]]
+        for src_dir in src_dirs:
+            if src_dir.exists():
+                for f in src_dir.rglob("*.py"):
+                    mt = f.stat().st_mtime
+                    if mt > code_mtime:
+                        code_mtime = mt
+
+        current_ledger_mtime = ledger_path.stat().st_mtime if ledger_path.exists() else 0.0
+        if code_mtime > current_ledger_mtime and code_mtime > 0:
+            msg = "\u26a0 Code changed but LEDGER.md not updated."
+            if last_alert.get("ledger") != msg:
+                console.print(f"  [yellow]{msg}[/yellow] Run [bold]specsmith ledger add[/bold].")
+                last_alert["ledger"] = msg
+        elif current_ledger_mtime > ledger_mtime:
+            ledger_mtime = current_ledger_mtime
+            console.print("  [green]\u2713[/green] LEDGER.md updated.")
+            last_alert.pop("ledger", None)
+
+        # Quick governance audit
+        try:
+            report = run_audit(root)
+            if not report.healthy:
+                msg = f"\u26a0 {report.failed} governance issue(s) detected."
+                if last_alert.get("audit") != msg:
+                    console.print(f"  [red]{msg}[/red] Run [bold]specsmith audit --fix[/bold].")
+                    last_alert["audit"] = msg
+            elif last_alert.get("audit"):
+                console.print("  [green]\u2713[/green] Governance healthy.")
+                last_alert.pop("audit", None)
+        except Exception:  # noqa: BLE001
+            pass
+
+    try:
+        while True:
+            _check()
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[dim]watch stopped.[/dim]")
+
+
+# ---------------------------------------------------------------------------
+# Patent — USPTO prior art analysis (#10)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="patent")
+def patent_group() -> None:
+    """USPTO patent search and prior art analysis."""
+
+
+@patent_group.command(name="search")
+@click.argument("query")
+@click.option("--max-results", default=10, help="Maximum results (default: 10).")
+@click.option("--output", default="", help="Save results to file.")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def patent_search_cmd(query: str, max_results: int, output: str, project_dir: str) -> None:
+    """Search USPTO patent database.
+
+    Requires USPTO_API_KEY env var or: specsmith auth set uspto
+    Get a key at: https://developer.uspto.gov/
+    """
+    from specsmith.patent import search_patents
+
+    console.print(f"[bold]Searching USPTO[/bold]: {query}\n")
+    try:
+        results = search_patents(query, max_results=max_results)
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        raise SystemExit(1) from e
+
+    if not results:
+        console.print("[yellow]No results found.[/yellow]")
+        return
+
+    lines = []
+    for i, r in enumerate(results, 1):
+        console.print(f"  [bold]{i}. {r.patent_number}[/bold] — {r.title[:70]}")
+        if r.filing_date:
+            console.print(f"     Filed: {r.filing_date}  Assignee: {r.assignee[:40]}")
+        lines.append(r.short_summary)
+
+    if output:
+        Path(output).write_text("\n".join(lines), encoding="utf-8")
+        console.print(f"\n[green]\u2713[/green] Results saved to {output}")
+
+
+@patent_group.command(name="prior-art")
+@click.argument("claim")
+@click.option("--max-results", default=10, help="Maximum results (default: 10).")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--save",
+    "save_report",
+    is_flag=True,
+    default=False,
+    help="Save report to prior-art/ directory.",
+)
+def patent_prior_art_cmd(claim: str, max_results: int, project_dir: str, save_report: bool) -> None:
+    """Analyze prior art for a patent claim.
+
+    Extracts key terms, searches USPTO, and generates a prior art report.
+    """
+    from specsmith.patent import analyze_prior_art, save_prior_art_report
+
+    root = Path(project_dir).resolve()
+    console.print("[bold]Prior Art Analysis[/bold]\n")
+    console.print(f"  Claim: {claim[:100]}..." if len(claim) > 100 else f"  Claim: {claim}")
+
+    try:
+        report = analyze_prior_art(claim, max_results=max_results)
+    except RuntimeError as e:
+        console.print(f"[red]{e}[/red]")
+        raise SystemExit(1) from e
+
+    if report.error:
+        console.print(f"\n[yellow]\u26a0 {report.error}[/yellow]")
+    elif not report.has_results:
+        console.print("\n[green]No prior art found for this claim.[/green]")
+    else:
+        console.print(f"\n  Found {len(report.results)} prior art reference(s):")
+        for r in report.results:
+            console.print(f"  • {r.patent_number}: {r.title[:70]}")
+
+    if save_report:
+        prior_art_dir = root / "prior-art"
+        out = save_prior_art_report(report, prior_art_dir)
+        console.print(f"\n[green]\u2713[/green] Report saved to {out.relative_to(root)}")
+    else:
+        console.print("\n" + report.to_markdown()[:2000])
+
+
+main.add_command(patent_group)
+
+
+# ---------------------------------------------------------------------------
+# Credits check + hard cap (#52)
+# ---------------------------------------------------------------------------
+
+
+@credits.command(name="check")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def credits_check_cmd(project_dir: str) -> None:
+    """Check current credit spend against budget (hard cap enforcement)."""
+    from specsmith.credits import get_summary, load_budget
+
+    root = Path(project_dir).resolve()
+    budget = load_budget(root)
+    summary = get_summary(root)
+
+    cap = budget.monthly_cap_usd
+    enforcement = getattr(budget, "enforcement_mode", "soft")
+
+    console.print("[bold]Credit Budget Status[/bold]\n")
+    console.print(f"  Monthly spend:   ${summary.total_cost_usd:.4f}")
+    console.print(f"  Monthly cap:     {'unlimited' if cap == 0 else f'${cap:.2f}'}")
+    console.print(f"  Mode:            {enforcement}")
+
+    if cap > 0:
+        pct = (summary.total_cost_usd / cap) * 100
+        bar_filled = int(pct / 5)  # 20-char bar
+        bar = "\u2588" * bar_filled + "\u2591" * (20 - bar_filled)
+        color = "red" if pct >= 100 else ("yellow" if pct >= 80 else "green")
+        console.print(f"  Usage:           [{color}]{bar}[/{color}] {pct:.1f}%")
+
+        if pct >= 100 and enforcement == "hard":
+            console.print(
+                f"\n[bold red]HARD CAP EXCEEDED[/bold red] — "
+                f"${summary.total_cost_usd:.4f} / ${cap:.2f}. "
+                f"New agent sessions blocked. Raise cap or reset billing period."
+            )
+            raise SystemExit(2)
+        elif pct >= budget.alert_threshold_pct:
+            pct_threshold = budget.alert_threshold_pct
+            console.print(f"\n[yellow]\u26a0 Alert threshold ({pct_threshold}%) reached.[/yellow]")
+        else:
+            console.print("\n[green]\u2713 Within budget.[/green]")
+    else:
+        console.print("\n[dim]No cap configured — unlimited spending.[/dim]")
+
+    for alert in summary.alerts:
+        console.print(f"  [yellow]\u26a0[/yellow] {alert}")
+
+
+# ---------------------------------------------------------------------------
+# Token Optimization
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="optimize")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory.",
+)
+@click.option(
+    "--provider",
+    "provider_name",
+    default="anthropic",
+    help="Provider to estimate savings for (anthropic, openai, gemini, mistral).",
+)
+@click.option(
+    "--model",
+    default="",
+    help="Model to estimate savings for (default: provider default).",
+)
+def optimize_cmd(project_dir: str, provider_name: str, model: str) -> None:
+    """Analyse token usage and estimate monthly credit savings.
+
+    Reads .specsmith/credits.json usage history, applies optimization
+    model, and prints a report with projected savings and recommendations.
+
+    Strategies modelled: response caching (30-70%), model routing (40-60%),
+    context trimming (20%), prompt caching (50-90% on Anthropic).
+    """
+    from specsmith.agent.optimizer import (
+        ComplexityTier,
+        ModelRouter,
+        estimate_session_savings,
+    )
+    from specsmith.credits import get_summary
+
+    root = Path(project_dir).resolve()
+    summary = get_summary(root)
+
+    # Derive session-level averages from credit history
+    sessions = max(1, summary.session_count)
+    total_in = summary.total_tokens_in or 1000
+    total_out = summary.total_tokens_out or 300
+    avg_in = total_in // sessions
+    avg_out = total_out // sessions
+
+    # Pick best model name
+    router = ModelRouter()
+    resolved_model = model or router.suggest_model(provider_name, ComplexityTier.BALANCED)
+
+    est = estimate_session_savings(
+        provider=provider_name,
+        model=resolved_model,
+        total_calls=sessions,
+        avg_input_tokens=avg_in,
+        avg_output_tokens=avg_out,
+    )
+
+    console.print("\n[bold]Token & Credit Optimization Report[/bold]\n")
+    console.print(f"  Provider:            {provider_name} / {resolved_model}")
+    console.print(f"  Sessions analysed:   {sessions}")
+    console.print(f"  Avg input tokens:    {avg_in:,}")
+    console.print(f"  Avg output tokens:   {avg_out:,}")
+    console.print()
+    console.print(f"  Baseline / month:    [yellow]${est['baseline_usd']:.2f}[/yellow]")
+    console.print()
+    console.print("  [bold]Projected savings:[/bold]")
+    console.print(
+        f"    Response caching (30%+ hit rate):  [green]+${est['cache_savings_usd']:.2f}/mo[/green]"
+    )
+    routing_val = est["routing_savings_usd"]
+    console.print(f"    Model routing (40% FAST tasks):    [green]+${routing_val:.2f}/mo[/green]")
+    console.print(
+        f"    Context trimming (~20% reduction): [green]+${est['trim_savings_usd']:.2f}/mo[/green]"
+    )
+    if provider_name == "anthropic":
+        prompt_cache_savings = est["baseline_usd"] * 0.45  # 90% on cached reads, ~50% of calls
+        console.print(
+            f"    Anthropic prompt caching (90%):    [green]+${prompt_cache_savings:.2f}/mo[/green]"
+        )
+        est["total_savings_usd"] = round(est["total_savings_usd"] + prompt_cache_savings, 2)
+        est["savings_pct"] = min(
+            95, round(est["total_savings_usd"] / max(est["baseline_usd"], 0.01) * 100, 1)
+        )
+
+    console.print()
+    console.print(
+        f"  [bold green]Total estimated saving:  "
+        f"${est['total_savings_usd']:.2f}/mo ({est['savings_pct']:.0f}%)[/bold green]"
+    )
+
+    # Recommendations
+    console.print("\n[bold]Recommendations:[/bold]")
+    console.print("  1. Run specsmith with --optimize flag: [bold]specsmith run --optimize[/bold]")
+    console.print("  2. Anthropic users get 90% discount on cached system prompts (auto-enabled).")
+    console.print(
+        "  3. Use [bold]specsmith run --provider anthropic --model claude-haiku-4-5[/bold]"
+        " for simple governance queries."
+    )
+    console.print(
+        "  4. Run [bold]/clear[/bold] every 20-30 turns to reset context and avoid "
+        "compounding history costs."
+    )
+    console.print(
+        "  5. Batch tool calls where possible — one audit + validate + doctor costs less"
+        " than three separate calls."
+    )
+
+
+# ---------------------------------------------------------------------------
+# GUI Workbench
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="gui")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root to open as the first tab.",
+)
+@click.option(
+    "--provider",
+    "provider_name",
+    default=None,
+    help="Default LLM provider for new sessions.",
+)
+@click.option("--model", default=None, help="Default model for new sessions.")
+def gui_cmd(project_dir: str, provider_name: str | None, model: str | None) -> None:
+    """Launch the AEE Workbench — multi-tab epistemic engineering GUI.
+
+    Requires: pip install specsmith[gui]
+    """
+    try:
+        from specsmith.gui.app import launch
+    except ImportError:
+        console.print(
+            "[red]PySide6 is required for the GUI.[/red]\n"
+            "Install it: [bold]pip install specsmith[gui][/bold]"
+        )
+        raise SystemExit(1) from None
+
+    launch(
+        project_dir=str(Path(project_dir).resolve()),
+        provider_name=provider_name,
+        model=model,
+    )
 
 
 if __name__ == "__main__":

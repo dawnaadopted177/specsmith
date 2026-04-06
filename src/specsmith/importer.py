@@ -941,12 +941,28 @@ def _infer_type(result: DetectionResult) -> ProjectType:
 
 def generate_import_config(result: DetectionResult) -> ProjectConfig:
     """Generate a ProjectConfig from detection results."""
+    # Prefer README summary; fall back to generic description
+    description = (
+        result.readme_summary[:120]
+        if result.readme_summary
+        else f"Imported {result.primary_language or 'project'} library"
+    )
+    # Write the installed specsmith version as spec_version so the generated
+    # scaffold.yml immediately matches the tool and the auto-update prompt
+    # never fires unnecessarily on first use.
+    try:
+        from specsmith import __version__ as _installed_ver
+
+        spec_version = _installed_ver
+    except Exception:  # noqa: BLE001
+        spec_version = "0.3.0"  # safe fallback
     return ProjectConfig(
         name=result.root.name,
         type=result.inferred_type or ProjectType.CLI_PYTHON,
         platforms=[Platform.WINDOWS, Platform.LINUX, Platform.MACOS],
         language=result.primary_language or "python",
-        description=f"Imported project ({result.file_count} files detected)",
+        spec_version=spec_version,
+        description=description,
         git_init=False,  # Already has git
         vcs_platform=result.vcs_platform,
         detected_build_system=result.build_system,
@@ -1043,9 +1059,20 @@ def generate_overlay(
             tests += f"## TEST-{i:03d}\n- **File**: {test_file}\n- **Status**: Detected\n"
             for module in result.modules:
                 if module in test_file:
-                    tests += f"- **Requirement**: REQ-{module.upper()}-001\n"
+                    # Use 'Covers:' — matches the audit's _TEST_COVERS_PATTERN
+                    tests += f"  Covers: REQ-{module.upper().replace('-', '_')}-001\n"
                     break
             tests += "\n"
+        # Add an explicit build test so REQ-BUILD-001 has coverage
+        if result.build_system:
+            n = len(result.test_files[:20]) + 1
+            tests += (
+                f"## TEST-{n:03d}\n"
+                "- **Type**: integration\n"
+                f"- **Description**: Project installs and {result.test_framework or 'runs'} successfully\n"  # noqa: E501
+                "  Covers: REQ-BUILD-001\n"
+                "- **Status**: Detected\n\n"
+            )
         _write("docs/TEST_SPEC.md", tests)
 
     # docs/architecture.md — skip if project has architecture doc anywhere under docs/
@@ -1054,7 +1081,7 @@ def generate_overlay(
     )
     if not (existing_arch and not force):
         arch = (
-            f"# Architecture — {name}\n\n"
+            f"# Architecture \u2014 {name}\n\n"
             "Architecture auto-generated from project detection.\n\n"
             "## Overview\n"
             f"- **Languages**: {lang_display}\n"
@@ -1064,7 +1091,9 @@ def generate_overlay(
         if result.modules:
             arch += "## Modules\n"
             for module in result.modules:
-                arch += f"- **{module}**: [Describe module purpose]\n"
+                mu = module.upper().replace("-", "_")
+                # Reference the auto-generated requirement so validate passes
+                arch += f"- **{module}**: [Describe module purpose] (see REQ-{mu}-001)\n"
             arch += "\n"
         if result.entry_points:
             arch += "## Entry Points\n"
@@ -1075,6 +1104,9 @@ def generate_overlay(
             arch += "## Language Distribution\n"
             for lang_name, count in sorted(result.languages.items(), key=lambda x: -x[1]):
                 arch += f"- {lang_name}: {count} files\n"
+        if result.build_system:
+            arch += "\n## Build\n"
+            arch += f"- Build system: {result.build_system} (see REQ-BUILD-001)\n"
         _write("docs/ARCHITECTURE.md", arch)
 
     # --- Modular governance files ---

@@ -52,6 +52,10 @@ class ProjectType(str, Enum):
     # More software
     MONOREPO = "monorepo"
     BROWSER_EXTENSION = "browser-extension"
+    # Applied Epistemic Engineering
+    EPISTEMIC_PIPELINE = "epistemic-pipeline"
+    KNOWLEDGE_ENGINEERING = "knowledge-engineering"
+    AEE_RESEARCH = "aee-research"
 
 
 class Platform(str, Enum):
@@ -81,7 +85,7 @@ class ProjectConfig(BaseModel):
         description="Target platforms",
     )
     language: str = Field(default="python", description="Primary language/runtime")
-    spec_version: str = Field(default="0.1.3", description="Spec version to scaffold from")
+    spec_version: str = Field(default="0.3.0", description="Spec version to scaffold from")
     description: str = Field(default="", description="Short project description")
 
     # Options
@@ -163,6 +167,20 @@ class ProjectConfig(BaseModel):
         description="Agent integrations to generate (agents-md, warp, claude-code, cursor, etc.)",
     )
 
+    # Applied Epistemic Engineering configuration
+    enable_epistemic: bool = Field(
+        default=False,
+        description="Enable AEE epistemic governance layer (belief registry, failure modes, etc.)",
+    )
+    epistemic_threshold: float = Field(
+        default=0.7,
+        description="Certainty threshold for epistemic-audit (0.0-1.0; default 0.7)",
+    )
+    enable_trace_vault: bool = Field(
+        default=False,
+        description="Enable cryptographic trace vault (.specsmith/trace.jsonl)",
+    )
+
     @property
     def package_name(self) -> str:
         """Python-safe package name derived from project name."""
@@ -172,6 +190,19 @@ class ProjectConfig(BaseModel):
     def platform_names(self) -> list[str]:
         """Human-readable platform names."""
         return [p.value.capitalize() if p != Platform.MACOS else "macOS" for p in self.platforms]
+
+    @property
+    def is_epistemic_type(self) -> bool:
+        """Whether this project type always enables the AEE epistemic layer."""
+        return (
+            self.type
+            in (
+                ProjectType.EPISTEMIC_PIPELINE,
+                ProjectType.KNOWLEDGE_ENGINEERING,
+                ProjectType.AEE_RESEARCH,
+            )
+            or self.enable_epistemic
+        )
 
     @property
     def needs_services(self) -> bool:
@@ -245,6 +276,10 @@ _TYPE_LABELS: dict[ProjectType, str] = {
     # More software
     ProjectType.MONOREPO: "Monorepo (multi-package)",
     ProjectType.BROWSER_EXTENSION: "Browser extension",
+    # Applied Epistemic Engineering
+    ProjectType.EPISTEMIC_PIPELINE: "Epistemic pipeline (AEE + ARE 8-phase)",
+    ProjectType.KNOWLEDGE_ENGINEERING: "Knowledge engineering / expert system",
+    ProjectType.AEE_RESEARCH: "AEE research project",
 }
 
 _SECTION_REFS: dict[ProjectType, str] = {
@@ -278,4 +313,7 @@ _SECTION_REFS: dict[ProjectType, str] = {
     ProjectType.API_SPECIFICATION: "17.28",
     ProjectType.MONOREPO: "17.29",
     ProjectType.BROWSER_EXTENSION: "17.30",
+    ProjectType.EPISTEMIC_PIPELINE: "17.31",
+    ProjectType.KNOWLEDGE_ENGINEERING: "17.32",
+    ProjectType.AEE_RESEARCH: "17.33",
 }

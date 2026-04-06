@@ -222,17 +222,21 @@ Before any non-trivial work, the agent MUST produce a proposal using exactly thi
 ```
 ## Proposal
 
-Objective:    <what this task accomplishes>
-Scope:        <what is included and what is excluded>
-Inputs:       <what context, files, or state this depends on>
-Outputs:      <what files, artifacts, or state changes will result>
-Files touched: <explicit list of files created, modified, or deleted>
-Checks:       <what verification will be performed>
-Risks:        <what could go wrong or what is uncertain>
-Rollback:     <how to undo this work if it fails>
+Objective:      <what this task accomplishes>
+Scope:          <what is included and what is excluded>
+Assumptions:    <explicit BeliefArtifact IDs or stated assumptions this proposal relies on>
+Inputs:         <what context, files, or state this depends on>
+Outputs:        <what files, artifacts, or state changes will result>
+Files touched:  <explicit list of files created, modified, or deleted>
+Checks:         <what verification will be performed>
+Stress-test:    <one adversarial challenge to the proposal's core assumptions>
+Risks:          <what could go wrong or what is uncertain>
+Rollback:       <how to undo this work if it fails>
 Estimated cost: <low | medium | high — see Section 25>
 Decision request: <what the human must approve before execution>
 ```
+
+The `Assumptions:` and `Stress-test:` fields are mandatory per H13 (Epistemic Boundaries Required). A proposal without declared assumptions is a stop condition.
 
 Rules:
 - No non-trivial work begins without a proposal

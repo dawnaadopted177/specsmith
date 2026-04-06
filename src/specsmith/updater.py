@@ -60,24 +60,50 @@ def is_outdated() -> bool:
     return current != latest
 
 
+def is_pipx_install() -> bool:
+    """Return True if specsmith was installed via pipx.
+
+    Checks sys.executable path and PIPX_HOME / PIPX_LOCAL_VENVS env vars.
+    """
+    import os
+    import sys
+
+    exe = sys.executable.replace("\\", "/").lower()
+    return (
+        "pipx" in exe
+        or bool(os.environ.get("PIPX_HOME"))
+        or bool(os.environ.get("PIPX_LOCAL_VENVS"))
+    )
+
+
 def run_self_update(
     *,
     channel: str = "",
     target_version: str = "",
 ) -> tuple[bool, str]:
-    """Update specsmith via pip.
+    """Update specsmith.
+
+    Detects whether running under pipx and uses the appropriate command:
+      - pipx: ``pipx upgrade specsmith`` (or ``pipx install specsmith==X.Y.Z``)
+      - pip: ``pip install --upgrade specsmith``
 
     If target_version is set, installs that exact version.
     Otherwise uses --pre flag for dev channel, plain upgrade for stable.
     """
-    if target_version:
-        cmd = ["pip", "install", f"specsmith=={target_version}"]
+    if is_pipx_install():
+        if target_version:
+            cmd = ["pipx", "install", f"specsmith=={target_version}", "--force"]
+        else:
+            cmd = ["pipx", "upgrade", "specsmith"]
     else:
-        if not channel:
-            channel = get_update_channel()
-        cmd = ["pip", "install", "--upgrade", "specsmith"]
-        if channel == "dev":
-            cmd.insert(2, "--pre")
+        if target_version:
+            cmd = ["pip", "install", f"specsmith=={target_version}"]
+        else:
+            if not channel:
+                channel = get_update_channel()
+            cmd = ["pip", "install", "--upgrade", "specsmith"]
+            if channel == "dev":
+                cmd.insert(2, "--pre")
 
     try:
         result = subprocess.run(

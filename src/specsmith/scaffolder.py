@@ -178,6 +178,27 @@ def _build_file_map(config: ProjectConfig) -> list[tuple[str, str]]:
     if config.vcs_platform == "github" and config.branching_strategy == "gitflow":
         files.append(("workflows/release.yml.j2", ".github/workflows/release.yml"))
 
+    # Epistemic governance layer — for AEE project types or enable_epistemic=True
+    _EPISTEMIC_TYPES = {
+        ProjectType.EPISTEMIC_PIPELINE,
+        ProjectType.KNOWLEDGE_ENGINEERING,
+        ProjectType.AEE_RESEARCH,
+    }
+    if config.type in _EPISTEMIC_TYPES or getattr(config, "enable_epistemic", False):
+        files.extend(
+            [
+                ("governance/epistemic-axioms.md.j2", "docs/governance/EPISTEMIC-AXIOMS.md"),
+                ("governance/belief-registry.md.j2", "docs/governance/BELIEF-REGISTRY.md"),
+                ("governance/failure-modes.md.j2", "docs/governance/FAILURE-MODES.md"),
+                ("governance/uncertainty-map.md.j2", "docs/governance/UNCERTAINTY-MAP.md"),
+            ]
+        )
+
+    # ReadTheDocs for AEE research/knowledge projects (they produce docs)
+    if config.type in {ProjectType.AEE_RESEARCH, ProjectType.KNOWLEDGE_ENGINEERING}:
+        files.append(("docs/readthedocs.yaml.j2", ".readthedocs.yaml"))
+        files.append(("docs/mkdocs.yml.j2", "mkdocs.yml"))
+
     return files
 
 
@@ -395,11 +416,40 @@ def _get_empty_dirs(config: ProjectConfig, target: Path) -> list[Path]:
     elif config.type == ProjectType.BROWSER_EXTENSION:
         dirs.extend(
             [
-                target / "src/popup",
-                target / "src/content",
-                target / "src/background",
+                target / "src",
                 target / "icons",
                 target / "tests",
+            ]
+        )
+    # --- AEE / Epistemic project types ---
+    elif config.type == ProjectType.EPISTEMIC_PIPELINE:
+        dirs.extend(
+            [
+                target / "beliefs",
+                target / "pipelines",
+                target / "evidence",
+                target / "reports",
+                target / ".epistemic",
+            ]
+        )
+    elif config.type == ProjectType.KNOWLEDGE_ENGINEERING:
+        dirs.extend(
+            [
+                target / "ontology",
+                target / "beliefs",
+                target / "evidence",
+                target / "queries",
+                target / "reports",
+            ]
+        )
+    elif config.type == ProjectType.AEE_RESEARCH:
+        dirs.extend(
+            [
+                target / "hypotheses",
+                target / "evidence",
+                target / "experiments",
+                target / "reports",
+                target / ".epistemic",
             ]
         )
 

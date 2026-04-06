@@ -2,13 +2,16 @@
 
 ## Identity
 - **Project**: specsmith
-- **Type**: CLI tool (Python) — Spec Section 17.3
-- **Spec version**: 0.1.0-alpha.1
+- **Type**: CLI tool (Python) + AEE library — Spec Section 17.3
+- **Spec version**: 0.3.0
 - **Language**: Python 3.10+
 - **Platforms**: Windows, Linux, macOS
 
 ## Purpose
-Forge governed project scaffolds from the Agentic AI Development Workflow Specification.
+Applied Epistemic Engineering toolkit for AI-assisted development. Treats belief systems
+like code: codable, testable, deployable. Co-installs the `epistemic` standalone library.
+Includes an AEE-integrated agentic client (`specsmith run`) supporting Claude, GPT, Gemini,
+and local Ollama models.
 
 ## Quick Commands
 - `pip install -e ".[dev]"` — dev install
@@ -19,25 +22,34 @@ Forge governed project scaffolds from the Agentic AI Development Workflow Specif
 - `specsmith init` — scaffold a new project
 - `specsmith audit` — health checks
 - `specsmith validate` — governance consistency
+- `specsmith stress-test` — AEE adversarial challenges
+- `specsmith epistemic-audit` — full AEE pipeline
+- `specsmith belief-graph` — belief artifact dependency graph
+- `specsmith trace seal/verify/log` — cryptographic trace vault
+- `specsmith run` — agentic REPL (requires provider)
+- `specsmith agent providers` — check provider status
 
 ## File Registry
-- `src/specsmith/` — package source
-- `src/specsmith/templates/` — Jinja2 scaffold templates
+- `src/specsmith/` — specsmith CLI package
+- `src/epistemic/` — standalone AEE library (canonical location)
+- `src/specsmith/epistemic/` — compatibility shim (re-exports from epistemic)
+- `src/specsmith/agent/` — agentic client (providers, tools, runner, hooks, skills)
+- `src/specsmith/templates/` — Jinja2 scaffold templates (incl. 4 new epistemic templates)
 - `src/specsmith/integrations/` — agent platform adapters
 - `tests/` — test suite
-- `docs/REQUIREMENTS.md` — formal requirements (37 REQs)
-- `docs/TEST_SPEC.md` — test specifications (30 TESTs)
+- `docs/REQUIREMENTS.md` — formal requirements
+- `docs/TEST_SPEC.md` — test specifications
 - `docs/governance/` — modular governance docs
 - `docs/AGENT-WORKFLOW-SPEC.md` — the specification itself
+- `C:\Users\trist\Development\BitConcepts\everything-claude-code` — ECC reference (local clone)
 
 ## Governance
 This project follows its own specification. See:
-- [Rules](docs/governance/rules.md) — hard rules and stop conditions
-- [Workflow](docs/governance/workflow.md) — session lifecycle
-- [Roles](docs/governance/roles.md) — agent role boundaries
-- [Context budget](docs/governance/context-budget.md) — token optimization
-- [Verification](docs/governance/verification.md) — acceptance criteria
-- [Drift metrics](docs/governance/drift-metrics.md) — health signals
+- [Agent Workflow Specification](docs/AGENT-WORKFLOW-SPEC.md) — the full spec (H1–H13, session lifecycle, proposal format, ledger format)
+- [Epistemic Axioms](docs/governance/epistemic-axioms.md) — AEE axioms applied to specsmith
+
+Note: modular governance files are not generated for specsmith's own repo since
+AGENTS.md is < 200 lines. Run `specsmith upgrade --full` to generate them if needed.
 
 ## Tech Stack
 - CLI: click
