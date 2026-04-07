@@ -17,9 +17,14 @@ class ProjectType(str, Enum):
     BACKEND_FRONTEND_TRAY = "backend-frontend-tray"
     CLI_PYTHON = "cli-python"
     LIBRARY_PYTHON = "library-python"
-    # Hardware / Embedded
+    # Hardware / Embedded — vendor-specific FPGA types
     EMBEDDED_HARDWARE = "embedded-hardware"
-    FPGA_RTL = "fpga-rtl"
+    FPGA_RTL = "fpga-rtl"              # Generic / open-source flow (Yosys)
+    FPGA_RTL_XILINX = "fpga-rtl-xilinx"   # AMD/Xilinx Vivado / ISE
+    FPGA_RTL_INTEL = "fpga-rtl-intel"     # Intel/Altera Quartus Prime
+    FPGA_RTL_LATTICE = "fpga-rtl-lattice" # Lattice Diamond / Radiant
+    MIXED_FPGA_EMBEDDED = "mixed-fpga-embedded"  # FPGA + embedded C/C++ driver
+    MIXED_FPGA_FIRMWARE = "mixed-fpga-firmware"  # FPGA + Python/C verification
     YOCTO_BSP = "yocto-bsp"
     PCB_HARDWARE = "pcb-hardware"
     # Web / JS / TS
@@ -161,6 +166,23 @@ class ProjectConfig(BaseModel):
         description="Community/compliance files to generate",
     )
 
+    # Multi-discipline support
+    auxiliary_disciplines: list[str] = Field(
+        default=[],
+        description=(
+            "Additional project disciplines beyond the primary type. "
+            "e.g. ['embedded-c', 'cli-python'] for an FPGA project with C drivers "
+            "and Python verification. Each discipline generates extra CI jobs and "
+            "tool registry entries."
+        ),
+    )
+
+    # FPGA-specific
+    fpga_vendor: str = Field(
+        default="",
+        description="FPGA vendor/toolchain: xilinx, intel, lattice, gowin (blank = generic/OSS)",
+    )
+
     # Agent integrations
     integrations: list[str] = Field(
         default=["agents-md"],
@@ -246,10 +268,15 @@ _TYPE_LABELS: dict[ProjectType, str] = {
     ProjectType.BACKEND_FRONTEND_TRAY: "Python backend + web frontend + tray",
     ProjectType.CLI_PYTHON: "CLI tool (Python)",
     ProjectType.LIBRARY_PYTHON: "Library / SDK (Python)",
-    ProjectType.EMBEDDED_HARDWARE: "Embedded / hardware",
-    ProjectType.FPGA_RTL: "FPGA / RTL",
+    ProjectType.EMBEDDED_HARDWARE: "Embedded / hardware (C/C++)",
+    ProjectType.FPGA_RTL: "FPGA / RTL (generic / OSS flow)",
+    ProjectType.FPGA_RTL_XILINX: "FPGA / RTL — AMD Xilinx (Vivado)",
+    ProjectType.FPGA_RTL_INTEL: "FPGA / RTL — Intel/Altera (Quartus)",
+    ProjectType.FPGA_RTL_LATTICE: "FPGA / RTL — Lattice (Diamond / Radiant)",
+    ProjectType.MIXED_FPGA_EMBEDDED: "Mixed: FPGA + Embedded C/C++ drivers",
+    ProjectType.MIXED_FPGA_FIRMWARE: "Mixed: FPGA + Python/C verification",
     ProjectType.YOCTO_BSP: "Yocto / embedded Linux BSP",
-    ProjectType.PCB_HARDWARE: "PCB / hardware design",
+    ProjectType.PCB_HARDWARE: "PCB / hardware design (KiCad etc.)",
     ProjectType.WEB_FRONTEND: "Web frontend (SPA)",
     ProjectType.FULLSTACK_JS: "Fullstack JS/TS",
     ProjectType.CLI_RUST: "CLI tool (Rust)",

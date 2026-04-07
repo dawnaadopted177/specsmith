@@ -244,6 +244,84 @@ def recommend_models(vram_gb: float = 0.0, task: str = "") -> list[CatalogEntry]
 
 
 # ---------------------------------------------------------------------------
+# Model detail + management
+# ---------------------------------------------------------------------------
+
+
+def get_installed_models_detail() -> list[dict]:
+    """Return installed models with size, digest, and modified_at metadata."""
+    try:
+        with urllib.request.urlopen(f"{OLLAMA_API}/api/tags", timeout=5) as r:  # noqa: S310
+            data: dict = json.loads(r.read().decode())
+            return data.get("models", [])
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def delete_model(model_id: str) -> bool:
+    """Delete an installed model via the Ollama API. Returns True on success."""
+    import urllib.error
+    payload = json.dumps({"name": model_id}).encode()
+    req = urllib.request.Request(  # noqa: S310
+        f"{OLLAMA_API}/api/delete",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="DELETE",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310
+            return r.status == 200
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False  # already deleted
+        raise
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def get_ollama_version() -> str | None:
+    """Return the running Ollama server version string, or None if unavailable."""
+    try:
+        with urllib.request.urlopen(f"{OLLAMA_API}/api/version", timeout=3) as r:  # noqa: S310
+            data: dict = json.loads(r.read().decode())
+            return data.get("version")
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def check_ollama_update() -> tuple[str | None, str | None]:
+    """Check for a newer Ollama release on GitHub.
+
+    Returns (installed_version, latest_version). Either may be None if
+    not available. latest_version has the 'v' prefix stripped.
+    """
+    installed = get_ollama_version()
+    latest: str | None = None
+    try:
+        req = urllib.request.Request(  # noqa: S310
+            "https://api.github.com/repos/ollama/ollama/releases/latest",
+            headers={"Accept": "application/vnd.github+json", "User-Agent": "specsmith"},
+        )
+        with urllib.request.urlopen(req, timeout=8) as r:  # noqa: S310
+            data: dict = json.loads(r.read().decode())
+            tag = data.get("tag_name", "")
+            latest = tag.lstrip("v")
+    except Exception:  # noqa: BLE001
+        pass
+    return installed, latest
+
+
+def upgrade_ollama_cmd() -> str:
+    """Return the platform-appropriate command to upgrade Ollama."""
+    if sys.platform == "win32":
+        return "winget upgrade --id Ollama.Ollama"
+    if sys.platform == "darwin":
+        return "brew upgrade ollama"
+    # Linux: re-run the install script
+    return "curl -fsSL https://ollama.ai/install.sh | sh"
+
+
+# ---------------------------------------------------------------------------
 # Pull (stream)
 # ---------------------------------------------------------------------------
 

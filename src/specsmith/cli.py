@@ -3452,5 +3452,393 @@ def phase_list() -> None:
 main.add_command(phase_group)
 
 
+# ---------------------------------------------------------------------------
+# specsmith info — capability report
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="info")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON.")
+@click.option(
+    "--section",
+    type=click.Choice(["languages", "types", "tools", "backends", "phases", "all"]),
+    default="all",
+    help="Which section to show (default: all).",
+)
+def info_cmd(as_json: bool, section: str) -> None:
+    """Report all specsmith capabilities: languages, project types, tools, LLM backends."""
+    import json as json_mod  # noqa: PLC0415
+
+    from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
+    from specsmith.languages import EXT_LANG, LANG_CATEGORY, LANG_DISPLAY  # noqa: PLC0415
+    from specsmith.ollama_cmds import CATALOG as OLLAMA_CATALOG  # noqa: PLC0415
+    from specsmith.phase import PHASES  # noqa: PLC0415
+
+    result: dict = {}
+
+    if section in ("languages", "all"):
+        # Group display names by category
+        cats: dict[str, list[str]] = {}
+        seen_langs: set[str] = set()
+        for lang_key, display in sorted(LANG_DISPLAY.items(), key=lambda x: x[1]):
+            cat = LANG_CATEGORY.get(lang_key, "Other")
+            exts = [e for e, lk in EXT_LANG.items() if lk == lang_key]
+            if lang_key not in seen_langs:
+                seen_langs.add(lang_key)
+                cats.setdefault(cat, []).append(
+                    {"key": lang_key, "name": display, "extensions": sorted(exts)}
+                )
+        result["languages"] = cats
+        if not as_json:
+            console.print("[bold]Languages[/bold]\n")
+            for cat, langs in sorted(cats.items()):
+                console.print(f"  [teal]{cat}[/teal]")
+                for l_info in langs:
+                    exts_str = "  ".join(l_info["extensions"][:6]) or "(filename)"
+                    console.print(f"    {l_info['name']:<28s} {exts_str}")
+            console.print()
+
+    if section in ("types", "all"):
+        type_groups: dict[str, list[dict]] = {}
+        categories = {
+            "python": "Python", "rust": "Rust / Go", "go": "Rust / Go",
+            "c": "C / C++", "cpp": "C / C++",
+            "fpga": "Hardware / FPGA", "embedded": "Hardware / FPGA",
+            "mixed": "Hardware / FPGA", "yocto": "Hardware / FPGA", "pcb": "Hardware / FPGA",
+            "web": "Web / JS", "fullstack": "Web / JS", "browser": "Web / JS",
+            "mobile": "Mobile", "dotnet": ".NET / C#",
+            "devops": "DevOps / Data", "data": "DevOps / Data", "microservices": "DevOps / Data",
+            "spec": "Documents", "user": "Documents", "research": "Documents",
+            "api": "Documents", "requirements": "Documents",
+            "business": "Business / Legal", "patent": "Business / Legal",
+            "legal": "Business / Legal",
+            "monorepo": "Other", "epistemic": "AEE", "knowledge": "AEE", "aee": "AEE",
+        }
+        for pt in ProjectType:
+            label = _TYPE_LABELS.get(pt, pt.value)
+            key_prefix = pt.value.split("-")[0]
+            cat = categories.get(key_prefix, "Other")
+            type_groups.setdefault(cat, []).append({"key": pt.value, "label": label})
+        result["project_types"] = type_groups
+        if not as_json:
+            console.print("[bold]Project Types[/bold]\n")
+            for cat, types in sorted(type_groups.items()):
+                console.print(f"  [teal]{cat}[/teal]")
+                for t in types:
+                    console.print(f"    {t['key']:<35s} {t['label']}")
+            console.print()
+
+    if section in ("tools", "all"):
+        fpga_tools = [
+            {"id": e.id, "name": e.name, "vram_gb": e.vram_gb,
+             "tier": e.tier, "best_for": e.best_for, "notes": e.notes}
+            for e in OLLAMA_CATALOG
+        ]
+        result["ollama_catalog"] = fpga_tools
+        if not as_json:
+            console.print("[bold]Ollama Model Catalog[/bold]  (GPU-aware)\n")
+            for e in OLLAMA_CATALOG:
+                console.print(
+                    f"  {e.name:<32s} {e.vram_gb:4.1f}GB  "
+                    f"[dim]{', '.join(e.best_for[:2])}[/dim]"
+                )
+            console.print()
+
+    if section in ("backends", "all"):
+        providers = [
+            {"name": "anthropic",  "env": "ANTHROPIC_API_KEY",  "models": "Claude 3/4 series"},
+            {"name": "openai",     "env": "OPENAI_API_KEY",     "models": "GPT-4o, o3, o4-mini"},
+            {"name": "gemini",     "env": "GOOGLE_API_KEY",     "models": "Gemini 2.5 Pro/Flash"},
+            {"name": "mistral",    "env": "MISTRAL_API_KEY",
+             "models": "Mistral, Codestral, Pixtral"},
+            {"name": "ollama",     "env": "(none — local)",    "models": "Local models via Ollama"},
+        ]
+        import os
+        for p in providers:
+            p["configured"] = bool(os.environ.get(p["env"])) or p["name"] == "ollama"
+        result["llm_backends"] = providers
+        if not as_json:
+            console.print("[bold]LLM Backends[/bold]\n")
+            for p in providers:
+                icon = "[green]\u2713[/green]" if p["configured"] else "[dim]\u2014[/dim]"
+                console.print(
+                    f"  {icon} {p['name']:<12s} {p['env']:<28s} {p['models']}"
+                )
+            console.print()
+
+    if section in ("phases", "all"):
+        phases_info = [
+            {"key": p.key, "label": p.label, "emoji": p.emoji,
+             "description": p.description, "commands": p.commands}
+            for p in PHASES
+        ]
+        result["aee_phases"] = phases_info
+        if not as_json:
+            console.print("[bold]AEE Workflow Phases[/bold]\n")
+            for p in PHASES:
+                console.print(f"  {p.emoji} [bold]{p.label:<22s}[/bold] {p.description}")
+            console.print()
+
+    if as_json:
+        console.print(json_mod.dumps(result, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# specsmith scan — project scanner
+# ---------------------------------------------------------------------------
+
+
+@main.command(name="scan")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON.")
+@click.option("--quiet", "-q", is_flag=True, default=False,
+              help="Print only the suggested scaffold.yml block.")
+def scan_cmd(project_dir: str, as_json: bool, quiet: bool) -> None:
+    """Scan a project and suggest language, type, name, and scaffold configuration.
+
+    Reads file extensions, build system files, git remote, and existing governance
+    to produce ready-to-use scaffold.yml suggestions.
+    """
+    import json as json_mod  # noqa: PLC0415
+
+    from specsmith.config import _TYPE_LABELS, ProjectType  # noqa: PLC0415
+    from specsmith.importer import (  # noqa: PLC0415
+        detect_project,
+        suggest_auxiliary,
+        suggest_name,
+        suggest_type,
+    )
+    from specsmith.languages import LANG_DISPLAY  # noqa: PLC0415
+
+    root   = Path(project_dir).resolve()
+    result = detect_project(root)
+    name   = suggest_name(root)
+    ptype  = suggest_type(result)
+    aux    = suggest_auxiliary(result)
+
+    # Detect FPGA tools from languages
+    fpga_langs = {"vhdl", "verilog", "systemverilog"}
+    fpga_tools: list[str] = []
+    if any(lang in fpga_langs for lang in result.languages):
+        if any(f.suffix == ".xpr" or f.suffix == ".xdc" for f in root.rglob("*")):
+            fpga_tools = ["vivado"]
+        elif any(f.suffix == ".qpf" or f.suffix == ".qsf" for f in root.rglob("*")):
+            fpga_tools = ["quartus"]
+        else:
+            fpga_tools = ["ghdl", "gtkwave"]
+
+    # Language display names (top 5)
+    top_langs  = [LANG_DISPLAY.get(lk, lk) for lk in list(result.languages.keys())[:5]]
+    valid_vals  = {t.value for t in ProjectType}
+    type_label  = _TYPE_LABELS.get(ProjectType(ptype), ptype) if ptype in valid_vals else ptype
+
+    if as_json:
+        console.print(json_mod.dumps({
+            "name": name, "type": ptype, "type_label": type_label,
+            "languages": top_langs, "fpga_tools": fpga_tools,
+            "auxiliary_disciplines": aux,
+            "vcs_platform": result.vcs_platform or "github",
+            "build_system": result.build_system,
+        }, indent=2))
+        return
+
+    if not quiet:
+        console.print(f"[bold]specsmith scan[/bold] — {root}\n")
+        console.print(f"  Name          : [bold]{name}[/bold]")
+        console.print(f"  Primary type  : [bold]{type_label}[/bold] [dim]({ptype})[/dim]")
+        if aux:
+            console.print(f"  Aux disciplines: {', '.join(aux)}")
+        if top_langs:
+            console.print(f"  Languages     : {', '.join(top_langs)}")
+        if fpga_tools:
+            console.print(f"  FPGA tools    : {', '.join(fpga_tools)}")
+        if result.build_system:
+            console.print(f"  Build system  : {result.build_system}")
+        if result.vcs_platform:
+            console.print(f"  VCS platform  : {result.vcs_platform}")
+        console.print()
+        console.print("[bold]Suggested scaffold.yml[/bold]\n")
+
+    # Build YAML block
+    lines = [
+        f"name: {name}",
+        f"type: {ptype}",
+        f"vcs_platform: {result.vcs_platform or 'github'}",
+    ]
+    if top_langs:
+        lines.append("languages:")
+        for l_name in top_langs[:6]:
+            lines.append(f"  - {l_name}")
+    if fpga_tools:
+        lines.append("fpga_tools:")
+        for t in fpga_tools:
+            lines.append(f"  - {t}")
+    if aux:
+        lines.append("auxiliary_disciplines:")
+        for a in aux:
+            lines.append(f"  - {a}")
+
+    console.print("\n".join(lines))
+
+
+# ---------------------------------------------------------------------------
+# Ollama — model manager additions (remove, update, version, check-updates, upgrade)
+# ---------------------------------------------------------------------------
+
+
+@ollama_group.command(name="remove")
+@click.argument("model_id")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip confirmation prompt.")
+def ollama_remove_cmd(model_id: str, yes: bool) -> None:
+    """Remove an installed Ollama model."""
+    from specsmith.ollama_cmds import delete_model, is_running
+
+    if not is_running():
+        console.print("[red]\u2717[/red] Ollama is not running.")
+        raise SystemExit(1)
+
+    if not yes:
+        ans = click.confirm(f"Remove model '{model_id}'?")
+        if not ans:
+            console.print("[dim]Cancelled.[/dim]")
+            return
+
+    ok = delete_model(model_id)
+    if ok:
+        console.print(f"[green]\u2713[/green] {model_id} removed.")
+    else:
+        console.print(
+            f"[red]\u2717[/red] Could not remove {model_id} "
+            "(not installed or API error)."
+        )
+        raise SystemExit(1)
+
+
+@ollama_group.command(name="update")
+@click.argument("model_id", required=False, default="")
+@click.option(
+    "--all", "update_all", is_flag=True, default=False,
+    help="Update all installed models.",
+)
+def ollama_update_cmd(model_id: str, update_all: bool) -> None:
+    """Re-pull a model to get the latest version.
+
+    MODEL_ID: specific model to update, or use --all for every installed model.
+    """
+    from specsmith.ollama_cmds import get_installed_models, is_running, pull_model
+
+    if not is_running():
+        console.print("[red]\u2717[/red] Ollama is not running.")
+        raise SystemExit(1)
+
+    if not model_id and not update_all:
+        console.print("[yellow]Specify a MODEL_ID or use --all.[/yellow]")
+        raise SystemExit(1)
+
+    targets = get_installed_models() if update_all else [model_id]
+    if not targets:
+        console.print("[yellow]No models installed.[/yellow]")
+        return
+
+    for mid in targets:
+        console.print(f"\n[bold]Updating[/bold] {mid} …")
+        last = ""
+        for chunk in pull_model(mid):
+            status = chunk.get("status", "")
+            if chunk.get("status") == "error":
+                console.print(f"[red]\u2717 {chunk.get('message', 'error')}[/red]")
+                break
+            completed = chunk.get("completed", 0)
+            total     = chunk.get("total", 0)
+            if total and completed:
+                pct = int(completed / total * 100)
+                mb  = completed // (1024 * 1024)
+                tmb = total // (1024 * 1024)
+                console.print(f"  {status}: {pct}% ({mb}/{tmb} MB)")
+            elif status and status != last:
+                console.print(f"  {status}")
+                last = status
+        else:
+            console.print(f"[green]\u2713[/green] {mid} up to date.")
+
+
+@ollama_group.command(name="version")
+def ollama_version_cmd() -> None:
+    """Show installed Ollama server version and check for updates."""
+    from specsmith.ollama_cmds import check_ollama_update, upgrade_ollama_cmd
+
+    installed, latest = check_ollama_update()
+    if installed:
+        console.print(f"  Installed : [bold]{installed}[/bold]")
+    else:
+        console.print("  Installed : [red]Ollama not running[/red]")
+    if latest:
+        if installed and latest != installed:
+            console.print(f"  Latest    : [green]{latest}[/green]  ← update available")
+            console.print(
+                f"\n  Upgrade: [bold]{upgrade_ollama_cmd()}[/bold]\n"
+                "  Or: [bold]specsmith ollama upgrade[/bold]"
+            )
+        elif installed:
+            console.print(f"  Latest    : {latest}  [green]\u2713 up to date[/green]")
+    else:
+        console.print("  Latest    : [dim](could not reach GitHub)[/dim]")
+
+
+@ollama_group.command(name="check-updates")
+def ollama_check_updates_cmd() -> None:
+    """Check if model updates are available for installed models.
+
+    Re-pulling a model is the only way to know if a newer digest exists; this
+    command just shows installed models and prompts to update individually.
+    Use 'specsmith ollama update --all' to pull the latest version for all.
+    """
+    from specsmith.ollama_cmds import get_installed_models_detail, is_running
+
+    if not is_running():
+        console.print("[red]\u2717[/red] Ollama is not running.")
+        raise SystemExit(1)
+
+    models = get_installed_models_detail()
+    if not models:
+        console.print("[yellow]No models installed.[/yellow]")
+        return
+
+    console.print(f"[bold]Installed Models[/bold] ({len(models)})\n")
+    for m in models:
+        name  = m.get("name", "?")
+        size  = m.get("size", 0)
+        gb    = size / (1024 ** 3) if size else 0
+        mod   = m.get("modified_at", "")[:10]
+        console.print(f"  [green]\u2713[/green] {name:<40s} {gb:5.1f}GB  [{mod}]")
+
+    console.print(
+        "\n[dim]Ollama tags are not versioned like Docker — re-pulling is the update check.\n"
+        "  Run: [bold]specsmith ollama update --all[/bold] to pull latest digests.[/dim]"
+    )
+
+
+@ollama_group.command(name="upgrade")
+@click.option(
+    "--yes", "-y", is_flag=True, default=False,
+    help="Run the upgrade command directly; otherwise just prints it.",
+)
+def ollama_upgrade_cmd(yes: bool) -> None:
+    """Upgrade Ollama itself to the latest version."""
+    from specsmith.ollama_cmds import upgrade_ollama_cmd
+
+    cmd = upgrade_ollama_cmd()
+    if yes:
+        import subprocess
+        console.print(f"[bold]Running:[/bold] {cmd}")
+        subprocess.run(cmd, shell=True, check=False)  # noqa: S602
+    else:
+        console.print(f"[bold]Upgrade command:[/bold] {cmd}")
+        console.print(
+            "\n  Run it directly or use [bold]specsmith ollama upgrade --yes[/bold] "
+            "to execute automatically."
+        )
+
+
 if __name__ == "__main__":
     main()

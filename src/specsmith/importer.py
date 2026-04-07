@@ -10,48 +10,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from specsmith.config import Platform, ProjectConfig, ProjectType
+from specsmith.languages import EXT_LANG as _EXT_LANG
+from specsmith.languages import FILENAME_LANG as _FILENAME_LANG
 
-# File extension → language mapping
-_EXT_LANG: dict[str, str] = {
-    ".py": "python",
-    ".rs": "rust",
-    ".go": "go",
-    ".c": "c",
-    ".cpp": "cpp",
-    ".h": "h",
-    ".hpp": "hpp",
-    ".cs": "csharp",
-    ".js": "javascript",
-    ".ts": "typescript",
-    ".jsx": "jsx",
-    ".tsx": "tsx",
-    ".java": "java",
-    ".kt": "kotlin",
-    ".swift": "swift",
-    ".dart": "dart",
-    ".vhd": "vhdl",
-    ".vhdl": "vhdl",
-    ".v": "verilog",
-    ".sv": "systemverilog",
-    ".tf": "terraform",
-    ".yml": "yaml",
-    ".yaml": "yaml",
-    ".bb": "bitbake",
-    ".bbappend": "bitbake",
-    ".bbclass": "bitbake",
-    ".inc": "bitbake",
-    ".dts": "devicetree",
-    ".dtsi": "devicetree",
-    ".proto": "protobuf",
-    ".graphql": "graphql",
-    ".gql": "graphql",
-    ".tex": "latex",
-    ".bib": "bibtex",
-    ".md": "markdown",
-    ".rst": "restructuredtext",
-    ".kicad_pcb": "kicad",
-    ".kicad_sch": "kicad",
-    ".kicad_pro": "kicad",
+# FPGA build / project file indicators — used for type inference
+_FPGA_INDICATORS: dict[str, str] = {
+    "*.xpr":   "xilinx",    # Vivado project
+    "*.xdc":   "xilinx",    # Xilinx constraints
+    "*.bit":   "xilinx",    # Xilinx bitstream
+    "*.qpf":   "intel",     # Quartus project
+    "*.qsf":   "intel",     # Quartus settings
+    "*.qxp":   "intel",
+    "*.ldf":   "lattice",   # Lattice Diamond project
+    "*.pdc":   "lattice",   # Lattice constraints
+    "*.xcf":   "xilinx",    # Xilinx configuration
+    "Makefile": "generic",  # Yosys+nextpnr makefiles often at root
 }
 
 # Build system detection: file → build system name
@@ -182,7 +155,7 @@ def detect_project(root: Path) -> DetectionResult:
         if path.is_file():
             all_files.append(path)
             ext = path.suffix.lower()
-            lang = _EXT_LANG.get(ext)
+            lang = _EXT_LANG.get(ext) or _FILENAME_LANG.get(path.name)
             if lang:
                 lang_counter[lang] += 1
 
@@ -292,6 +265,15 @@ def detect_project(root: Path) -> DetectionResult:
     # Infer project type
     result.inferred_type = _infer_type(result)
 
+    # FPGA vendor detection — check for vendor project/constraint file extensions
+    if result.primary_language in ("vhdl", "verilog", "systemverilog"):
+        for indicator, vendor in _FPGA_INDICATORS.items():
+            if indicator.startswith("*") and any(
+                f.name.endswith(indicator[1:]) for f in all_files
+            ):
+                result.inferred_type = _fpga_type_for_vendor(vendor)
+                break
+
     # Deep analysis: CI tools, dependencies, README, git history
     result.detected_ci_tools = _parse_ci_tools(root)
     result.dependencies = _parse_dependencies(root)
@@ -322,6 +304,156 @@ def detect_project(root: Path) -> DetectionResult:
                 result.ci_tool_gaps.append(f"security: {tool}")
 
     return result
+
+
+def _fpga_type_for_vendor(vendor: str) -> ProjectType:
+    """Return the appropriate ProjectType for an FPGA vendor string."""
+    from specsmith.config import ProjectType
+    mapping = {
+        "xilinx":  ProjectType.FPGA_RTL_XILINX,
+        "intel":   ProjectType.FPGA_RTL_INTEL,
+        "lattice": ProjectType.FPGA_RTL_LATTICE,
+    }
+    return mapping.get(vendor, ProjectType.FPGA_RTL)
+
+
+def suggest_name(root: Path) -> str:
+    """Suggest a project name from multiple sources (priority order).
+
+    1. pyproject.toml ``[project] name``
+    2. package.json ``name``
+    3. Cargo.toml ``[package] name``
+    4. go.mod first ``module`` path basename
+    5. Current git ``remote origin`` repo name
+    6. Directory name (last resort)
+    """
+    import re
+
+    # pyproject.toml
+    pyproject = root / "pyproject.toml"
+    if pyproject.exists():
+        try:
+            text = pyproject.read_text(encoding="utf-8")
+            m = re.search(r'^name\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
+            if m:
+                return m.group(1)
+        except OSError:
+            pass
+
+    # package.json
+    pkg = root / "package.json"
+    if pkg.exists():
+        try:
+            import json
+            data = json.loads(pkg.read_text(encoding="utf-8"))
+            name = data.get("name", "")
+            if name and not name.startswith("@"):
+                return name
+            if name.startswith("@"):              # scoped package — use basename
+                return name.split("/")[-1]
+        except (OSError, ValueError):
+            pass
+
+    # Cargo.toml
+    cargo = root / "Cargo.toml"
+    if cargo.exists():
+        try:
+            text = cargo.read_text(encoding="utf-8")
+            m = re.search(r'^name\s*=\s*["\']([^"\']+)["\']', text, re.MULTILINE)
+            if m:
+                return m.group(1)
+        except OSError:
+            pass
+
+    # go.mod
+    gomod = root / "go.mod"
+    if gomod.exists():
+        try:
+            text = gomod.read_text(encoding="utf-8")
+            m = re.search(r'^module\s+(\S+)', text, re.MULTILINE)
+            if m:
+                return m.group(1).rstrip("/").split("/")[-1]
+        except OSError:
+            pass
+
+    # git remote repo name
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(root), "remote", "get-url", "origin"],
+            capture_output=True, text=True, timeout=3,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            url = r.stdout.strip()
+            basename = url.rstrip("/").split("/")[-1]
+            return basename.removesuffix(".git")
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    return root.name
+
+
+def suggest_type(result: DetectionResult) -> str:
+    """Return the best-fit project type key for a DetectionResult.
+
+    Returns a string matching a ``ProjectType`` value (e.g. 'cli-python').
+    """
+    from specsmith.config import ProjectType
+    if result.inferred_type:
+        return result.inferred_type.value
+    lang = result.primary_language
+    build = result.build_system
+    mapping: dict[str, str] = {
+        "python":       "cli-python",
+        "rust":         "cli-rust",
+        "go":           "cli-go",
+        "c":            "cli-c",
+        "cpp":          "cli-c",
+        "csharp":       "dotnet-app",
+        "typescript":   "fullstack-js",
+        "javascript":   "web-frontend",
+        "dart":         "mobile-app",
+        "swift":        "mobile-app",
+        "kotlin":       "mobile-app",
+        "vhdl":         ProjectType.FPGA_RTL.value,
+        "verilog":      ProjectType.FPGA_RTL.value,
+        "systemverilog":ProjectType.FPGA_RTL.value,
+        "bitbake":      ProjectType.YOCTO_BSP.value,
+        "terraform":    "devops-iac",
+        "latex":        "research-paper",
+    }
+    if build in ("pyproject", "setuptools") and lang == "python":
+        return "library-python" if (result.root / "src").exists() else "cli-python"
+    if build == "flutter":
+        return "mobile-app"
+    return mapping.get(lang, "cli-python")
+
+
+def suggest_auxiliary(result: DetectionResult) -> list[str]:
+    """Suggest auxiliary disciplines for a mixed-language project."""
+    primary = suggest_type(result)
+    all_langs = set(result.languages.keys())
+    all_langs.discard(result.primary_language)
+    # Remove doc/config/markup languages — they don't constitute a discipline
+    noise = {"markdown", "yaml", "toml", "json", "xml", "bibtex", "makefile", "cmake"}
+    all_langs -= noise
+
+    aux: list[str] = []
+    lang_to_aux: dict[str, str] = {
+        "python":       "cli-python",
+        "c":            "embedded-c",
+        "cpp":          "embedded-hardware",
+        "rust":         "cli-rust",
+        "typescript":   "web-frontend",
+        "javascript":   "web-frontend",
+        "bitbake":      "yocto-bsp",
+        "devicetree":   "embedded-hardware",
+        "terraform":    "devops-iac",
+    }
+    for lang in all_langs:
+        disc = lang_to_aux.get(lang)
+        if disc and disc != primary and disc not in aux:
+            aux.append(disc)
+    return aux
 
 
 def _detect_modules(root: Path, language: str) -> list[str]:
