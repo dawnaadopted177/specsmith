@@ -110,7 +110,20 @@ specsmith doctor --project-dir my-tool
 # ...
 ```
 
-### Step 5: Open in Your AI Agent
+### Step 5: Set the AEE Workflow Phase
+
+```bash
+specsmith phase --project-dir my-tool
+```
+
+This shows the current phase (defaults to `inception`) with a readiness checklist. Advance when checks pass:
+
+```bash
+specsmith phase next --project-dir my-tool   # advance to architecture
+specsmith phase list                         # show all 7 phases
+```
+
+### Step 6: Open in Your AI Agent
 
 From the project root, use the universal session start command:
 
@@ -120,7 +133,9 @@ From the project root, use the universal session start command:
 
 This works in Warp/Oz, Claude Code, Cursor, and any agent that reads context files. The agent reads `AGENTS.md` (the governance hub), loads `LEDGER.md` for session state, and follows the closed-loop workflow.
 
-After the agent is loaded, you can use the quick command `start` to trigger the full session start protocol (sync, update check, branch check).
+After the agent is loaded, use the quick command `start` to trigger the full session start protocol.
+
+**Or use the VS Code extension:** Open the specsmith sidebar, click **+** in Sessions, and select the project folder. The Governance Panel shows your current AEE phase and all governance file status.
 
 ## Tutorial: Import an Existing Project
 

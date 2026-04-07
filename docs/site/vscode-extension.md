@@ -1,6 +1,8 @@
 # VS Code Extension — specsmith AEE Workbench
 
-The **specsmith AEE Workbench** VS Code extension is the flagship client for specsmith. It provides multi-tab AI agent sessions, live model management, governance file editing, and full Ollama support — all inside VS Code's right-side panel.
+The **specsmith AEE Workbench** VS Code extension is the flagship client for specsmith. It provides
+AI agent sessions, 5-tab governance panels, the AEE workflow phase indicator, live Ollama management,
+FPGA/HDL tool support, and full epistemic engineering workflow — all inside VS Code's secondary sidebar.
 
 **GitHub:** [BitConcepts/specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode)
 
@@ -9,21 +11,20 @@ The **specsmith AEE Workbench** VS Code extension is the flagship client for spe
 ## Requirements
 
 - VS Code 1.85+
-- specsmith v0.3.1+ installed and on PATH
+- specsmith **v0.3.3+** installed and on PATH
 - At least one LLM provider (API key or local Ollama)
 
 ```bash
-# Install specsmith first
-pip install "specsmith[anthropic,openai,gemini,mistral]"
+pipx install specsmith           # recommended
 # or
-pipx install specsmith
+pip install "specsmith[anthropic,openai,gemini]"
 ```
 
 ---
 
 ## Installation
 
-Install the extension from [the GitHub repository](https://github.com/BitConcepts/specsmith-vscode):
+From the [GitHub repository](https://github.com/BitConcepts/specsmith-vscode):
 
 ```bash
 git clone https://github.com/BitConcepts/specsmith-vscode
@@ -33,67 +34,132 @@ npm install && npm run build
 ```
 
 !!! note "Marketplace"
-    The extension will be published to the VS Code Marketplace. Until then, install from source as above.
+    The extension will be published to the VS Code Marketplace. Until then, install from source.
 
 ---
 
 ## First Run
 
-1. Open the **Secondary Side Bar** — `View → Open Secondary Side Bar` or `Ctrl+Alt+B`
-2. The **specsmith AEE** panel appears on the right
-3. Set your API key: `Ctrl+Shift+P → specsmith: Set API Key`
-4. Click **+** in the Sessions panel or press `Ctrl+Shift+;`
-5. Select your project folder — the agent starts automatically
+1. Open the **specsmith** Activity Bar icon (left sidebar)
+2. Set your API key: `Ctrl+Shift+P → specsmith: Set API Key`
+3. Press `Ctrl+Shift+;` or click **+** in Sessions to start a session
+4. Select your project folder — the agent starts automatically and runs the start protocol
+
+The **Governance Panel** opens automatically on startup (`Ctrl+Shift+G` to open manually).
 
 ---
 
-## Features
+## AEE Workflow Phase Indicator
 
-### Agent Sessions
+The Governance Panel displays a persistent **phase bar** below the header showing:
 
-Each session is an independent `specsmith run --json-events` process with its own:
+- **Current phase pill** — emoji + label (e.g. `📋 Requirements`)
+- **Phase description** — what this phase accomplishes
+- **Readiness %** — how many prerequisite checks pass (e.g. `60% ready · step 3/7`)
+- **→ next phase button** — runs `specsmith phase next` in a terminal
+- **Phase selector** — jump to any phase directly
 
-- Conversation history (saved to `.specsmith/chat/`)
-- Provider and model (remembered per project)
-- Token budget tracking with live context fill bar
+The 7 AEE phases:
 
-When a session connects, it automatically runs the **start protocol**:
-sync → load AGENTS.md → read LEDGER.md → check for updates.
+```
+🌱 Inception → 🏗 Architecture → 📋 Requirements → ✅ Test Spec
+   → ⚙ Implementation → 🔬 Verification → 🚀 Release
+```
 
-### Model Provider Support
+From the CLI:
+```bash
+specsmith phase                    # show current phase + checklist
+specsmith phase next               # advance (checks prerequisites)
+specsmith phase set implementation # jump to a phase
+```
+
+---
+
+## Governance Panel — 5 Tabs
+
+Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
+
+### Tab: Project
+- scaffold.yml form: name, type (35 types), description, languages (multi-select chips with filter), VCS platform, spec version
+- **Detect Languages** button — scans file extensions and patches scaffold.yml
+- **Upgrade spec** button — runs `specsmith upgrade` in terminal
+- Save button persists all changes to scaffold.yml
+
+### Tab: Tools
+- **FPGA/HDL tools** (21 tools) — vivado, quartus, gtkwave, ghdl, iverilog, verilator, vsg, yosys, nextpnr, symbiyosys, and more
+- **Agent integrations** — warp, claude, cursor, copilot, aider, continue
+- **Target platforms** — linux, windows, macos, embedded, cloud, FPGA variants
+- All saved to `fpga_tools:`, `integrations:`, `platforms:` in scaffold.yml
+
+### Tab: Files
+- Governance file status table: scaffold.yml, AGENTS.md, REQUIREMENTS.md, TEST_SPEC.md, ARCHITECTURE.md, LEDGER.md
+- ✓ / ✗ indicators with line counts
+- **Add** buttons for missing files — choose AI-generated or template
+- **Open** buttons for existing files
+
+### Tab: Updates & System
+- Current vs available specsmith version (fetches from PyPI)
+- **Check for Updates** button — queries PyPI API
+- **Install Update** button — runs `pipx upgrade specsmith` or `pip install --upgrade specsmith`
+- Last checked timestamp
+- System info panel (lazy-loaded): OS, CPU, cores, RAM, GPU, disk
+
+### Tab: Actions & AI
+- Quick actions grid: audit --fix, validate, doctor, epistemic-audit, stress-test, export, req list, req gaps
+- AI Prompt Palette: 10 pre-written prompts sent to the active agent session
+
+---
+
+## Agent Sessions
+
+Each session is an independent `specsmith run --json-events` process with:
+
+- Conversation history saved to `.specsmith/chat/chat-YYYYMMDD.jsonl`
+- Provider and model remembered per project
+- Real-time token meter with context fill bar
+- Chat history replayed on session re-open (last 40 messages)
+- Auto-start protocol on session ready: sync → load AGENTS.md → read LEDGER.md
+
+**Session status icons in the Sessions sidebar:**
+
+- 🟡 Starting — process spawning
+- 🟢 Waiting — ready for input
+- ⚙ Running (spin) — agent is thinking
+- ⚠ Error — check the chat panel for the error message
+
+---
+
+## Model Provider Support
 
 | Provider | Free tier | Notes |
 |----------|-----------|-------|
 | **Anthropic** | No | Best for requirements engineering |
-| **OpenAI** | No (separate from ChatGPT sub) | GPT-4o, o3, o3-mini |
-| **Google Gemini** | Yes (generous limits) | Free key at [aistudio.google.com](https://aistudio.google.com/apikey) |
+| **OpenAI** | No | GPT-4o, o3, o4-mini, GPT-4.1 |
+| **Google Gemini** | Yes | Free key at aistudio.google.com |
 | **Mistral** | Trial credits | Pixtral supports OCR |
-| **Ollama** | Yes (local, free) | GPU-aware; see [Ollama setup](#ollama-local-models) below |
+| **Ollama** | Yes (local) | GPU-aware; see below |
 
-API keys are stored in the **OS credential store** (Windows Credential Manager / macOS Keychain) via VS Code's SecretStorage — never in `settings.json`.
+API keys are stored in the **OS credential store** (Windows Credential Manager / macOS Keychain) via VS Code SecretStorage — never in `settings.json`.
 
-### Ollama — Local Models
+---
 
-The extension includes full Ollama integration:
+## Ollama — Local Models
 
 ```bash
-# From terminal — see available models for your GPU
-specsmith ollama available
-
-# Download a model (also available via model dropdown in VS Code)
-specsmith ollama pull qwen2.5:14b
-
-# Get GPU-aware model suggestions for your task
-specsmith ollama suggest requirements
+# From terminal
+specsmith ollama gpu               # detect VRAM tier
+specsmith ollama available         # VRAM-filtered catalog
+specsmith ollama pull qwen2.5:14b  # download
+specsmith ollama suggest requirements  # task-based recommendations
 ```
 
 From VS Code:
 
-- **Model dropdown** — shows `Installed` and `Available to Download` groups, GPU-VRAM filtered
-- Selecting an undownloaded model → download confirmation → progress notification with Cancel
-- `Ctrl+Shift+P → specsmith: Select Model for Task` — task-specific model recommendations
+- **Model dropdown** — shows `Installed` and `Available to Download` groups (GPU-VRAM filtered)
+- Selecting an undownloaded model triggers download confirmation → progress notification with Cancel
+- `Ctrl+Shift+P → specsmith: Select Model for Task` — task-specific model selector
 
-Context length is auto-detected from GPU VRAM:
+**Context length auto-detection from GPU VRAM:**
 
 | VRAM | Context |
 |------|---------|
@@ -104,61 +170,53 @@ Context length is auto-detected from GPU VRAM:
 
 Override with `specsmith.ollamaContextLength` in VS Code settings.
 
-### Governance Panel
+**Ollama 404 fix:** The extension automatically resolves quantization-suffix mismatches
+(e.g. saved `qwen2.5:14b` → installed `qwen2.5:14b-instruct-q4_K_M`) by querying the actual
+installed model list before spawning the session.
 
-Open with `Ctrl+Shift+G` or the `📖` icon in the Projects toolbar.
+---
 
-The Governance Panel provides:
+## Chat Features
 
-- **scaffold.yml form** — project type (all 33 types), platforms, agent integrations, VCS
-- **Governance file status** — ✓/✗ for REQUIREMENTS.md, AGENTS.md, LEDGER.md, TEST_SPEC.md, architecture.md
-- **Quick Actions** — audit --fix, validate, doctor, epistemic-audit, stress-test, export
-- **AI Prompt Palette** — 9 pre-written prompts sent to the active agent session
+- **Drag & drop** — drop files or screenshots onto the chat
+- **Paste images** — `Ctrl+V` pastes screenshots directly
+- **Copy message** — hover any message → `⎘`
+- **Edit last message** — hover user message → `✏` → puts back in input
+- **Regenerate** — hover agent message → `↺`
+- **Export chat** — `⬇` button → saves as Markdown
+- **Clear history** — `🗑` button → clears display + JSONL files + agent context
+- **Resize input** — drag the teal handle above the input bar (drag up = bigger)
+- **@file** — type `@` in empty input to inject a file as context
 
-### Projects Sidebar
+---
 
-The Projects panel (right side bar) shows each project with:
-- `📋 Governance` folder — key spec docs with direct Open buttons
-- Full file tree (dirs-first, filtered for noise)
-- Right-click: New File, New Folder, Delete, Rename, Copy Path
-
-### Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Shift+;` | New agent session |
 | `Ctrl+Shift+G` | Open Governance Panel |
 | `Ctrl+Shift+R` | Quick add requirement |
-| `Ctrl+Shift+Q` | Navigate requirements (QuickPick) |
+| `Ctrl+Shift+Q` | Navigate requirements |
 | `Enter` | Send message |
 | `Shift+Enter` | New line in message |
 | `↑` (empty input) | Recall last message |
-| `@` (empty input) | Pick file to inject as context |
+| `@` (empty input) | Pick file to inject |
 | `Escape` | Stop agent |
-
-### Chat Features
-
-- **Drag & drop** — drop files or screenshots onto the chat to inject as context
-- **Paste images** — `Ctrl+V` pastes screenshots directly
-- **Copy message** — hover any message → `⎘` button
-- **Edit last message** — hover user message → `✏` button → puts back in input
-- **Regenerate** — hover agent message → `↺` button
-- **Export chat** — `⬇` button in header → saves as Markdown
-- **Clear history** — `🗑` button → clears display + JSONL files + agent context
-- **Resize input** — drag the teal handle above the input bar (drag up = bigger textarea)
 
 ---
 
 ## Configuration
 
-All settings are under `specsmith.*` in VS Code settings (`Ctrl+,`):
+All settings under `specsmith.*` in VS Code Settings (`Ctrl+,`):
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `specsmith.executablePath` | `specsmith` | Path to specsmith CLI. Auto-detected if not set. |
-| `specsmith.defaultProvider` | `anthropic` | Default LLM provider. Auto-selected if only one API key is set. |
-| `specsmith.defaultModel` | `` | Default model. Remembered per-project. |
-| `specsmith.ollamaContextLength` | `0` | Ollama context size. `0` = auto-detect from GPU VRAM. |
+| `specsmith.executablePath` | `specsmith` | Path to specsmith CLI |
+| `specsmith.defaultProvider` | `anthropic` | Default LLM provider |
+| `specsmith.defaultModel` | `` | Default model (blank = provider default) |
+| `specsmith.ollamaContextLength` | `0` | Ollama context size (0 = auto-detect from VRAM) |
+| `specsmith.autoOpenGovernancePanel` | `true` | Auto-open governance panel on VS Code start |
 
 ---
 
@@ -174,22 +232,21 @@ specsmith run --json-events --project-dir <dir> --provider <p> --model <m>
 
 Event types: `ready`, `llm_chunk`, `tool_started`, `tool_finished`, `tokens`, `turn_done`, `error`, `system`.
 
-This design means all AI logic lives in the Python CLI — the extension is a pure UI layer.
+All AI logic lives in the Python CLI — the extension is a pure UI layer.
 
 ---
 
 ## Troubleshooting
 
-**"specsmith not responding"** — The extension probes for a valid specsmith (>= v0.3.1) across all known paths. If it fails:
+**"specsmith not responding"** — The extension probes for specsmith ≥ v0.3.3 across all known paths.
+Run `Ctrl+Shift+P → specsmith: Install or Upgrade` or set `specsmith.executablePath`.
 
-1. Run `Ctrl+Shift+P → specsmith: Install or Upgrade`
-2. Or set `specsmith.executablePath` to the full path of your installation
+**"Ollama 404 — model not installed"** — The model name doesn't match what's installed. Open the
+model dropdown and select from the **Installed** group, or `specsmith ollama list`.
 
-**"Ollama 404 — model not installed"** — The saved model for this project isn't in Ollama. Open the model dropdown and select from the **Installed** group.
+**"Ollama not running"** — Start it: `ollama serve` or open the Ollama desktop app.
 
-**"Ollama not running"** — Start Ollama: run `ollama serve` in a terminal, or open the Ollama desktop app.
-
-**API key 401** — Re-enter via `Ctrl+Shift+P → specsmith: Set API Key`.
+**API key 401** — Re-enter: `Ctrl+Shift+P → specsmith: Set API Key`.
 
 **API key 429 (quota exceeded)** — Add credits at your provider's billing portal.
 
@@ -201,4 +258,4 @@ This design means all AI logic lives in the Python CLI — the extension is a pu
 - [GitHub: specsmith](https://github.com/BitConcepts/specsmith)
 - [specsmith CLI reference](commands.md)
 - [Agentic client overview](agent-client.md)
-- [Ollama documentation](https://ollama.ai)
+- [AEE Workflow Phases](commands.md#specsmith-phase)

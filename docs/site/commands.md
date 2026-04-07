@@ -470,6 +470,78 @@ specsmith credits limits defaults --install
 
 Profiles are stored at `.specsmith/model-rate-limits.json` (gitignored). The scheduler uses these to pace requests before dispatch and to apply exponential backoff after a 429.
 
+## `specsmith phase`
+
+Track and advance the AEE workflow phase. Phase is persisted as `aee_phase` in `scaffold.yml`.
+
+```bash
+specsmith phase                     # show current phase and checklist (alias: phase show)
+specsmith phase show                # show current phase, readiness %, and recommended commands
+specsmith phase next                # advance to next phase (checks prerequisites)
+specsmith phase next --force        # advance without checks
+specsmith phase set requirements    # explicitly set phase
+specsmith phase set implementation --force  # set without checks
+specsmith phase list                # list all 7 phases in order
+specsmith phase status              # one-line status for CI/IDE: 'requirements 📋 Requirements 60%'
+```
+
+**Phases:**
+
+1. `inception` 🌱 — Governance scaffold, AGENTS.md, project type established
+2. `architecture` 🏗 — ARCHITECTURE.md, components, key decisions sealed
+3. `requirements` 📋 — REQUIREMENTS.md populated, stress-tested, equilibrium reached
+4. `test_spec` ✅ — TEST_SPEC.md covers all P1 requirements (≥80%)
+5. `implementation` ⚙ — Development cycle: code, commit, audit, ledger
+6. `verification` 🔬 — Epistemic audit passes, trace vault sealed
+7. `release` 🚀 — CHANGELOG updated, tag created, compliance report filed
+
+Each phase has a checklist of file/command prerequisites. `phase next` runs the checklist before advancing.
+
+## `specsmith ollama`
+
+Manage Ollama local LLM models. Requires Ollama running at `localhost:11434`.
+
+```bash
+specsmith ollama list                       # list installed models
+specsmith ollama available                  # catalog with VRAM filter and install status
+specsmith ollama available --task code      # filter by task type
+specsmith ollama gpu                        # detect GPU and VRAM tier
+specsmith ollama pull qwen2.5:14b          # download a model (streams progress)
+specsmith ollama suggest requirements      # suggest best installed models for a task
+```
+
+**Task types for `available` and `suggest`:** `code`, `requirements`, `architecture`, `chat`, `analysis`, `reasoning`
+
+**Curated catalog (9 models):**
+
+| Model | VRAM | Best for |
+|-------|------|----------|
+| llama3.2:latest | 2 GB | chat, quick tasks |
+| mistral:latest | 4.5 GB | chat, writing |
+| qwen2.5:7b | 5 GB | coding, analysis |
+| qwen2.5-coder:7b | 4.8 GB | code generation |
+| gemma3:12b | 8 GB | general, analysis |
+| phi4:latest | 9 GB | reasoning, requirements |
+| qwen2.5:14b | 9 GB | AEE workflows (recommended) |
+| deepseek-coder-v2 | 11 GB | code generation, review |
+| qwen2.5:32b | 20 GB | complex reasoning |
+
+## `specsmith workspace`
+
+Manage multi-project workspaces.
+
+```bash
+specsmith workspace init my-org ./backend ./frontend ./shared-lib
+specsmith workspace audit --dir ./my-org
+specsmith workspace export --dir ./my-org --output compliance.md
+```
+
+**Subcommands:**
+
+- `init NAME [PROJECTS...]` — Create `workspace.yml`. `PROJECTS` are relative paths.
+- `audit` — Run `specsmith audit` across all projects and report aggregate health.
+- `export` — Generate combined compliance report for all projects.
+
 ## `specsmith --version`
 
 ```bash

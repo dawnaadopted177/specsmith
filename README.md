@@ -26,108 +26,75 @@ from epistemic import BeliefArtifact, StressTester, CertaintyEngine
 
 ## What is Applied Epistemic Engineering?
 
-AEE treats beliefs — requirements, hypotheses, decisions, constraints — like code:
+AEE treats requirements, decisions, and assumptions — the beliefs your project depends on — as
+engineering artifacts subject to the same discipline as code: version control, testing, and refactoring.
 
-- **Codable**: every claim is a `BeliefArtifact` with propositions and boundaries
-- **Testable**: the `StressTester` applies adversarial challenges to surface failure modes
-- **Deployable**: beliefs that survive stress-testing can be sealed with cryptographic proof
+**The 4-step core method: Frame → Disassemble → Stress-Test → Reconstruct**
 
-The 4-step AEE core method: **Frame → Disassemble → Stress-Test → Reconstruct**
-
-The 5 foundational axioms:
-1. **Observability** — every belief must be inspectable (hidden assumptions = stop condition)
-2. **Falsifiability** — every belief must be challengeable (unchallenged claims = dogma)
-3. **Irreducibility** — beliefs decompose to atomic primitives (compound claims hide Logic Knots)
-4. **Reconstructability** — every failed belief can be reconstructed (scope may narrow)
-5. **Convergence** — S+R iteration always converges to Equilibrium E
+**The 5 foundational axioms:**
+1. **Observability** — every belief must be inspectable
+2. **Falsifiability** — every belief must be challengeable
+3. **Irreducibility** — beliefs decompose to atomic primitives
+4. **Reconstructability** — every failed belief can be rebuilt
+5. **Convergence** — stress-test + recovery always reaches Equilibrium
 
 ---
 
-## The Problem
+## The AEE Workflow — 7 Phases
 
-AI coding agents produce knowledge claims (requirements, code, decisions) but have no
-mechanism to assess their epistemic quality. Without governance:
-- Requirements are vague, compound, or untestable
-- Conflicting claims (Logic Knots) silently accumulate
-- Confidence in critical requirements is never measured
-- Decisions lack tamper-evident audit trails
-
-specsmith solves this by making the governance layer epistemically aware: requirements
-become BeliefArtifacts, audits run stress-tests, decisions seal to the trace vault.
-
-## What specsmith Does
-
-**For new projects:** `specsmith init` generates a complete epistemically-governed scaffold
-with governance files, CI/CD, AEE belief registry, and agent integration files.
-
-**For existing projects:** `specsmith import` generates governance overlay files without
-modifying source code. Existing files are preserved.
-
-**For AEE workflows:** `specsmith stress-test` runs adversarial challenges against
-requirements. `specsmith epistemic-audit` runs the full AEE pipeline. `specsmith trace
-seal` creates tamper-evident decision records.
-
-**As a Python library:** `from epistemic import AEESession` — zero specsmith coupling,
-works in any Python 3.10+ project (research, compliance, AI alignment, etc.).
-
-**As an agentic client:** `specsmith run` — AEE-integrated REPL supporting Claude,
-GPT, Gemini, and local Ollama models, with skills, hooks, and tool loops.
-
-Every governed project follows: **propose → check → execute → verify → record**.
-
-## VS Code Extension
-
-The **specsmith AEE Workbench** VS Code extension brings the full specsmith workflow into your editor:
-
-- **Multi-tab agent sessions** — one independent agent process per project, running in your right-side panel
-- **Live model listing** — fetches current models from Anthropic, OpenAI, Gemini, Mistral, and local Ollama with GPU-aware context sizing
-- **Ollama integration** — browse catalog, download models with progress, GPU VRAM detection, task-based model suggestions
-- **Governance Panel** (`Ctrl+Shift+G`) — scaffold.yml form editor, governance file status, quick actions (audit/validate/doctor), AI prompt palette
-- **API key management** — stored in OS credential store (Windows Credential Manager / macOS Keychain) via VS Code SecretStorage
-- **Projects sidebar** — full file tree + governance docs for each project, right-click to open agent session
-- **Chat history** — session history saved to `.specsmith/chat/`, replayed on re-open
+specsmith tracks your project through the full AEE development cycle:
 
 ```
-# In VS Code: Ctrl+Shift+P → specsmith: New Agent Session
-# Panel is on the right side (View → Open Secondary Side Bar)
+🌱 Inception → 🏗 Architecture → 📋 Requirements → ✅ Test Spec
+    → ⚙ Implementation → 🔬 Verification → 🚀 Release
 ```
 
-**[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
+```bash
+specsmith phase          # show current phase + readiness checklist
+specsmith phase next     # advance to the next phase (runs checks first)
+specsmith phase set requirements  # jump to a specific phase
+specsmith phase list     # list all phases
+```
+
+The current phase is persisted in `scaffold.yml` as `aee_phase` and displayed in the VS Code
+Governance Panel. Each phase has a checklist of file/command criteria, recommended commands,
+and a readiness percentage.
 
 ---
 
 ## Install
 
-**Recommended — global install via [pipx](https://pipx.pypa.io) (isolated, no dependency conflicts):**
+**Recommended — global install via [pipx](https://pipx.pypa.io):**
 
 ```bash
 pipx install specsmith                    # core CLI + epistemic library
 pipx inject specsmith anthropic           # + Claude support
-pipx inject specsmith openai             # + GPT / O-series support
+pipx inject specsmith openai              # + GPT / O-series support
 pipx inject specsmith google-generativeai # + Gemini support
-pipx inject specsmith PySide6            # + GUI (specsmith gui)
 ```
 
-**Or with pip (into your active environment):**
+**Or with pip:**
 
 ```bash
-pip install specsmith                # core
-pip install "specsmith[anthropic]"  # + Claude
-pip install "specsmith[openai]"     # + GPT/O-series
-pip install "specsmith[gui]"        # + GUI
+pip install specsmith                     # core
+pip install "specsmith[anthropic]"       # + Claude
+pip install "specsmith[openai]"          # + GPT/O-series
+pip install "specsmith[gemini]"          # + Gemini
 ```
 
 **Update:**
 
 ```bash
-pipx upgrade specsmith     # pipx install
-specsmith self-update      # pip install
+pipx upgrade specsmith
+specsmith self-update
 ```
+
+---
 
 ## Quick Start
 
 ```bash
-# New project
+# New project (interactive)
 specsmith init
 
 # Adopt an existing project
@@ -139,22 +106,127 @@ specsmith audit --project-dir ./my-project
 # Run AEE stress-test on requirements
 specsmith stress-test --project-dir ./my-project
 
-# Run full epistemic audit
+# Full epistemic audit (certainty + logic knots + recovery proposals)
 specsmith epistemic-audit --project-dir ./my-project
 
-# Start the agentic REPL (requires a provider installed)
+# Start the agentic REPL
 specsmith run --project-dir ./my-project
 
-# Run a single task non-interactively
-specsmith run --task "run audit and fix issues"
+# Check current AEE workflow phase
+specsmith phase --project-dir ./my-project
 ```
 
-### Using the epistemic library in any Python project
+---
+
+## VS Code Extension
+
+The **specsmith AEE Workbench** VS Code extension is the flagship client:
+
+```
+# Install specsmith first, then:
+# VS Code: Ctrl+Shift+P → specsmith: New Agent Session
+# Governance Panel: Ctrl+Shift+G
+```
+
+**Key features:**
+- **5-tab Governance Panel** — Project / Tools / Files / Updates & System / Actions & AI
+- **AEE phase indicator** — shows current phase with readiness %, Next Phase button, and phase selector
+- **AI agent sessions** — independent process per project, JSONL bridge, chat with file injection
+- **Live model listing** — Anthropic, OpenAI, Gemini, Mistral, local Ollama (GPU-aware)
+- **Ollama integration** — browse curated catalog, download models with progress, task-based suggestions
+- **FPGA/HDL tool support** — vivado, gtkwave, vsg, ghdl, verilator, yosys, nextpnr, and 15 more
+- **API key management** — stored in OS credential store (Windows Credential Manager / macOS Keychain)
+- **Update checker** — PyPI version check with Install Update button, system info panel
+- **Auto-open** — governance panel opens automatically when VS Code starts with a workspace
+
+**[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
+
+---
+
+## Ollama — Local LLMs (Zero API Cost)
+
+specsmith has first-class Ollama support, including:
+
+```bash
+specsmith ollama gpu                    # detect GPU and VRAM tier
+specsmith ollama available              # show catalog filtered by VRAM budget
+specsmith ollama available --task code  # filter by task type
+specsmith ollama pull qwen2.5:14b      # download a model
+specsmith ollama suggest requirements  # task-based recommendations
+specsmith ollama list                  # show installed models
+```
+
+GPU-aware context sizing in the VS Code extension: 4K/8K/16K/32K tokens based on detected VRAM.
+Override with `specsmith.ollamaContextLength` in VS Code settings.
+
+---
+
+## FPGA / HDL Projects
+
+specsmith supports FPGA-specific project types with full governance:
+
+```yaml
+# scaffold.yml
+type: fpga-rtl-xilinx
+fpga_tools:
+  - vivado
+  - gtkwave
+  - vsg
+  - ghdl
+  - verilator
+```
+
+Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
+**Simulation:** ghdl, iverilog, verilator, modelsim, questasim, xsim.
+**Waveform:** gtkwave, surfer. **Linting:** vsg, verible, svlint.
+**Formal:** symbiyosys. **OSS flow:** yosys, nextpnr, openFPGALoader.
+
+---
+
+## 50+ CLI Commands
+
+**Governance:** `init` `import` `audit` `validate` `diff` `upgrade` `compress` `doctor` `export` `architect`
+
+**AEE Epistemic:** `stress-test` `epistemic-audit` `belief-graph` `trace seal/verify/log` `integrate`
+
+**Workflow:** `phase show/set/next/list` `ledger add/list` `req list/add/gaps/trace`
+
+**Agent:** `run` `agent providers/tools/skills`
+
+**Ollama:** `ollama list/available/gpu/pull/suggest`
+
+**Workspace:** `workspace init/audit/export`
+
+**VCS:** `commit` `push` `sync` `branch` `pr` `status`
+
+**Tools:** `exec` `ps` `abort` `watch` `optimize` `credits` `self-update`
+
+**Auth:** `auth set/list/remove/check`
+
+**Patent:** `patent search/prior-art`
+
+---
+
+## 35 Project Types
+
+**Software:** Python CLI/lib/web, Rust, Go, C/C++, .NET, Node.js/TypeScript, mobile, microservices, data/ML.
+
+**Hardware/Embedded:** FPGA/RTL (Xilinx, Intel, Lattice, generic), Yocto BSP, embedded C/C++.
+
+**Documents:** Technical specs, research papers, API specs, requirements management.
+
+**Business/Legal:** Business plans, patent applications, compliance frameworks.
+
+---
+
+## epistemic Library
+
+The standalone `epistemic` Python library works in any Python 3.10+ project — no specsmith coupling:
 
 ```python
-from epistemic import AEESession
+from epistemic import AEESession, BeliefArtifact, StressTester
 
-session = AEESession("my-project")
+session = AEESession("my-project", threshold=0.70)
 session.add_belief(
     artifact_id="HYP-001",
     propositions=["The API always returns valid JSON"],
@@ -163,125 +235,35 @@ session.add_belief(
 session.accept("HYP-001")
 result = session.run()
 print(result.summary())
+# certainty=0.55, failures=2, equilibrium=False
 ```
 
-See [epistemic library documentation](https://specsmith.readthedocs.io/en/stable/epistemic-library/) for full API reference and examples including linguistics research (glossa-lab), compliance pipelines, and AI alignment workflows.
+Use cases: linguistics research, compliance pipelines, AI alignment, patent prosecution.
 
-### Starting an AI Agent Session
+---
 
-The universal pattern for any specsmith-governed project:
+## Governance Rules (H1–H13)
 
-```
-/agent AGENTS.md
-```
+13 hard rules enforced by `specsmith validate`:
 
-This works in Warp, Claude Code, Cursor, and any agent that reads markdown context files. The agent loads AGENTS.md (the governance hub), reads LEDGER.md for session state, and picks up from the last recorded action.
+- **H11** — Every loop or blocking wait must have a timeout, fallback exit, and diagnostic message.
+- **H12** — Windows multi-step automation goes into `.cmd` files, not inline shell invocations.
+- **H13** — Agent tools must declare epistemic contracts (what they claim and what they cannot detect).
 
-## 50+ CLI Commands
-
-| Command | Purpose |
-|---------|---------|
-| `init` | Scaffold a new epistemically-governed project |
-| `import` | Adopt an existing project |
-| `audit` | Drift detection and health checks |
-| `stress-test` | AEE adversarial stress-tests on requirements |
-| `epistemic-audit` | Full AEE pipeline (stress-test + certainty + recovery) |
-| `belief-graph` | Render belief artifact dependency graph |
-| `trace seal/verify/log` | Cryptographic decision sealing (STP-inspired) |
-| `integrate <tool>` | Epistemic impact analysis before tool integration |
-| `run` | Start AEE-integrated agentic REPL |
-| `agent providers/tools/skills` | Configure agentic client |
-| `validate` | Governance consistency checks |
-| `export` | Compliance report with REQ↔TEST coverage |
-| `architect` | Interactive architecture generation |
-| `credits` | AI credit tracking, analysis, budgets |
-| `exec / ps / abort` | Tracked process execution with timeouts |
-| `commit / push / sync` | Governance-aware VCS operations |
-| `req list/trace/gaps` | Requirement management |
-| `ledger add/list/stats` | Change ledger management |
-
-## 33 Project Types
-
-**Software:** Python, Rust, Go, C/C++, .NET, JS/TS, mobile, monorepo, microservices, DevOps/IaC, data/ML, browser extensions.
-
-**Hardware:** FPGA/RTL, Yocto BSP, PCB design, embedded systems.
-
-**Documents:** Technical specifications, user manuals, research papers, API specifications, requirements management.
-
-**Business/Legal:** Business plans, patent applications, legal/compliance frameworks.
-
-Each type gets: tool-aware CI (correct lint/test/security/build tools), domain-specific directory structure, governance rules in AGENTS.md, and pre-populated requirements and test stubs.
-
-## 40+ CLI Commands
-
-| Command | Purpose |
-|---------|---------|
-| `init` | Scaffold a new governed project |
-| `import` | Adopt an existing project (merge mode) |
-| `audit` | Drift detection and health checks (`--fix` to auto-repair) |
-| `architect` | Interactive architecture generation |
-| `validate` | Governance consistency + H11 blocking-loop detection |
-| `compress` | Archive old ledger entries |
-| `upgrade` | Update governance to new spec version |
-| `status` | CI/PR/alert status from VCS platform |
-| `diff` | Compare governance against templates |
-| `export` | Compliance report with REQ↔TEST coverage |
-| `doctor` | Check if verification tools are installed |
-| `self-update` | Update specsmith (channel-aware) |
-| `credits` | AI credit tracking, analysis, budgets, and rate-limit pacing |
-| `exec` / `ps` / `abort` | Tracked process execution with PID tracking and timeout |
-| `commit` / `push` / `sync` | Governance-aware VCS operations |
-| `branch` / `pr` | Strategy-aware branching and PR creation |
-| `ledger` | Structured ledger add/list/stats |
-| `req` | Requirements list/add/trace/gaps/orphans |
-| `session-end` | End-of-session checklist |
-
-## 7 Agent Integrations
-
-AGENTS.md (cross-platform standard), Warp/Oz, Claude Code, GitHub Copilot, Cursor, Gemini CLI, Windsurf, Aider.
-
-## 3 VCS Platforms
-
-GitHub Actions, GitLab CI, Bitbucket Pipelines — all with tool-aware CI generated from the verification tool registry. Dependabot/Renovate configured per language ecosystem.
-
-## Governance Rules (H1–H12)
-
-specsmith-governed projects enforce 12 hard rules. Two were added in v0.2.3 for agentic workflows:
-
-- **H11** — Every loop or blocking wait in agent-written scripts must have a deadline, a fallback exit, and a diagnostic message on timeout. `specsmith validate` enforces this automatically.
-- **H12** — On Windows, multi-step automation goes into a `.cmd` file, not inline shell invocations or `.ps1` files.
-
-See [Governance Model](https://specsmith.readthedocs.io/en/stable/governance/) for the full rule set.
-
-## Proactive Rate Limit Pacing
-
-specsmith ships a rolling-window scheduler that paces AI provider requests before dispatch:
-
-- Built-in RPM/TPM profiles for OpenAI, Anthropic, and Google models (including wildcard fallbacks)
-- Pre-dispatch budget check: sleeps until the 60-second window refills instead of overshooting
-- Parses OpenAI-style `"Please try again in 10.793s"` messages and obeys them
-- Adaptive concurrency: halved after a 429, gradually restored after consecutive successes
-- Local overrides always take precedence over built-in defaults
-
-```bash
-specsmith credits limits defaults          # list built-in profiles
-specsmith credits limits defaults --install  # merge into project config
-specsmith credits limits status --provider openai --model gpt-5.4
-```
-
-See [Rate Limit Pacing](https://specsmith.readthedocs.io/en/stable/rate-limits/) for full details.
+---
 
 ## Documentation
 
-**[specsmith.readthedocs.io](https://specsmith.readthedocs.io)** — Full user manual with tutorials, command reference, project type details, tool registry, governance model, rate-limit pacing, troubleshooting.
+**[specsmith.readthedocs.io](https://specsmith.readthedocs.io)** — Full manual: AEE primer,
+command reference, project types, tool registry, governance model, Ollama guide, VS Code extension.
 
 ## Links
 
 - [PyPI](https://pypi.org/project/specsmith/)
 - [Documentation](https://specsmith.readthedocs.io)
 - [Changelog](CHANGELOG.md)
+- [VS Code Extension](https://github.com/BitConcepts/specsmith-vscode)
 - [Contributing](CONTRIBUTING.md)
-- [Specification](docs/AGENT-WORKFLOW-SPEC.md)
 - [Security](SECURITY.md)
 
 ## License

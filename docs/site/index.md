@@ -69,11 +69,45 @@ When you run `specsmith init` or `specsmith import`, your project gets:
     **Stable:** [specsmith.readthedocs.io/en/stable/](https://specsmith.readthedocs.io/en/stable/) — matches `pip install specsmith`
     **Dev (latest):** [specsmith.readthedocs.io/en/latest/](https://specsmith.readthedocs.io/en/latest/) — matches `pip install --pre specsmith`
 
+## The AEE Workflow — 7 Phases
+
+specsmith tracks your project through the full AEE development cycle:
+
+```
+🌱 Inception → 🏗 Architecture → 📋 Requirements → ✅ Test Spec
+   → ⚙ Implementation → 🔬 Verification → 🚀 Release
+```
+
+```bash
+specsmith phase          # show current phase + readiness checklist
+specsmith phase next     # advance to next phase (checks prerequisites first)
+specsmith phase list     # list all 7 phases
+```
+
+The active phase is shown in the VS Code Governance Panel as a colored pill with readiness % and a Next Phase button.
+
+## VS Code Extension
+
+The **specsmith AEE Workbench** VS Code extension is the recommended client:
+
+- **5-tab Governance Panel** — Project, Tools (FPGA/HDL), Files, Updates & System, Actions & AI
+- **AEE phase indicator** — live phase pill with Next Phase and phase selector
+- **AI agent sessions** — per-project JSONL bridge to specsmith CLI
+- **Ollama integration** — GPU-aware catalog, model download, task-based suggestions
+- **API key management** — OS credential store
+
+```bash
+# Ctrl+Shift+G — open Governance Panel
+# Ctrl+Shift+; — new agent session
+```
+
+**[→ VS Code Extension docs](vscode-extension.md)**
+
 ## Quick Start
 
 ```bash
-pip install specsmith             # core + epistemic library
-pip install specsmith[anthropic]  # + Claude support for specsmith run
+pipx install specsmith            # recommended: isolated install
+pip install specsmith[anthropic]  # or via pip + Claude support
 
 # New project
 specsmith init
@@ -81,14 +115,17 @@ specsmith init
 # Adopt an existing project
 specsmith import --project-dir ./my-project
 
+# Check current AEE workflow phase
+specsmith phase
+
 # Run AEE stress-test on requirements
 specsmith stress-test --project-dir ./my-project
 
 # Full epistemic audit (certainty + logic knots + recovery)
 specsmith epistemic-audit --project-dir ./my-project
 
-# Start agentic REPL
-specsmith run --project-dir ./my-project
+# Start agentic REPL (local Ollama, no API key needed)
+specsmith run --provider ollama --model qwen2.5:14b
 
 # Check governance health
 specsmith audit --project-dir ./my-project

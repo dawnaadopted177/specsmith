@@ -5,7 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — targeting 0.3.0
+## [0.3.3] — 2026-04-07
+
+### Added
+- **`specsmith phase`** — 7-phase AEE workflow tracker (`inception → architecture → requirements → test_spec → implementation → verification → release`). Each phase has a readiness checklist, recommended commands, and a progress percentage. Phase stored as `aee_phase` in `scaffold.yml`.
+- **`specsmith phase show/set/next/list/status`** — full phase management CLI. `phase next` checks prerequisites before advancing; `--force` skips checks.
+- **`src/specsmith/phase.py`** — standalone module with `Phase`, `PhaseCheck`, `evaluate_phase`, `read_phase`, `write_phase`, `phase_progress_pct`.
+- **Governance Panel v3 AEE phase indicator** (VS Code extension) — live phase pill with readiness %, Next Phase button, and phase select dropdown between the topbar and tab bar.
+
+### Changed
+- `scaffold.yml` gains optional `aee_phase` field. All existing projects are backward-compatible (`inception` is the default).
+- VS Code Governance Panel: phase selector in header updates `scaffold.yml` in real time.
+
+## [0.3.2] — 2026-04-07
+
+### Added
+- **`src/specsmith/ollama_cmds.py`** — curated 9-model catalog, `get_installed_models()`, `get_vram_gb()` (nvidia-smi + Windows WMI), `recommend_models(vram_gb, task)`, `pull_model()` streaming progress.
+- **`specsmith ollama`** group — 5 subcommands: `list`, `available [--task]`, `gpu`, `pull`, `suggest <task>`.
+- **`OllamaProvider._resolve_model()`** — auto-resolves short model tags to exact installed names on 404, preventing quantization-suffix mismatches.
+
+### Fixed
+- Ollama 404 error when model installed under quantization tag (e.g. `qwen2.5:14b-instruct-q4_K_M`) but session saved short tag (`qwen2.5:14b`). Now auto-retries with resolved name.
+
+## [0.3.1] — 2026-04-07
+
+### Added
+- **`specsmith run --json-events`** — JSONL event stream over stdout for IDE integration (VS Code extension bridge).
+- **VS Code extension link** in README and readthedocs.
+- Documentation for agentic client and VS Code extension.
+
+### Fixed
+- Duplicate `ollama` CLI group removed (auto-merge artifact from develop→main).
+- Import sort and lint fixes for `ruff` compliance across all modules.
+
+## [0.3.0] — 2026-04-06
+
+### Added — Applied Epistemic Engineering layer
+- **`epistemic` standalone library** — zero-dep Python library. `from epistemic import AEESession` works anywhere.
+- `BeliefArtifact`, `StressTester` (8 challenge categories), `FailureModeGraph`, `CertaintyEngine` (CERTUS-inspired), `RecoveryOperator`, `TraceVault` (SHA-256 chain).
+- **`specsmith stress-test`**, **`epistemic-audit`**, **`belief-graph`**, **`trace seal/verify/log`**, **`integrate`**.
+- **`specsmith run`** — AEE-integrated agentic REPL (Anthropic, OpenAI, Gemini, Ollama). `--task`, `--provider`, `--model`, `--tier`, `--json-events`, `--optimize`.
+- **`specsmith agent providers/tools/skills`** — agentic client introspection.
+- Skills system: SKILL.md loader, built-in profiles (epistemic-auditor, verifier, planner).
+- Hook system: H13 enforcement, ledger hints, context budget alerts.
+- 3 new project types: `epistemic-pipeline`, `knowledge-engineering`, `aee-research`.
+- New governance templates: `epistemic-axioms.md.j2`, `belief-registry.md.j2`, `failure-modes.md.j2`, `uncertainty-map.md.j2`. H13 added to `rules.md.j2`.
+- `docs/site/aee-primer.md` — 10-part comprehensive AEE guide.
+- `docs/site/epistemic-library.md` — full `epistemic` library API reference.
+
+### Changed
+- Version scheme: `X.Y.Z` (removed `.devN` suffix for stable releases).
+- README: AEE-first framing, complete command reference.
+
+## [Unreleased — pre-0.3.0]
 
 ### Added — Applied Epistemic Engineering
 

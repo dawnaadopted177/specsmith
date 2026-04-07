@@ -3271,5 +3271,186 @@ def gui_cmd(project_dir: str, provider_name: str | None, model: str | None) -> N
     )
 
 
+# ---------------------------------------------------------------------------
+# Phase — AEE Workflow Phase Tracker
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="phase")
+def phase_group() -> None:
+    """Track and advance the AEE workflow phase for a project.
+
+    The 7 phases of the AEE development cycle:\n
+      inception → architecture → requirements → test_spec → implementation → verification → release
+    """
+
+
+@phase_group.command(name="show", hidden=False)
+@click.option("--project-dir", type=click.Path(exists=True), default=".",
+              help="Project root (default: current directory).")
+def phase_show(project_dir: str) -> None:
+    """Show the current AEE workflow phase and its readiness checklist."""
+    from specsmith.phase import PHASE_MAP, evaluate_phase, phase_progress_pct, read_phase
+
+    root       = Path(project_dir).resolve()
+    phase_key  = read_phase(root)
+    phase      = PHASE_MAP[phase_key]
+    passed, failed = evaluate_phase(phase, root)
+    pct        = phase_progress_pct(phase, root)
+
+    console.print(f"\n  {phase.emoji} [bold]{phase.label}[/bold] ({phase_key})")
+    console.print(f"  {phase.description}")
+    console.print()
+    console.print(f"  Readiness: {pct}% ({len(passed)}/{len(phase.checks)} checks pass)")
+    console.print()
+
+    for desc in passed:
+        console.print(f"  [green]\u2713[/green] {desc}")
+    for desc in failed:
+        console.print(f"  [red]\u2717[/red] {desc}")
+
+    if phase.commands:
+        console.print("\n  [bold]Recommended commands:[/bold]")
+        for cmd in phase.commands:
+            console.print(f"    {cmd}")
+
+    if phase.next_phase and not failed:
+        console.print(
+            f"\n  [green]\u2713 Ready to advance[/green] — "
+            f"run [bold]specsmith phase next[/bold] to move to [bold]{phase.next_phase}[/bold]."
+        )
+    elif phase.next_phase and failed:
+        console.print(
+            f"\n  [yellow]\u26a0 {len(failed)} check(s) remaining[/yellow] before advancing to"
+            f" [bold]{phase.next_phase}[/bold]."
+        )
+    console.print()
+
+
+@phase_group.command(name="set")
+@click.argument("phase_key")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--force", is_flag=True, default=False,
+    help="Set phase without readiness check.",
+)
+def phase_set(phase_key: str, project_dir: str, force: bool) -> None:
+    """Explicitly set the AEE workflow phase.
+
+    PHASE_KEY: inception | architecture | requirements | test_spec
+    PHASE_KEY: implementation | verification | release
+    """
+    from specsmith.phase import PHASE_MAP, evaluate_phase, write_phase
+
+    if phase_key not in PHASE_MAP:
+        console.print(f"[red]Unknown phase: {phase_key}[/red]")
+        console.print("Valid: " + " | ".join(PHASE_MAP.keys()))
+        raise SystemExit(1)
+
+    root  = Path(project_dir).resolve()
+    phase = PHASE_MAP[phase_key]
+    _, failed = evaluate_phase(phase, root)
+
+    if failed and not force:
+        console.print(
+            f"[yellow]\u26a0 {len(failed)} check(s) not yet passing "
+            f"for {phase.label}:[/yellow]"
+        )
+        for desc in failed:
+            console.print(f"  [dim]\u2717 {desc}[/dim]")
+        console.print(
+            "\n  Use [bold]--force[/bold] to set the phase anyway, "
+            "or fix the checks first."
+        )
+        raise SystemExit(1)
+
+    write_phase(root, phase_key)
+    console.print(
+        f"[green]\u2713[/green] Phase set to "
+        f"[bold]{phase.emoji} {phase.label}[/bold] for {root.name}."
+    )
+
+
+@phase_group.command(name="next")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--force", is_flag=True, default=False,
+    help="Advance even if readiness checks have not all passed.",
+)
+def phase_next(project_dir: str, force: bool) -> None:
+    """Advance to the next AEE workflow phase.
+
+    Performs readiness checks on the current phase first.
+    Use --force to skip checks.
+    """
+    from specsmith.phase import PHASE_MAP, evaluate_phase, read_phase, write_phase
+
+    root       = Path(project_dir).resolve()
+    phase_key  = read_phase(root)
+    phase      = PHASE_MAP[phase_key]
+    _, failed  = evaluate_phase(phase, root)
+
+    if failed and not force:
+        console.print(
+            f"[yellow]\u26a0 {len(failed)} check(s) must pass before advancing "
+            f"from {phase.label}:[/yellow]"
+        )
+        for desc in failed:
+            console.print(f"  [dim]\u2717 {desc}[/dim]")
+        console.print(
+            "\n  Fix the checks above, or use [bold]--force[/bold] to advance anyway."
+        )
+        raise SystemExit(1)
+
+    if not phase.next_phase:
+        console.print(
+            f"[bold]{phase.emoji} {phase.label}[/bold] is the final phase. "
+            "After release, the cycle restarts with [bold]inception[/bold] for the next version."
+        )
+        return
+
+    write_phase(root, phase.next_phase)
+    next_phase = PHASE_MAP[phase.next_phase]
+    console.print(
+        f"[green]\u2713[/green] Advanced from [bold]{phase.label}[/bold] "
+        f"to [bold]{next_phase.emoji} {next_phase.label}[/bold]."
+    )
+    console.print(f"  {next_phase.description}")
+    if next_phase.commands:
+        console.print("\n  [bold]Next steps:[/bold]")
+        for cmd in next_phase.commands:
+            console.print(f"    {cmd}")
+
+
+@phase_group.command(name="status")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def phase_status(project_dir: str) -> None:
+    """Print a compact one-line phase status (for IDE/CI integration).
+
+    Output format: <phase_key> <emoji> <label> <pct>%  e.g. 'requirements 📋 Requirements 60%'
+    """
+    from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
+
+    root      = Path(project_dir).resolve()
+    phase_key = read_phase(root)
+    phase     = PHASE_MAP[phase_key]
+    pct       = phase_progress_pct(phase, root)
+    console.print(f"{phase_key} {phase.emoji} {phase.label} {pct}%")
+
+
+@phase_group.command(name="list")
+def phase_list() -> None:
+    """List all AEE workflow phases in order."""
+    from specsmith.phase import PHASES
+
+    console.print("[bold]AEE Workflow Phases[/bold]\n")
+    for i, p in enumerate(PHASES, 1):
+        arrow = " → " if i < len(PHASES) else ""
+        console.print(f"  {i}. {p.emoji} [bold]{p.label}[/bold]  {p.description}{arrow}")
+
+
+main.add_command(phase_group)
+
+
 if __name__ == "__main__":
     main()
