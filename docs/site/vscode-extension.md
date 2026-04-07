@@ -1,8 +1,9 @@
 # VS Code Extension — specsmith AEE Workbench
 
 The **specsmith AEE Workbench** VS Code extension is the flagship client for specsmith. It provides
-AI agent sessions, 5-tab governance panels, the AEE workflow phase indicator, live Ollama management,
-FPGA/HDL tool support, and full epistemic engineering workflow — all inside VS Code's secondary sidebar.
+AI agent sessions, a 6-tab Settings panel, execution profiles, the AEE workflow phase indicator,
+live Ollama management, FPGA/HDL tool support, and full epistemic engineering workflow — all inside
+VS Code's secondary sidebar.
 
 **GitHub:** [BitConcepts/specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode)
 
@@ -11,7 +12,7 @@ FPGA/HDL tool support, and full epistemic engineering workflow — all inside VS
 ## Requirements
 
 - VS Code 1.85+
-- specsmith **v0.3.3+** installed and on PATH
+- specsmith **v0.3.5+** installed and on PATH
 - At least one LLM provider (API key or local Ollama)
 
 ```bash
@@ -75,7 +76,7 @@ specsmith phase set implementation # jump to a phase
 
 ---
 
-## Governance Panel — 5 Tabs
+## Settings Panel — 6 Tabs
 
 Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 
@@ -87,9 +88,10 @@ Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 
 ### Tab: Tools
 - **FPGA/HDL tools** (21 tools) — vivado, quartus, gtkwave, ghdl, iverilog, verilator, vsg, yosys, nextpnr, symbiyosys, and more
-- **Agent integrations** — warp, claude, cursor, copilot, aider, continue
+- **Auxiliary disciplines** — add mixed-discipline support (e.g. FPGA + embedded C + Python verification)
 - **Target platforms** — linux, windows, macos, embedded, cloud, FPGA variants
-- All saved to `fpga_tools:`, `integrations:`, `platforms:` in scaffold.yml
+- **Installed Ollama models** with Update / Remove buttons
+- All saved to `fpga_tools:`, `platforms:` in scaffold.yml
 
 ### Tab: Files
 - Governance file status table: scaffold.yml, AGENTS.md, REQUIREMENTS.md, TEST_SPEC.md, ARCHITECTURE.md, LEDGER.md
@@ -99,14 +101,22 @@ Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 
 ### Tab: Updates & System
 - Current vs available specsmith version (fetches from PyPI)
-- **Check for Updates** button — queries PyPI API
-- **Install Update** button — runs `pipx upgrade specsmith` or `pip install --upgrade specsmith`
-- Last checked timestamp
+- **Check for Updates** button — queries PyPI API without resetting the active tab
+- **Install Update** button — respects `specsmith.releaseChannel` (stable / pre-release)
+- After install: button swaps to **↺ Reload Window** automatically
+- Last checked timestamp; Ollama version checker
 - System info panel (lazy-loaded): OS, CPU, cores, RAM, GPU, disk
 
 ### Tab: Actions & AI
 - Quick actions grid: audit --fix, validate, doctor, epistemic-audit, stress-test, export, req list, req gaps
 - AI Prompt Palette: 10 pre-written prompts sent to the active agent session
+
+### Tab: Execution
+- **Execution profile selector** — `🔒 safe` (read-only), `⚙ standard` (default), `🔓 open`, `⚠ admin`
+- Profile description updates live as you change the selection
+- **Custom overrides**: additional allowed / blocked command prefixes and agent tool blocks
+- Changes saved to `execution_profile`, `custom_allowed_commands`, `custom_blocked_commands` in `scaffold.yml`
+- **Tool Installer** — scan tools (runs `specsmith tools scan --json --fpga`), show install status, **Install** button for missing tools opens `specsmith tools install <key>` in a terminal
 
 ---
 

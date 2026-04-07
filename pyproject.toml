@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "specsmith"
-version = "0.3.5"
-description = "Applied Epistemic Engineering toolkit — forge epistemically-governed scaffolds, stress-test belief systems, and run AEE pipelines."
+version = "0.3.6"
+description = "Applied Epistemic Engineering toolkit — AEE agent sessions, execution profiles, FPGA/HDL governance, tool installer, 50+ CLI commands."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -16,6 +16,8 @@ keywords = [
     "agentic", "scaffold", "governance", "agents-md", "cli",
     "epistemic-engineering", "belief-artifacts", "stress-testing",
     "certainty", "trace-vault", "aee", "knowledge-engineering",
+    "fpga", "hdl", "vhdl", "execution-profiles", "tool-installer",
+    "llm", "ollama", "requirements-management",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

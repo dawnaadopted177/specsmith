@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `execution_profile`, `custom_allowed_commands`, `custom_blocked_commands`, `custom_blocked_tools` fields in `scaffold.yml` and `ProjectConfig`.
+
+---
+
+## [0.3.5] — 2026-04-07
+
+### Added
+- **`src/specsmith/profiles.py`** — `ExecutionProfile` dataclass with 4 built-in profiles: `safe` (read-only), `standard` (default), `open`, `admin`. Enforcement helpers `check_tool_allowed()`, `check_command_allowed()`, `check_write_allowed()`. Active profile loaded from `scaffold.yml` at session start.
+- **`src/specsmith/toolrules.py`** — Curated AI context rulesets for 20+ tools (ghdl, vsg, verilator, iverilog, vivado, quartus, yosys, SymbiYosys, ruff, mypy, pytest, clang-tidy, cppcheck, cargo, go, golangci-lint, Terraform, oelint-adv, BitBake, git, Docker, Vale, markdownlint, Spectral). Rules auto-injected into the agent system prompt based on `scaffold.yml` project type and `fpga_tools`.
+- **`src/specsmith/tool_installer.py`** — Platform-aware install commands for 25+ tools. Detects preferred package manager (winget/choco/scoop on Windows, brew on macOS, apt/dnf on Linux). `get_install_command(tool)` returns the best command for the current platform.
+- **`specsmith tools install <tool>`** — Show or run the install command for a tool. Options: `--dry-run`, `--yes`, `--list`, `--category`.
+- **`specsmith tools rules`** — Show AI context rules for the project or a specific tool. Options: `--tool <key>`, `--list`.
+- **New FPGA project types**: `fpga-rtl-amd`, `fpga-rtl-intel`, `fpga-rtl-lattice`, `mixed-fpga-embedded`, `mixed-fpga-firmware` — with full tool registry, CI, and template support.
+- **`specsmith import --yes/-y`** — Non-interactive mode flag for the import command (replaces `input='y\n'` in automation).
+- **Language noise filter** — `importer.py` now excludes `toml`, `yaml`, `json`, `html` etc. from `primary_language` detection so Rust projects no longer report `toml` as the primary language.
+- **`ProjectConfig`** gains `execution_profile`, `custom_allowed_commands`, `custom_blocked_commands`, `custom_blocked_tools` fields.
+
+### Changed
+- **AMD rebrand**: `fpga-rtl-xilinx` → `fpga-rtl-amd` throughout (type labels, tool registry, CI templates, VS Code panel). Legacy `fpga-rtl-xilinx` id still accepted for backward compatibility.
+- **Agent system prompt**: Strengthened English-only instruction (names Qwen/DeepSeek explicitly). `start` quick command prefixed with `[RESPOND IN ENGLISH ONLY]`.
+- **`run_sync`**: Uses `ORIG_HEAD..HEAD` instead of `HEAD~1..HEAD` — more robust on first-ever pulls.
+- **Ollama provider**: Added `_complete_native_with_fallback()` — if both tool-call path AND native path return HTTP 400 (e.g. `think` param unsupported on older Ollama), disable `think` and retry. Prevents cascading unhandled errors.
+- All Jinja2 templates: `project.type.value` → `project.type` (config.type is now `str`, not `ProjectType` enum).
+- **pyproject.toml**: Added `keyring` to mypy `ignore_missing_imports` overrides. Added `profiles`, `toolrules`, `tool_installer` to `ignore_errors` overrides.
+
+### Fixed
+- `tools scan` FPGA tool entries missing for new AMD/Intel/Lattice types.
+- Sandbox import tests: replaced fragile `input='y\n'` with `--yes` flag.
+- CI: removed unused `format_install_table` import (F401), fixed f-string without placeholders (F541), split long string literals (E501).
+
+---
+
+## [0.3.4] — 2026-04-07
+
+### Changed
+- **Ollama provider**: Rewrote to use the native `/api/chat` endpoint for all completions including tool calling. Previous implementation used `/v1/chat/completions` (OpenAI-compat endpoint) which returned HTTP 400 for many local models. Native endpoint is the correct path for Ollama v0.3+.
+- **Gemini provider**: Dual SDK support — prefers `google-genai` (GA May 2025) with fallback to legacy `google-generativeai`. Correct `system_instruction` parameter, token count extraction, default model updated to `gemini-2.5-flash`.
+- **OpenAI provider**: Added `developer` role for o-series (o1, o3, o4) models, `max_completion_tokens` field.
+- **Ollama model catalog**: Updated with Qwen3 7B/14B/32B, Gemma3 4B/27B, Llama3.3 70B entries.
+- **VS Code ModelRegistry.ts**: Updated static fallbacks for April 2026 provider APIs.
+
+---
+
 ## [0.3.3] — 2026-04-07
 
 ### Added

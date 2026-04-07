@@ -129,15 +129,18 @@ The **specsmith AEE Workbench** VS Code extension is the flagship client:
 ```
 
 **Key features:**
-- **5-tab Governance Panel** — Project / Tools / Files / Updates & System / Actions & AI
+- **6-tab Settings panel** — Project / Tools / Files / Updates / Actions / Execution
+- **Execution profiles** — safe (read-only) / standard / open / admin; custom allow/block command lists stored in `scaffold.yml`
 - **AEE phase indicator** — shows current phase with readiness %, Next Phase button, and phase selector
 - **AI agent sessions** — independent process per project, JSONL bridge, chat with file injection
 - **Live model listing** — Anthropic, OpenAI, Gemini, Mistral, local Ollama (GPU-aware)
 - **Ollama integration** — browse curated catalog, download models with progress, task-based suggestions
 - **FPGA/HDL tool support** — vivado, gtkwave, vsg, ghdl, verilator, yosys, nextpnr, and 15 more
+- **Tool installer** — scan installed tools; one-click install via winget/brew/apt for missing tools
+- **Tool rules** — curated AI context rules for 20+ tools (VSG, GHDL, Verilator, ruff, mypy, etc.) auto-injected into agent system prompt
 - **API key management** — stored in OS credential store (Windows Credential Manager / macOS Keychain)
-- **Update checker** — PyPI version check with Install Update button, system info panel
-- **Auto-open** — governance panel opens automatically when VS Code starts with a workspace
+- **Update checker** — PyPI version check, Install Update button, release channel selector (stable / pre-release)
+- **Auto-open** — Settings panel always opens alongside every new session; never a blank pane
 
 **[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
 
@@ -167,7 +170,7 @@ specsmith supports FPGA-specific project types with full governance:
 
 ```yaml
 # scaffold.yml
-type: fpga-rtl-xilinx
+type: fpga-rtl-amd          # or fpga-rtl-intel / fpga-rtl-lattice / fpga-rtl
 fpga_tools:
   - vivado
   - gtkwave
@@ -198,6 +201,8 @@ Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
 **Workspace:** `workspace init/audit/export`
 
 **VCS:** `commit` `push` `sync` `branch` `pr` `status`
+
+**Tools:** `tools scan [--fpga]` `tools install <tool>` `tools rules [--tool] [--list]`
 
 **Tools:** `exec` `ps` `abort` `watch` `optimize` `credits` `self-update`
 
