@@ -20,7 +20,7 @@ class ProjectType(str, Enum):
     # Hardware / Embedded — vendor-specific FPGA types
     EMBEDDED_HARDWARE = "embedded-hardware"
     FPGA_RTL = "fpga-rtl"              # Generic / open-source flow (Yosys)
-    FPGA_RTL_XILINX = "fpga-rtl-xilinx"   # AMD/Xilinx Vivado / ISE
+    FPGA_RTL_AMD = "fpga-rtl-amd"           # AMD Adaptive Computing (formerly Xilinx) — Vivado
     FPGA_RTL_INTEL = "fpga-rtl-intel"     # Intel/Altera Quartus Prime
     FPGA_RTL_LATTICE = "fpga-rtl-lattice" # Lattice Diamond / Radiant
     MIXED_FPGA_EMBEDDED = "mixed-fpga-embedded"  # FPGA + embedded C/C++ driver
@@ -186,7 +186,7 @@ class ProjectConfig(BaseModel):
     # FPGA-specific
     fpga_vendor: str = Field(
         default="",
-        description="FPGA vendor/toolchain: xilinx, intel, lattice, gowin (blank = generic/OSS)",
+        description="FPGA vendor/toolchain: amd, intel, lattice, gowin (blank = generic/OSS)",
     )
 
     # Agent integrations
@@ -286,7 +286,7 @@ _TYPE_LABELS: dict[str, str] = {
     ProjectType.LIBRARY_PYTHON: "Library / SDK (Python)",
     ProjectType.EMBEDDED_HARDWARE: "Embedded / hardware (C/C++)",
     ProjectType.FPGA_RTL: "FPGA / RTL (generic / OSS flow)",
-    ProjectType.FPGA_RTL_XILINX: "FPGA / RTL — AMD Xilinx (Vivado)",
+    ProjectType.FPGA_RTL_AMD: "FPGA / RTL — AMD Adaptive Computing (Vivado)",
     ProjectType.FPGA_RTL_INTEL: "FPGA / RTL — Intel/Altera (Quartus)",
     ProjectType.FPGA_RTL_LATTICE: "FPGA / RTL — Lattice (Diamond / Radiant)",
     ProjectType.MIXED_FPGA_EMBEDDED: "Mixed: FPGA + Embedded C/C++ drivers",

@@ -15,15 +15,15 @@ from specsmith.languages import FILENAME_LANG as _FILENAME_LANG
 
 # FPGA build / project file indicators — used for type inference
 _FPGA_INDICATORS: dict[str, str] = {
-    "*.xpr":   "xilinx",    # Vivado project
-    "*.xdc":   "xilinx",    # Xilinx constraints
-    "*.bit":   "xilinx",    # Xilinx bitstream
+    "*.xpr":   "amd",       # Vivado project (AMD Adaptive Computing)
+    "*.xdc":   "amd",       # Vivado/AMD constraints
+    "*.bit":   "amd",       # AMD/Vivado bitstream
+    "*.xsa":   "amd",       # Vivado exported hardware
     "*.qpf":   "intel",     # Quartus project
     "*.qsf":   "intel",     # Quartus settings
     "*.qxp":   "intel",
     "*.ldf":   "lattice",   # Lattice Diamond project
     "*.pdc":   "lattice",   # Lattice constraints
-    "*.xcf":   "xilinx",    # Xilinx configuration
     "Makefile": "generic",  # Yosys+nextpnr makefiles often at root
 }
 
@@ -310,7 +310,8 @@ def _fpga_type_for_vendor(vendor: str) -> ProjectType:
     """Return the appropriate ProjectType for an FPGA vendor string."""
     from specsmith.config import ProjectType
     mapping = {
-        "xilinx":  ProjectType.FPGA_RTL_XILINX,
+        "amd":     ProjectType.FPGA_RTL_AMD,
+        "xilinx":  ProjectType.FPGA_RTL_AMD,    # legacy alias (AMD acquired Xilinx)
         "intel":   ProjectType.FPGA_RTL_INTEL,
         "lattice": ProjectType.FPGA_RTL_LATTICE,
     }
@@ -414,9 +415,9 @@ def suggest_type(result: DetectionResult) -> str:
         "dart":         "mobile-app",
         "swift":        "mobile-app",
         "kotlin":       "mobile-app",
-        "vhdl":         ProjectType.FPGA_RTL.value,
-        "verilog":      ProjectType.FPGA_RTL.value,
-        "systemverilog":ProjectType.FPGA_RTL.value,
+        "vhdl":          ProjectType.FPGA_RTL.value,
+        "verilog":       ProjectType.FPGA_RTL.value,
+        "systemverilog": ProjectType.FPGA_RTL.value,
         "bitbake":      ProjectType.YOCTO_BSP.value,
         "terraform":    "devops-iac",
         "latex":        "research-paper",

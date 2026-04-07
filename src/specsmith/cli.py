@@ -3840,5 +3840,168 @@ def ollama_upgrade_cmd(yes: bool) -> None:
         )
 
 
+# ---------------------------------------------------------------------------
+# Tools — tool registry scan
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="tools")
+def tools_group() -> None:
+    """Inspect and scan development tools for a project."""
+
+
+@tools_group.command(name="scan")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON.")
+@click.option(
+    "--fpga", is_flag=True, default=False,
+    help="Include FPGA/HDL tool checks from fpga_tools in scaffold.yml.",
+)
+def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
+    """Scan the project and check which tools are installed on PATH.
+
+    Reads scaffold.yml to determine the project type and required tools,
+    then checks each tool against PATH, reporting installed (with version)
+    or missing for each.
+
+    Also checks any tools listed in ``fpga_tools`` when --fpga is given.
+    """
+    import json as json_mod
+    import re
+    import shutil
+    import subprocess
+
+    import yaml
+
+    from specsmith.config import ProjectConfig
+    from specsmith.doctor import _check_tool
+
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+
+    checks: list[dict] = []
+
+    # Standard project tools via doctor
+    if scaffold_path.exists():
+        try:
+            with open(scaffold_path) as f:
+                raw = yaml.safe_load(f) or {}
+            config = ProjectConfig(**raw)
+            from specsmith.tools import get_tools
+            tools = get_tools(config)
+            for category, cmds in [
+                ("lint", tools.lint),
+                ("typecheck", tools.typecheck),
+                ("test", tools.test),
+                ("security", tools.security),
+                ("build", tools.build),
+                ("format", tools.format),
+                ("compliance", tools.compliance),
+            ]:
+                seen: set[str] = set()
+                for cmd in cmds:
+                    tool_name = cmd.split()[0]
+                    if tool_name in seen:
+                        continue
+                    seen.add(tool_name)
+                    chk = _check_tool(tool_name, category, root=root)
+                    checks.append({
+                        "name": chk.name, "category": chk.category,
+                        "installed": chk.installed, "version": chk.version,
+                    })
+        except Exception as e:  # noqa: BLE001
+            if not as_json:
+                console.print(f"[yellow]Could not read scaffold.yml: {e}[/yellow]")
+
+    # FPGA/HDL tools from scaffold.yml fpga_tools list
+    if fpga and scaffold_path.exists():
+        try:
+            with open(scaffold_path) as f:
+                raw = yaml.safe_load(f) or {}
+            fpga_tool_list: list[str] = raw.get("fpga_tools", [])
+
+            # Well-known FPGA tool executables
+            FPGA_TOOL_EXES: dict[str, str] = {
+                "vivado":       "vivado",
+                "quartus":      "quartus_sh",
+                "radiant":      "radiantlsp",
+                "diamond":      "diamondc",
+                "gowin":        "gw_sh",
+                "ghdl":         "ghdl",
+                "iverilog":     "iverilog",
+                "verilator":    "verilator",
+                "modelsim":     "vsim",
+                "questasim":    "vsim",
+                "xsim":         "xsim",
+                "gtkwave":      "gtkwave",
+                "surfer":       "surfer",
+                "vsg":          "vsg",
+                "verible":      "verible-verilog-lint",
+                "svlint":       "svlint",
+                "symbiyosys":   "sby",
+                "yosys":        "yosys",
+                "nextpnr":      "nextpnr-ecp5",
+                "openFPGALoader": "openFPGALoader",
+            }
+            for tool_key in fpga_tool_list:
+                exe = FPGA_TOOL_EXES.get(tool_key, tool_key)
+                path_found = shutil.which(exe)
+                version = ""
+                if path_found:
+                    try:
+                        r = subprocess.run(
+                            [exe, "--version"], capture_output=True, text=True, timeout=5
+                        )
+                        ver_out = (r.stdout + r.stderr).strip().splitlines()
+                        if ver_out:
+                            m = re.search(r"[0-9]+\.[0-9.]+", ver_out[0])
+                            version = m.group(0) if m else ver_out[0][:30]
+                    except Exception:  # noqa: BLE001
+                        pass
+                checks.append({
+                    "name": exe, "category": "fpga",
+                    "installed": bool(path_found), "version": version,
+                })
+        except Exception as e:  # noqa: BLE001
+            if not as_json:
+                console.print(f"[yellow]Could not read fpga_tools: {e}[/yellow]")
+
+    if as_json:
+        console.print(json_mod.dumps({"tools": checks}, indent=2))
+        return
+
+    if not checks:
+        console.print("[yellow]No tools found. Does scaffold.yml exist?[/yellow]")
+        return
+
+    installed_count = sum(1 for c in checks if c["installed"])
+    console.print(
+        f"[bold]Tool Scan[/bold] — {root.name}  "
+        f"[green]{installed_count}[/green]/[dim]{len(checks)}[/dim] installed\n"
+    )
+
+    # Group by category
+    cats: dict[str, list[dict]] = {}
+    for c in checks:
+        cats.setdefault(c["category"], []).append(c)
+
+    for cat, items in sorted(cats.items()):
+        console.print(f"  [teal]{cat}[/teal]")
+        for item in items:
+            icon = "[green]\u2713[/green]" if item["installed"] else "[red]\u2717[/red]"
+            ver  = f" [dim]{item['version']}[/dim]" if item["version"] else ""
+            console.print(f"    {icon} {item['name']}{ver}")
+    console.print()
+    if installed_count < len(checks):
+        missing = [c["name"] for c in checks if not c["installed"]]
+        console.print(
+            f"  [yellow]Missing:[/yellow] {', '.join(missing[:8])}"
+            + (" and more..." if len(missing) > 8 else "")
+        )
+
+
+main.add_command(tools_group)
+
+
 if __name__ == "__main__":
     main()
