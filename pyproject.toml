@@ -99,6 +99,11 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.per-file-ignores]
+# Long rule text and install command strings in documentation modules
+"src/specsmith/toolrules.py" = ["E501"]
+"src/specsmith/tool_installer.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.10"
 strict = true
@@ -140,6 +145,9 @@ module = [
     "specsmith.importer",
     "specsmith.agent.providers.gemini",
     "specsmith.agent.runner",
+    "specsmith.profiles",
+    "specsmith.toolrules",
+    "specsmith.tool_installer",
 ]
 ignore_errors = true
 

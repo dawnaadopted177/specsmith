@@ -112,8 +112,10 @@ def build_system_prompt(
         lines = content.splitlines()[:200]
         agents_md = "\n".join(lines)
 
-    # Load spec version from scaffold.yml
+    # Load scaffold.yml for spec_version, project type, and FPGA tools
     spec_version = "unknown"
+    project_type = ""
+    fpga_tools: list[str] = []
     scaffold_path = root / "scaffold.yml"
     if scaffold_path.exists():
         try:
@@ -122,6 +124,8 @@ def build_system_prompt(
             with open(scaffold_path) as f:
                 raw = yaml.safe_load(f) or {}
             spec_version = raw.get("spec_version", "unknown")
+            project_type = str(raw.get("type", ""))
+            fpga_tools = list(raw.get("fpga_tools", []) or [])
         except Exception:  # noqa: BLE001
             pass
 
@@ -148,6 +152,18 @@ H13: All proposals must state their epistemic boundaries. Hidden assumptions are
         agents_md or f"Spec version: {spec_version}. AGENTS.md not found — run specsmith audit."
     )
 
+    # Load tool-specific rules for this project type
+    tool_rules_section = ""
+    if project_type:
+        try:
+            from specsmith.toolrules import get_rules_for_project
+
+            rules_text = get_rules_for_project(project_type, fpga_tools, max_chars=4000)
+            if rules_text:
+                tool_rules_section = f"\n## Tool Rules\n{rules_text}\n"
+        except Exception:  # noqa: BLE001
+            pass
+
     prompt = f"""You are an AEE-integrated specsmith agent for this project.
 ALWAYS respond in English only, regardless of the user's language or your default language.
 Do not use Chinese, Japanese, Korean, or any other non-English language at any time.
@@ -164,7 +180,7 @@ Do not use Chinese, Japanese, Korean, or any other non-English language at any t
 - The ledger + accepted repo state is authority
 {aee_section}
 {skills_section}
-
+{tool_rules_section}
 ## Quick Commands
 Users may type these shortcuts:
 - `start` — new session protocol (sync + update check + load state)
@@ -251,6 +267,11 @@ class AgentRunner:
         self._skills: list[Skill] = load_skills(Path(self.project_dir))
         self._hooks = HookRegistry()
         self._system_prompt = ""
+
+        # Execution profile — loaded from scaffold.yml at session start
+        from specsmith import profiles
+
+        self._profile = profiles.load_from_scaffold(self.project_dir)
 
         # Token / credit optimization engine (opt-in)
         self._optimizer: OptimizationEngine | None = (
@@ -474,6 +495,8 @@ class AgentRunner:
         self, tool_calls: list[dict[str, Any]], silent: bool = False
     ) -> list[ToolResult]:
         """Execute tool calls and return results."""
+        from specsmith import profiles as _profiles
+
         results: list[ToolResult] = []
         for tc in tool_calls:
             name = tc.get("name", "")
@@ -485,6 +508,74 @@ class AgentRunner:
                     self._emit_event(type="tool_started", name=name, args=inputs)
                 else:
                     self._print(f"\n[Tool: {name}]")
+
+            # ── Execution profile enforcement ──────────────────────────────────
+            tool_ok, tool_reason = _profiles.check_tool_allowed(self._profile, name)
+            if not tool_ok:
+                blocked_msg = f"[BLOCKED by profile '{self._profile.name}'] {tool_reason}"
+                if not silent:
+                    if self._json_events:
+                        self._emit_event(type="tool_blocked", name=name, reason=tool_reason)
+                    else:
+                        self._print(f"  ✗ {blocked_msg}")
+                results.append(
+                    ToolResult(
+                        tool_name=name,
+                        tool_call_id=call_id,
+                        content=blocked_msg,
+                        error=True,
+                    )
+                )
+                continue
+
+            # For run_command: check the command string
+            if name == "run_command" and "command" in inputs:
+                cmd_ok, cmd_reason = _profiles.check_command_allowed(
+                    self._profile, str(inputs["command"])
+                )
+                if not cmd_ok:
+                    blocked_msg = f"[BLOCKED by profile '{self._profile.name}'] {cmd_reason}"
+                    if not silent:
+                        if self._json_events:
+                            self._emit_event(
+                                type="tool_blocked",
+                                name=name,
+                                command=inputs["command"],
+                                reason=cmd_reason,
+                            )
+                        else:
+                            self._print(f"  ✗ {blocked_msg}")
+                    results.append(
+                        ToolResult(
+                            tool_name=name,
+                            tool_call_id=call_id,
+                            content=blocked_msg,
+                            error=True,
+                        )
+                    )
+                    continue
+
+            # For write_file: check file-write permission and size
+            if name == "write_file" and "content" in inputs:
+                write_ok, write_reason = _profiles.check_write_allowed(
+                    self._profile, str(inputs["content"])
+                )
+                if not write_ok:
+                    blocked_msg = f"[BLOCKED by profile '{self._profile.name}'] {write_reason}"
+                    if not silent:
+                        if self._json_events:
+                            self._emit_event(type="tool_blocked", name=name, reason=write_reason)
+                        else:
+                            self._print(f"  ✗ {blocked_msg}")
+                    results.append(
+                        ToolResult(
+                            tool_name=name,
+                            tool_call_id=call_id,
+                            content=blocked_msg,
+                            error=True,
+                        )
+                    )
+                    continue
 
             # Fire pre_tool hooks
             pre_ctx = HookContext(

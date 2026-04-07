@@ -4059,6 +4059,183 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
         )
 
 
+@tools_group.command(name="install")
+@click.argument("tool", required=False, default="")
+@click.option(
+    "--list",
+    "list_all",
+    is_flag=True,
+    default=False,
+    help="List all known installable tools.",
+)
+@click.option(
+    "--category",
+    default="",
+    help="Filter by category (fpga, python, c, rust, go, devops, linux, doc, js, other).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    default=False,
+    help="Print the install command without running it.",
+)
+@click.option(
+    "--yes",
+    "-y",
+    is_flag=True,
+    default=False,
+    help="Run the install command without prompting.",
+)
+def tools_install_cmd(tool: str, list_all: bool, category: str, dry_run: bool, yes: bool) -> None:
+    """Show or run the install command for a development tool.
+
+    TOOL is the tool key (e.g. ghdl, ruff, verilator). Run with --list to see
+    all available tools.  The best install method for the current platform is
+    selected automatically (winget on Windows, brew on macOS, apt/dnf on Linux).
+    """
+    import subprocess
+
+    from specsmith.tool_installer import (
+        KNOWN_TOOLS,
+        ToolInstallInfo,
+        format_install_table,
+        get_install_command,
+        list_tools,
+    )
+
+    if list_all or not tool:
+        items: list[ToolInstallInfo] = list_tools(category=category or None)
+        console.print(f"[bold]Known installable tools[/bold] ({len(items)})\n")
+        cats: dict[str, list[ToolInstallInfo]] = {}
+        for t in items:
+            cats.setdefault(t.category, []).append(t)
+        for cat, ts in sorted(cats.items()):
+            console.print(f"  [teal]{cat}[/teal]")
+            for t in ts:
+                console.print(f"    [dim]{t.key:<25s}[/dim]  {t.display_name}")
+        console.print()
+        console.print(
+            "  Run [bold]specsmith tools install <key>[/bold] to get the install command."
+        )
+        return
+
+    info = KNOWN_TOOLS.get(tool)
+    if info is None:
+        # Fuzzy fallback: substring match
+        matches = [k for k in KNOWN_TOOLS if tool.lower() in k.lower()]
+        if matches:
+            console.print(
+                f"[yellow]Unknown tool '{tool}'. Did you mean: {', '.join(matches[:5])}?[/yellow]"
+            )
+        else:
+            console.print(
+                f"[red]Unknown tool '{tool}'.[/red] Run [bold]specsmith tools install --list[/bold] "
+                "to see available tools."
+            )
+        raise SystemExit(1)
+
+    cmd = get_install_command(tool)
+    if cmd is None:
+        if info.manual:
+            console.print(
+                f"[yellow]No automatic install for '{info.display_name}' on this platform.[/yellow]"
+            )
+            console.print(f"  Manual install: {info.manual}")
+        else:
+            console.print(f"[red]No install method known for '{tool}'.[/red]")
+        return
+
+    if info.notes:
+        console.print(f"[dim]Note:[/dim] {info.notes}")
+
+    if dry_run or not yes:
+        console.print(f"\n[bold]Install command for {info.display_name}:[/bold]")
+        console.print(f"  [teal]{cmd}[/teal]")
+        if not dry_run and not yes:
+            confirmed = console.input("\nRun this command now? [[bold]y[/bold]/N] ").strip().lower()
+            if confirmed not in ("y", "yes"):
+                console.print("[dim]Aborted.[/dim]")
+                return
+    if not dry_run:
+        console.print(f"[bold]Running:[/bold] {cmd}")
+        result = subprocess.run(cmd, shell=True, check=False)  # noqa: S602
+        if result.returncode != 0:
+            console.print(f"[red]Install failed (exit {result.returncode}).[/red]")
+            raise SystemExit(result.returncode)
+        console.print(f"[green]✓[/green] Done.")
+
+
+@tools_group.command(name="rules")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--tool",
+    "tool_key",
+    default="",
+    help="Show rules for a specific tool key (e.g. ghdl, ruff).",
+)
+@click.option(
+    "--list",
+    "list_all",
+    is_flag=True,
+    default=False,
+    help="List all tools that have AI context rules.",
+)
+def tools_rules_cmd(project_dir: str, tool_key: str, list_all: bool) -> None:
+    """Show the AI context rules injected into the agent system prompt.
+
+    Without options, shows rules for the current project type (from scaffold.yml).
+    Use --tool to show rules for a specific tool, or --list to see all available.
+    """
+    from specsmith.toolrules import TOOL_RULES, get_rules_for_project
+
+    if list_all:
+        console.print(f"[bold]Tool rules available[/bold] ({len(TOOL_RULES)} tools):\n")
+        for key in sorted(TOOL_RULES):
+            first_line = TOOL_RULES[key].strip().splitlines()[0].lstrip("# ").strip()
+            console.print(f"  [teal]{key:<25s}[/teal]  {first_line}")
+        console.print("\n  Use [bold]specsmith tools rules --tool <key>[/bold] to view full rules.")
+        return
+
+    if tool_key:
+        if tool_key not in TOOL_RULES:
+            matches = [k for k in TOOL_RULES if tool_key.lower() in k.lower()]
+            if matches:
+                console.print(
+                    f"[yellow]No rules for '{tool_key}'. Similar: {', '.join(matches[:5])}[/yellow]"
+                )
+            else:
+                console.print(f"[red]No rules for '{tool_key}'.[/red]")
+            raise SystemExit(1)
+        console.print(TOOL_RULES[tool_key])
+        return
+
+    # Project-level rules from scaffold.yml
+    import yaml
+
+    root = Path(project_dir).resolve()
+    scaffold_path = root / "scaffold.yml"
+    if not scaffold_path.exists():
+        console.print(
+            "[yellow]No scaffold.yml found. Run specsmith init or use --tool to view a specific tool.[/yellow]"
+        )
+        raise SystemExit(1)
+
+    with open(scaffold_path) as f:
+        raw = yaml.safe_load(f) or {}
+    project_type = str(raw.get("type", "cli-python"))
+    fpga_tools: list[str] = raw.get("fpga_tools", []) or []
+
+    rules = get_rules_for_project(project_type, fpga_tools, max_chars=20000)
+    if not rules:
+        console.print(
+            f"[yellow]No tool rules configured for project type '{project_type}'.[/yellow]"
+        )
+        return
+
+    console.print(f"[bold]Tool rules for project type:[/bold] [teal]{project_type}[/teal]\n")
+    console.print(rules)
+
+
 main.add_command(tools_group)
 
 

@@ -195,6 +195,27 @@ class ProjectConfig(BaseModel):
         description="Agent integrations to generate (agents-md, warp, claude-code, cursor, etc.)",
     )
 
+    # Agent execution profile
+    execution_profile: str = Field(
+        default="standard",
+        description=(
+            "Agent execution profile: safe (read-only), standard (default), "
+            "open (most commands), admin (no limits)."
+        ),
+    )
+    custom_allowed_commands: list[str] = Field(
+        default_factory=list,
+        description="Additional command prefixes allowed for the agent (appended to profile defaults).",
+    )
+    custom_blocked_commands: list[str] = Field(
+        default_factory=list,
+        description="Additional command prefixes blocked for the agent (appended to profile defaults).",
+    )
+    custom_blocked_tools: list[str] = Field(
+        default_factory=list,
+        description="Agent tool names to always block, regardless of the execution profile.",
+    )
+
     # Applied Epistemic Engineering configuration
     enable_epistemic: bool = Field(
         default=False,
