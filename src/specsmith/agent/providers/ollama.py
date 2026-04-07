@@ -75,9 +75,7 @@ class OllamaProvider:
         self._base_url = base_url.rstrip("/")
         self._num_ctx: int = int(os.environ.get("SPECSMITH_OLLAMA_NUM_CTX", "4096"))
         # Whether to pass "think" parameter for reasoning models
-        self._think: bool | None = (
-            True if _THINK_MODEL_PATTERNS.search(model) else None
-        )
+        self._think: bool | None = True if _THINK_MODEL_PATTERNS.search(model) else None
 
     def is_available(self) -> bool:
         try:
@@ -111,9 +109,7 @@ class OllamaProvider:
                 raise
         return self._complete_native(messages, max_tokens)
 
-    def _complete_native(
-        self, messages: list[Message], max_tokens: int
-    ) -> CompletionResponse:
+    def _complete_native(self, messages: list[Message], max_tokens: int) -> CompletionResponse:
         """Plain chat completion without tools."""
         payload: dict[str, Any] = {
             "model": self.model,
@@ -159,7 +155,7 @@ class OllamaProvider:
 
         tool_calls: list[dict[str, Any]] = []
         for idx, tc in enumerate(msg.get("tool_calls", [])):
-            fn   = tc.get("function", {})
+            fn = tc.get("function", {})
             name = fn.get("name", "")
             args = fn.get("arguments", {})
             # Native: arguments is already a dict; compat: it's a JSON string
@@ -256,12 +252,12 @@ class OllamaProvider:
             return requested
         if requested in installed:
             return requested
-        base      = requested.split(":")[0]
+        base = requested.split(":")[0]
         short_tag = requested if ":" in requested else None
         candidates = [
-            m for m in installed
-            if m.startswith(base + ":")
-            or (short_tag and m.startswith(short_tag))
+            m
+            for m in installed
+            if m.startswith(base + ":") or (short_tag and m.startswith(short_tag))
         ]
         return min(candidates, key=len) if candidates else requested
 
@@ -291,7 +287,8 @@ class OllamaProvider:
                 installed = self._get_installed_models()
                 hint = (
                     "\n  Installed: " + ", ".join(installed[:5])
-                    if installed else "\n  (Ollama returned no installed models)"
+                    if installed
+                    else "\n  (Ollama returned no installed models)"
                 )
                 raise RuntimeError(
                     f"Ollama model not found: '{self.model}'{hint}\n"

@@ -46,11 +46,11 @@ class GeminiProvider:
     _DEFAULT_MODEL = "gemini-2.5-flash"
 
     def __init__(self, model: str = _DEFAULT_MODEL, api_key: str = "") -> None:
-        self.model   = model
+        self.model = model
         self._api_key = api_key
-        self._sdk: str = ""          # "genai" or "legacy"
+        self._sdk: str = ""  # "genai" or "legacy"
         self._client: Any = None
-        self._genai:  Any = None     # new SDK client or legacy module
+        self._genai: Any = None  # new SDK client or legacy module
         self._ensure_client()
 
     def _ensure_client(self) -> None:
@@ -73,6 +73,7 @@ class GeminiProvider:
             self._sdk = "legacy"
         except ImportError as e:
             from specsmith.agent.core import ProviderNotAvailable
+
             raise ProviderNotAvailable("gemini", "gemini") from e
 
     def is_available(self) -> bool:
@@ -98,9 +99,7 @@ class GeminiProvider:
             return self._complete_new_sdk(messages, max_tokens)
         return self._complete_legacy_sdk(messages, max_tokens)
 
-    def _complete_new_sdk(
-        self, messages: list[Message], max_tokens: int
-    ) -> CompletionResponse:
+    def _complete_new_sdk(self, messages: list[Message], max_tokens: int) -> CompletionResponse:
         """Complete using google-genai (new SDK, GA May 2025)."""
         from google.genai.types import GenerateContentConfig  # type: ignore[import-untyped]
 
@@ -117,8 +116,8 @@ class GeminiProvider:
         )
 
         content = response.text or ""
-        usage   = getattr(response, "usage_metadata", None)
-        in_tok  = getattr(usage, "prompt_token_count", 0) if usage else 0
+        usage = getattr(response, "usage_metadata", None)
+        in_tok = getattr(usage, "prompt_token_count", 0) if usage else 0
         out_tok = getattr(usage, "candidates_token_count", 0) if usage else 0
 
         return CompletionResponse(
@@ -129,9 +128,7 @@ class GeminiProvider:
             stop_reason="stop",
         )
 
-    def _complete_legacy_sdk(
-        self, messages: list[Message], max_tokens: int
-    ) -> CompletionResponse:
+    def _complete_legacy_sdk(self, messages: list[Message], max_tokens: int) -> CompletionResponse:
         """Complete using legacy google-generativeai SDK.
 
         Uses the ``system_instruction`` constructor parameter (available
@@ -152,13 +149,13 @@ class GeminiProvider:
             return CompletionResponse(content="", model=self.model)
 
         last_msg = history.pop()
-        chat     = gemini_model.start_chat(history=history)
+        chat = gemini_model.start_chat(history=history)
         response = chat.send_message(last_msg["parts"][0])
-        content  = response.text or ""
+        content = response.text or ""
 
         # Token counts from usage_metadata (available in 0.8+)
-        usage   = getattr(response, "usage_metadata", None)
-        in_tok  = getattr(usage, "prompt_token_count", 0) if usage else 0
+        usage = getattr(response, "usage_metadata", None)
+        in_tok = getattr(usage, "prompt_token_count", 0) if usage else 0
         out_tok = getattr(usage, "candidates_token_count", 0) if usage else 0
 
         return CompletionResponse(
@@ -182,9 +179,7 @@ class GeminiProvider:
         else:
             yield from self._stream_legacy_sdk(messages, max_tokens)
 
-    def _stream_new_sdk(
-        self, messages: list[Message], max_tokens: int
-    ) -> Iterator[StreamToken]:
+    def _stream_new_sdk(self, messages: list[Message], max_tokens: int) -> Iterator[StreamToken]:
         from google.genai.types import GenerateContentConfig  # type: ignore[import-untyped]
 
         system_text, history = self._split_messages(messages)
@@ -201,9 +196,7 @@ class GeminiProvider:
                 yield StreamToken(text=chunk.text)
         yield StreamToken(text="", is_final=True)
 
-    def _stream_legacy_sdk(
-        self, messages: list[Message], max_tokens: int
-    ) -> Iterator[StreamToken]:
+    def _stream_legacy_sdk(self, messages: list[Message], max_tokens: int) -> Iterator[StreamToken]:
         system_text, history = self._split_messages(messages)
 
         kwargs: dict[str, Any] = {
@@ -220,7 +213,7 @@ class GeminiProvider:
             return
 
         last_msg = history.pop()
-        chat     = gemini_model.start_chat(history=history)
+        chat = gemini_model.start_chat(history=history)
         for chunk in chat.send_message(last_msg["parts"][0], stream=True):
             if chunk.text:
                 yield StreamToken(text=chunk.text)
@@ -228,9 +221,7 @@ class GeminiProvider:
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
-    def _split_messages(
-        self, messages: list[Message]
-    ) -> tuple[str, list[dict[str, Any]]]:
+    def _split_messages(self, messages: list[Message]) -> tuple[str, list[dict[str, Any]]]:
         """Split messages into (system_instruction_text, conversation_history).
 
         System messages are extracted as a system instruction (not injected

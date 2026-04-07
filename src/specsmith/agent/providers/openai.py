@@ -29,6 +29,7 @@ def _is_o_series(model: str) -> bool:
     - Accept ``max_completion_tokens`` (preferred over the deprecated ``max_tokens``).
     """
     import re
+
     return bool(re.match(r"o[0-9]", model.lower()))
 
 
@@ -70,11 +71,10 @@ class OpenAIProvider:
         except ImportError:
             return False
 
-    def _adapt_messages(
-        self, messages: list[Message]
-    ) -> list[dict[str, Any]]:
+    def _adapt_messages(self, messages: list[Message]) -> list[dict[str, Any]]:
         """Convert messages to API format, mapping system→developer for o-series."""
         from specsmith.agent.core import Role
+
         adapted: list[dict[str, Any]] = []
         for m in messages:
             d = m.to_dict()

@@ -15,15 +15,15 @@ from specsmith.languages import FILENAME_LANG as _FILENAME_LANG
 
 # FPGA build / project file indicators — used for type inference
 _FPGA_INDICATORS: dict[str, str] = {
-    "*.xpr":   "amd",       # Vivado project (AMD Adaptive Computing)
-    "*.xdc":   "amd",       # Vivado/AMD constraints
-    "*.bit":   "amd",       # AMD/Vivado bitstream
-    "*.xsa":   "amd",       # Vivado exported hardware
-    "*.qpf":   "intel",     # Quartus project
-    "*.qsf":   "intel",     # Quartus settings
-    "*.qxp":   "intel",
-    "*.ldf":   "lattice",   # Lattice Diamond project
-    "*.pdc":   "lattice",   # Lattice constraints
+    "*.xpr": "amd",  # Vivado project (AMD Adaptive Computing)
+    "*.xdc": "amd",  # Vivado/AMD constraints
+    "*.bit": "amd",  # AMD/Vivado bitstream
+    "*.xsa": "amd",  # Vivado exported hardware
+    "*.qpf": "intel",  # Quartus project
+    "*.qsf": "intel",  # Quartus settings
+    "*.qxp": "intel",
+    "*.ldf": "lattice",  # Lattice Diamond project
+    "*.pdc": "lattice",  # Lattice constraints
     "Makefile": "generic",  # Yosys+nextpnr makefiles often at root
 }
 
@@ -268,9 +268,7 @@ def detect_project(root: Path) -> DetectionResult:
     # FPGA vendor detection — check for vendor project/constraint file extensions
     if result.primary_language in ("vhdl", "verilog", "systemverilog"):
         for indicator, vendor in _FPGA_INDICATORS.items():
-            if indicator.startswith("*") and any(
-                f.name.endswith(indicator[1:]) for f in all_files
-            ):
+            if indicator.startswith("*") and any(f.name.endswith(indicator[1:]) for f in all_files):
                 result.inferred_type = _fpga_type_for_vendor(vendor)
                 break
 
@@ -309,10 +307,11 @@ def detect_project(root: Path) -> DetectionResult:
 def _fpga_type_for_vendor(vendor: str) -> ProjectType:
     """Return the appropriate ProjectType for an FPGA vendor string."""
     from specsmith.config import ProjectType
+
     mapping = {
-        "amd":     ProjectType.FPGA_RTL_AMD,
-        "xilinx":  ProjectType.FPGA_RTL_AMD,    # legacy alias (AMD acquired Xilinx)
-        "intel":   ProjectType.FPGA_RTL_INTEL,
+        "amd": ProjectType.FPGA_RTL_AMD,
+        "xilinx": ProjectType.FPGA_RTL_AMD,  # legacy alias (AMD acquired Xilinx)
+        "intel": ProjectType.FPGA_RTL_INTEL,
         "lattice": ProjectType.FPGA_RTL_LATTICE,
     }
     return mapping.get(vendor, ProjectType.FPGA_RTL)
@@ -346,11 +345,12 @@ def suggest_name(root: Path) -> str:
     if pkg.exists():
         try:
             import json
+
             data = json.loads(pkg.read_text(encoding="utf-8"))
             name = data.get("name", "")
             if name and not name.startswith("@"):
                 return name
-            if name.startswith("@"):              # scoped package — use basename
+            if name.startswith("@"):  # scoped package — use basename
                 return name.split("/")[-1]
         except (OSError, ValueError):
             pass
@@ -371,7 +371,7 @@ def suggest_name(root: Path) -> str:
     if gomod.exists():
         try:
             text = gomod.read_text(encoding="utf-8")
-            m = re.search(r'^module\s+(\S+)', text, re.MULTILINE)
+            m = re.search(r"^module\s+(\S+)", text, re.MULTILINE)
             if m:
                 return m.group(1).rstrip("/").split("/")[-1]
         except OSError:
@@ -381,7 +381,9 @@ def suggest_name(root: Path) -> str:
     try:
         r = subprocess.run(
             ["git", "-C", str(root), "remote", "get-url", "origin"],
-            capture_output=True, text=True, timeout=3,
+            capture_output=True,
+            text=True,
+            timeout=3,
         )
         if r.returncode == 0 and r.stdout.strip():
             url = r.stdout.strip()
@@ -399,28 +401,29 @@ def suggest_type(result: DetectionResult) -> str:
     Returns a string matching a ``ProjectType`` value (e.g. 'cli-python').
     """
     from specsmith.config import ProjectType
+
     if result.inferred_type:
         return result.inferred_type.value
     lang = result.primary_language
     build = result.build_system
     mapping: dict[str, str] = {
-        "python":       "cli-python",
-        "rust":         "cli-rust",
-        "go":           "cli-go",
-        "c":            "cli-c",
-        "cpp":          "cli-c",
-        "csharp":       "dotnet-app",
-        "typescript":   "fullstack-js",
-        "javascript":   "web-frontend",
-        "dart":         "mobile-app",
-        "swift":        "mobile-app",
-        "kotlin":       "mobile-app",
-        "vhdl":          ProjectType.FPGA_RTL.value,
-        "verilog":       ProjectType.FPGA_RTL.value,
+        "python": "cli-python",
+        "rust": "cli-rust",
+        "go": "cli-go",
+        "c": "cli-c",
+        "cpp": "cli-c",
+        "csharp": "dotnet-app",
+        "typescript": "fullstack-js",
+        "javascript": "web-frontend",
+        "dart": "mobile-app",
+        "swift": "mobile-app",
+        "kotlin": "mobile-app",
+        "vhdl": ProjectType.FPGA_RTL.value,
+        "verilog": ProjectType.FPGA_RTL.value,
         "systemverilog": ProjectType.FPGA_RTL.value,
-        "bitbake":      ProjectType.YOCTO_BSP.value,
-        "terraform":    "devops-iac",
-        "latex":        "research-paper",
+        "bitbake": ProjectType.YOCTO_BSP.value,
+        "terraform": "devops-iac",
+        "latex": "research-paper",
     }
     if build in ("pyproject", "setuptools") and lang == "python":
         return "library-python" if (result.root / "src").exists() else "cli-python"
@@ -440,15 +443,15 @@ def suggest_auxiliary(result: DetectionResult) -> list[str]:
 
     aux: list[str] = []
     lang_to_aux: dict[str, str] = {
-        "python":       "cli-python",
-        "c":            "embedded-c",
-        "cpp":          "embedded-hardware",
-        "rust":         "cli-rust",
-        "typescript":   "web-frontend",
-        "javascript":   "web-frontend",
-        "bitbake":      "yocto-bsp",
-        "devicetree":   "embedded-hardware",
-        "terraform":    "devops-iac",
+        "python": "cli-python",
+        "c": "embedded-c",
+        "cpp": "embedded-hardware",
+        "rust": "cli-rust",
+        "typescript": "web-frontend",
+        "javascript": "web-frontend",
+        "bitbake": "yocto-bsp",
+        "devicetree": "embedded-hardware",
+        "terraform": "devops-iac",
     }
     for lang in all_langs:
         disc = lang_to_aux.get(lang)

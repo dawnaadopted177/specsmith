@@ -58,12 +58,10 @@ def _call_handler_safe(handler: Callable[..., str], inputs: dict[str, Any]) -> s
     ``TypeError: got an unexpected keyword argument 'description'`` crashes.
     """
     try:
-        sig    = inspect.signature(handler)
+        sig = inspect.signature(handler)
         params = sig.parameters
         # Check if handler accepts **kwargs — if so, pass everything
-        has_var_kw = any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
-        )
+        has_var_kw = any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values())
         if has_var_kw:
             return handler(**inputs)
         # Filter to only declared parameters
@@ -195,22 +193,22 @@ class AgentRunner:
         "anthropic": {
             "fast": "claude-haiku-4-5",
             "balanced": "claude-sonnet-4-6",
-            "powerful":  "claude-opus-4-6",
+            "powerful": "claude-opus-4-6",
         },
         "openai": {
             "fast": "gpt-4o-mini",
             "balanced": "gpt-4o",
-            "powerful":  "o4-mini",
+            "powerful": "o4-mini",
         },
         "gemini": {
             "fast": "gemini-2.5-flash",
             "balanced": "gemini-2.5-flash",
-            "powerful":  "gemini-3.1-pro-preview",
+            "powerful": "gemini-3.1-pro-preview",
         },
         "ollama": {
             "fast": "llama3.2:latest",
             "balanced": "qwen3:14b",
-            "powerful":  "qwen3:32b",
+            "powerful": "qwen3:32b",
         },
     }
 

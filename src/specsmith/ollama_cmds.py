@@ -177,12 +177,12 @@ CATALOG: list[CatalogEntry] = [
 
 # Task keyword → catalog best_for tags
 TASK_TAGS: dict[str, list[str]] = {
-    "code":          ["code generation", "debugging", "coding"],
-    "requirements":  ["requirements", "requirements engineering", "analysis"],
-    "architecture":  ["complex reasoning", "architecture", "requirements engineering"],
-    "chat":          ["chat", "writing", "general"],
-    "analysis":      ["analysis", "reasoning", "requirements"],
-    "reasoning":     ["complex reasoning", "reasoning"],
+    "code": ["code generation", "debugging", "coding"],
+    "requirements": ["requirements", "requirements engineering", "analysis"],
+    "architecture": ["complex reasoning", "architecture", "requirements engineering"],
+    "chat": ["chat", "writing", "general"],
+    "analysis": ["analysis", "reasoning", "requirements"],
+    "reasoning": ["complex reasoning", "reasoning"],
 }
 
 
@@ -309,6 +309,7 @@ def delete_model(model_id: str) -> bool:
     Note: Ollama API uses the field ``model`` (not ``name``) in the request body.
     """
     import urllib.error
+
     # Ollama API uses 'model' (not 'name') in the delete request body
     payload = json.dumps({"model": model_id}).encode()
     req = urllib.request.Request(  # noqa: S310

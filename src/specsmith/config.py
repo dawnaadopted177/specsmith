@@ -19,10 +19,10 @@ class ProjectType(str, Enum):
     LIBRARY_PYTHON = "library-python"
     # Hardware / Embedded — vendor-specific FPGA types
     EMBEDDED_HARDWARE = "embedded-hardware"
-    FPGA_RTL = "fpga-rtl"              # Generic / open-source flow (Yosys)
-    FPGA_RTL_AMD = "fpga-rtl-amd"           # AMD Adaptive Computing (formerly Xilinx) — Vivado
-    FPGA_RTL_INTEL = "fpga-rtl-intel"     # Intel/Altera Quartus Prime
-    FPGA_RTL_LATTICE = "fpga-rtl-lattice" # Lattice Diamond / Radiant
+    FPGA_RTL = "fpga-rtl"  # Generic / open-source flow (Yosys)
+    FPGA_RTL_AMD = "fpga-rtl-amd"  # AMD Adaptive Computing (formerly Xilinx) — Vivado
+    FPGA_RTL_INTEL = "fpga-rtl-intel"  # Intel/Altera Quartus Prime
+    FPGA_RTL_LATTICE = "fpga-rtl-lattice"  # Lattice Diamond / Radiant
     MIXED_FPGA_EMBEDDED = "mixed-fpga-embedded"  # FPGA + embedded C/C++ driver
     MIXED_FPGA_FIRMWARE = "mixed-fpga-firmware"  # FPGA + Python/C verification
     YOCTO_BSP = "yocto-bsp"

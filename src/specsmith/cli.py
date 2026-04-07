@@ -2886,16 +2886,14 @@ def ollama_list_cmd() -> None:
 
     if not is_running():
         console.print(
-            "[red]\u2717[/red] Ollama is not running. "
-            "Start it with: [bold]ollama serve[/bold]"
+            "[red]\u2717[/red] Ollama is not running. Start it with: [bold]ollama serve[/bold]"
         )
         raise SystemExit(1)
 
     models = get_installed_models()
     if not models:
         console.print(
-            "[yellow]No models installed.[/yellow] "
-            "Pull one with: specsmith ollama pull <model>"
+            "[yellow]No models installed.[/yellow] Pull one with: specsmith ollama pull <model>"
         )
         return
 
@@ -2934,12 +2932,8 @@ def ollama_available_cmd(task: str) -> None:
             status = "[green]installed[/green]"
         else:
             status = f"[dim]{e.size_gb}GB \u2014 pull to install[/dim]"
-        console.print(
-            f"  {('[bold]' + e.tier + '[/bold]'):30s}  {e.name:28s}  {status}"
-        )
-        console.print(
-            f"  [dim]{'':<30s}  {', '.join(e.best_for[:2]):<28s}  {e.notes}[/dim]"
-        )
+        console.print(f"  {('[bold]' + e.tier + '[/bold]'):30s}  {e.name:28s}  {status}")
+        console.print(f"  [dim]{'':<30s}  {', '.join(e.best_for[:2]):<28s}  {e.notes}[/dim]")
         console.print()
 
     if not recs:
@@ -2957,8 +2951,7 @@ def ollama_gpu_cmd() -> None:
     vram = get_vram_gb()
     if vram > 0:
         console.print(
-            f"[green]\u2713[/green] GPU detected \u2014 "
-            f"[bold]{vram:.1f} GB[/bold] VRAM available"
+            f"[green]\u2713[/green] GPU detected \u2014 [bold]{vram:.1f} GB[/bold] VRAM available"
         )
         # Tier suggestions
         if vram >= 20:
@@ -3022,9 +3015,7 @@ def ollama_pull_cmd(model_id: str) -> None:
 @ollama_group.command(name="suggest")
 @click.argument(
     "task",
-    type=click.Choice(
-        ["code", "requirements", "architecture", "chat", "analysis", "reasoning"]
-    ),
+    type=click.Choice(["code", "requirements", "architecture", "chat", "analysis", "reasoning"]),
 )
 def ollama_suggest_cmd(task: str) -> None:
     """Suggest the best installed Ollama models for a task.
@@ -3038,8 +3029,7 @@ def ollama_suggest_cmd(task: str) -> None:
     recs = recommend_models(vram_gb=vram, task=task)
 
     inst_recs = [
-        e for e in recs
-        if any(m.startswith(e.id.split(":")[0]) or m == e.id for m in installed)
+        e for e in recs if any(m.startswith(e.id.split(":")[0]) or m == e.id for m in installed)
     ]
     not_inst = [e for e in recs if e not in inst_recs]
 
@@ -3062,8 +3052,7 @@ def ollama_suggest_cmd(task: str) -> None:
     if not inst_recs and not not_inst:
         console.print("[yellow]No matching models found.[/yellow]")
         console.print(
-            f"  Run [bold]specsmith ollama available --task {task}[/bold] "
-            "to see options."
+            f"  Run [bold]specsmith ollama available --task {task}[/bold] to see options."
         )
 
 
@@ -3286,17 +3275,21 @@ def phase_group() -> None:
 
 
 @phase_group.command(name="show", hidden=False)
-@click.option("--project-dir", type=click.Path(exists=True), default=".",
-              help="Project root (default: current directory).")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root (default: current directory).",
+)
 def phase_show(project_dir: str) -> None:
     """Show the current AEE workflow phase and its readiness checklist."""
     from specsmith.phase import PHASE_MAP, evaluate_phase, phase_progress_pct, read_phase
 
-    root       = Path(project_dir).resolve()
-    phase_key  = read_phase(root)
-    phase      = PHASE_MAP[phase_key]
+    root = Path(project_dir).resolve()
+    phase_key = read_phase(root)
+    phase = PHASE_MAP[phase_key]
     passed, failed = evaluate_phase(phase, root)
-    pct        = phase_progress_pct(phase, root)
+    pct = phase_progress_pct(phase, root)
 
     console.print(f"\n  {phase.emoji} [bold]{phase.label}[/bold] ({phase_key})")
     console.print(f"  {phase.description}")
@@ -3331,7 +3324,9 @@ def phase_show(project_dir: str) -> None:
 @click.argument("phase_key")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option(
-    "--force", is_flag=True, default=False,
+    "--force",
+    is_flag=True,
+    default=False,
     help="Set phase without readiness check.",
 )
 def phase_set(phase_key: str, project_dir: str, force: bool) -> None:
@@ -3347,20 +3342,18 @@ def phase_set(phase_key: str, project_dir: str, force: bool) -> None:
         console.print("Valid: " + " | ".join(PHASE_MAP.keys()))
         raise SystemExit(1)
 
-    root  = Path(project_dir).resolve()
+    root = Path(project_dir).resolve()
     phase = PHASE_MAP[phase_key]
     _, failed = evaluate_phase(phase, root)
 
     if failed and not force:
         console.print(
-            f"[yellow]\u26a0 {len(failed)} check(s) not yet passing "
-            f"for {phase.label}:[/yellow]"
+            f"[yellow]\u26a0 {len(failed)} check(s) not yet passing for {phase.label}:[/yellow]"
         )
         for desc in failed:
             console.print(f"  [dim]\u2717 {desc}[/dim]")
         console.print(
-            "\n  Use [bold]--force[/bold] to set the phase anyway, "
-            "or fix the checks first."
+            "\n  Use [bold]--force[/bold] to set the phase anyway, or fix the checks first."
         )
         raise SystemExit(1)
 
@@ -3374,7 +3367,9 @@ def phase_set(phase_key: str, project_dir: str, force: bool) -> None:
 @phase_group.command(name="next")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option(
-    "--force", is_flag=True, default=False,
+    "--force",
+    is_flag=True,
+    default=False,
     help="Advance even if readiness checks have not all passed.",
 )
 def phase_next(project_dir: str, force: bool) -> None:
@@ -3385,10 +3380,10 @@ def phase_next(project_dir: str, force: bool) -> None:
     """
     from specsmith.phase import PHASE_MAP, evaluate_phase, read_phase, write_phase
 
-    root       = Path(project_dir).resolve()
-    phase_key  = read_phase(root)
-    phase      = PHASE_MAP[phase_key]
-    _, failed  = evaluate_phase(phase, root)
+    root = Path(project_dir).resolve()
+    phase_key = read_phase(root)
+    phase = PHASE_MAP[phase_key]
+    _, failed = evaluate_phase(phase, root)
 
     if failed and not force:
         console.print(
@@ -3397,9 +3392,7 @@ def phase_next(project_dir: str, force: bool) -> None:
         )
         for desc in failed:
             console.print(f"  [dim]\u2717 {desc}[/dim]")
-        console.print(
-            "\n  Fix the checks above, or use [bold]--force[/bold] to advance anyway."
-        )
+        console.print("\n  Fix the checks above, or use [bold]--force[/bold] to advance anyway.")
         raise SystemExit(1)
 
     if not phase.next_phase:
@@ -3431,10 +3424,10 @@ def phase_status(project_dir: str) -> None:
     """
     from specsmith.phase import PHASE_MAP, phase_progress_pct, read_phase
 
-    root      = Path(project_dir).resolve()
+    root = Path(project_dir).resolve()
     phase_key = read_phase(root)
-    phase     = PHASE_MAP[phase_key]
-    pct       = phase_progress_pct(phase, root)
+    phase = PHASE_MAP[phase_key]
+    pct = phase_progress_pct(phase, root)
     console.print(f"{phase_key} {phase.emoji} {phase.label} {pct}%")
 
 
@@ -3501,18 +3494,36 @@ def info_cmd(as_json: bool, section: str) -> None:
     if section in ("types", "all"):
         type_groups: dict[str, list[dict]] = {}
         categories = {
-            "python": "Python", "rust": "Rust / Go", "go": "Rust / Go",
-            "c": "C / C++", "cpp": "C / C++",
-            "fpga": "Hardware / FPGA", "embedded": "Hardware / FPGA",
-            "mixed": "Hardware / FPGA", "yocto": "Hardware / FPGA", "pcb": "Hardware / FPGA",
-            "web": "Web / JS", "fullstack": "Web / JS", "browser": "Web / JS",
-            "mobile": "Mobile", "dotnet": ".NET / C#",
-            "devops": "DevOps / Data", "data": "DevOps / Data", "microservices": "DevOps / Data",
-            "spec": "Documents", "user": "Documents", "research": "Documents",
-            "api": "Documents", "requirements": "Documents",
-            "business": "Business / Legal", "patent": "Business / Legal",
+            "python": "Python",
+            "rust": "Rust / Go",
+            "go": "Rust / Go",
+            "c": "C / C++",
+            "cpp": "C / C++",
+            "fpga": "Hardware / FPGA",
+            "embedded": "Hardware / FPGA",
+            "mixed": "Hardware / FPGA",
+            "yocto": "Hardware / FPGA",
+            "pcb": "Hardware / FPGA",
+            "web": "Web / JS",
+            "fullstack": "Web / JS",
+            "browser": "Web / JS",
+            "mobile": "Mobile",
+            "dotnet": ".NET / C#",
+            "devops": "DevOps / Data",
+            "data": "DevOps / Data",
+            "microservices": "DevOps / Data",
+            "spec": "Documents",
+            "user": "Documents",
+            "research": "Documents",
+            "api": "Documents",
+            "requirements": "Documents",
+            "business": "Business / Legal",
+            "patent": "Business / Legal",
             "legal": "Business / Legal",
-            "monorepo": "Other", "epistemic": "AEE", "knowledge": "AEE", "aee": "AEE",
+            "monorepo": "Other",
+            "epistemic": "AEE",
+            "knowledge": "AEE",
+            "aee": "AEE",
         }
         for pt in ProjectType:
             label = _TYPE_LABELS.get(pt, pt.value)
@@ -3530,8 +3541,14 @@ def info_cmd(as_json: bool, section: str) -> None:
 
     if section in ("tools", "all"):
         fpga_tools = [
-            {"id": e.id, "name": e.name, "vram_gb": e.vram_gb,
-             "tier": e.tier, "best_for": e.best_for, "notes": e.notes}
+            {
+                "id": e.id,
+                "name": e.name,
+                "vram_gb": e.vram_gb,
+                "tier": e.tier,
+                "best_for": e.best_for,
+                "notes": e.notes,
+            }
             for e in OLLAMA_CATALOG
         ]
         result["ollama_catalog"] = fpga_tools
@@ -3539,21 +3556,20 @@ def info_cmd(as_json: bool, section: str) -> None:
             console.print("[bold]Ollama Model Catalog[/bold]  (GPU-aware)\n")
             for e in OLLAMA_CATALOG:
                 console.print(
-                    f"  {e.name:<32s} {e.vram_gb:4.1f}GB  "
-                    f"[dim]{', '.join(e.best_for[:2])}[/dim]"
+                    f"  {e.name:<32s} {e.vram_gb:4.1f}GB  [dim]{', '.join(e.best_for[:2])}[/dim]"
                 )
             console.print()
 
     if section in ("backends", "all"):
         providers = [
-            {"name": "anthropic",  "env": "ANTHROPIC_API_KEY",  "models": "Claude 3/4 series"},
-            {"name": "openai",     "env": "OPENAI_API_KEY",     "models": "GPT-4o, o3, o4-mini"},
-            {"name": "gemini",     "env": "GOOGLE_API_KEY",     "models": "Gemini 2.5 Pro/Flash"},
-            {"name": "mistral",    "env": "MISTRAL_API_KEY",
-             "models": "Mistral, Codestral, Pixtral"},
-            {"name": "ollama",     "env": "(none — local)",    "models": "Local models via Ollama"},
+            {"name": "anthropic", "env": "ANTHROPIC_API_KEY", "models": "Claude 3/4 series"},
+            {"name": "openai", "env": "OPENAI_API_KEY", "models": "GPT-4o, o3, o4-mini"},
+            {"name": "gemini", "env": "GOOGLE_API_KEY", "models": "Gemini 2.5 Pro/Flash"},
+            {"name": "mistral", "env": "MISTRAL_API_KEY", "models": "Mistral, Codestral, Pixtral"},
+            {"name": "ollama", "env": "(none — local)", "models": "Local models via Ollama"},
         ]
         import os
+
         for p in providers:
             p["configured"] = bool(os.environ.get(p["env"])) or p["name"] == "ollama"
         result["llm_backends"] = providers
@@ -3561,15 +3577,18 @@ def info_cmd(as_json: bool, section: str) -> None:
             console.print("[bold]LLM Backends[/bold]\n")
             for p in providers:
                 icon = "[green]\u2713[/green]" if p["configured"] else "[dim]\u2014[/dim]"
-                console.print(
-                    f"  {icon} {p['name']:<12s} {p['env']:<28s} {p['models']}"
-                )
+                console.print(f"  {icon} {p['name']:<12s} {p['env']:<28s} {p['models']}")
             console.print()
 
     if section in ("phases", "all"):
         phases_info = [
-            {"key": p.key, "label": p.label, "emoji": p.emoji,
-             "description": p.description, "commands": p.commands}
+            {
+                "key": p.key,
+                "label": p.label,
+                "emoji": p.emoji,
+                "description": p.description,
+                "commands": p.commands,
+            }
             for p in PHASES
         ]
         result["aee_phases"] = phases_info
@@ -3591,8 +3610,13 @@ def info_cmd(as_json: bool, section: str) -> None:
 @main.command(name="scan")
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON.")
-@click.option("--quiet", "-q", is_flag=True, default=False,
-              help="Print only the suggested scaffold.yml block.")
+@click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    default=False,
+    help="Print only the suggested scaffold.yml block.",
+)
 def scan_cmd(project_dir: str, as_json: bool, quiet: bool) -> None:
     """Scan a project and suggest language, type, name, and scaffold configuration.
 
@@ -3610,11 +3634,11 @@ def scan_cmd(project_dir: str, as_json: bool, quiet: bool) -> None:
     )
     from specsmith.languages import LANG_DISPLAY  # noqa: PLC0415
 
-    root   = Path(project_dir).resolve()
+    root = Path(project_dir).resolve()
     result = detect_project(root)
-    name   = suggest_name(root)
-    ptype  = suggest_type(result)
-    aux    = suggest_auxiliary(result)
+    name = suggest_name(root)
+    ptype = suggest_type(result)
+    aux = suggest_auxiliary(result)
 
     # Detect FPGA tools from languages
     fpga_langs = {"vhdl", "verilog", "systemverilog"}
@@ -3628,18 +3652,26 @@ def scan_cmd(project_dir: str, as_json: bool, quiet: bool) -> None:
             fpga_tools = ["ghdl", "gtkwave"]
 
     # Language display names (top 5)
-    top_langs  = [LANG_DISPLAY.get(lk, lk) for lk in list(result.languages.keys())[:5]]
-    valid_vals  = {t.value for t in ProjectType}
-    type_label  = _TYPE_LABELS.get(ProjectType(ptype), ptype) if ptype in valid_vals else ptype
+    top_langs = [LANG_DISPLAY.get(lk, lk) for lk in list(result.languages.keys())[:5]]
+    valid_vals = {t.value for t in ProjectType}
+    type_label = _TYPE_LABELS.get(ProjectType(ptype), ptype) if ptype in valid_vals else ptype
 
     if as_json:
-        console.print(json_mod.dumps({
-            "name": name, "type": ptype, "type_label": type_label,
-            "languages": top_langs, "fpga_tools": fpga_tools,
-            "auxiliary_disciplines": aux,
-            "vcs_platform": result.vcs_platform or "github",
-            "build_system": result.build_system,
-        }, indent=2))
+        console.print(
+            json_mod.dumps(
+                {
+                    "name": name,
+                    "type": ptype,
+                    "type_label": type_label,
+                    "languages": top_langs,
+                    "fpga_tools": fpga_tools,
+                    "auxiliary_disciplines": aux,
+                    "vcs_platform": result.vcs_platform or "github",
+                    "build_system": result.build_system,
+                },
+                indent=2,
+            )
+        )
         return
 
     if not quiet:
@@ -3708,8 +3740,7 @@ def ollama_remove_cmd(model_id: str, yes: bool) -> None:
         console.print(f"[green]\u2713[/green] {model_id} removed.")
     else:
         console.print(
-            f"[red]\u2717[/red] Could not remove {model_id} "
-            "(not installed or API error)."
+            f"[red]\u2717[/red] Could not remove {model_id} (not installed or API error)."
         )
         raise SystemExit(1)
 
@@ -3717,7 +3748,10 @@ def ollama_remove_cmd(model_id: str, yes: bool) -> None:
 @ollama_group.command(name="update")
 @click.argument("model_id", required=False, default="")
 @click.option(
-    "--all", "update_all", is_flag=True, default=False,
+    "--all",
+    "update_all",
+    is_flag=True,
+    default=False,
     help="Update all installed models.",
 )
 def ollama_update_cmd(model_id: str, update_all: bool) -> None:
@@ -3749,10 +3783,10 @@ def ollama_update_cmd(model_id: str, update_all: bool) -> None:
                 console.print(f"[red]\u2717 {chunk.get('message', 'error')}[/red]")
                 break
             completed = chunk.get("completed", 0)
-            total     = chunk.get("total", 0)
+            total = chunk.get("total", 0)
             if total and completed:
                 pct = int(completed / total * 100)
-                mb  = completed // (1024 * 1024)
+                mb = completed // (1024 * 1024)
                 tmb = total // (1024 * 1024)
                 console.print(f"  {status}: {pct}% ({mb}/{tmb} MB)")
             elif status and status != last:
@@ -3806,10 +3840,10 @@ def ollama_check_updates_cmd() -> None:
 
     console.print(f"[bold]Installed Models[/bold] ({len(models)})\n")
     for m in models:
-        name  = m.get("name", "?")
-        size  = m.get("size", 0)
-        gb    = size / (1024 ** 3) if size else 0
-        mod   = m.get("modified_at", "")[:10]
+        name = m.get("name", "?")
+        size = m.get("size", 0)
+        gb = size / (1024**3) if size else 0
+        mod = m.get("modified_at", "")[:10]
         console.print(f"  [green]\u2713[/green] {name:<40s} {gb:5.1f}GB  [{mod}]")
 
     console.print(
@@ -3820,7 +3854,10 @@ def ollama_check_updates_cmd() -> None:
 
 @ollama_group.command(name="upgrade")
 @click.option(
-    "--yes", "-y", is_flag=True, default=False,
+    "--yes",
+    "-y",
+    is_flag=True,
+    default=False,
     help="Run the upgrade command directly; otherwise just prints it.",
 )
 def ollama_upgrade_cmd(yes: bool) -> None:
@@ -3830,6 +3867,7 @@ def ollama_upgrade_cmd(yes: bool) -> None:
     cmd = upgrade_ollama_cmd()
     if yes:
         import subprocess
+
         console.print(f"[bold]Running:[/bold] {cmd}")
         subprocess.run(cmd, shell=True, check=False)  # noqa: S602
     else:
@@ -3854,7 +3892,9 @@ def tools_group() -> None:
 @click.option("--project-dir", type=click.Path(exists=True), default=".")
 @click.option("--json", "as_json", is_flag=True, default=False, help="Output as JSON.")
 @click.option(
-    "--fpga", is_flag=True, default=False,
+    "--fpga",
+    is_flag=True,
+    default=False,
     help="Include FPGA/HDL tool checks from fpga_tools in scaffold.yml.",
 )
 def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
@@ -3888,6 +3928,7 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                 raw = yaml.safe_load(f) or {}
             config = ProjectConfig(**raw)
             from specsmith.tools import get_tools
+
             tools = get_tools(config)
             for category, cmds in [
                 ("lint", tools.lint),
@@ -3905,10 +3946,14 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                         continue
                     seen.add(tool_name)
                     chk = _check_tool(tool_name, category, root=root)
-                    checks.append({
-                        "name": chk.name, "category": chk.category,
-                        "installed": chk.installed, "version": chk.version,
-                    })
+                    checks.append(
+                        {
+                            "name": chk.name,
+                            "category": chk.category,
+                            "installed": chk.installed,
+                            "version": chk.version,
+                        }
+                    )
         except Exception as e:  # noqa: BLE001
             if not as_json:
                 console.print(f"[yellow]Could not read scaffold.yml: {e}[/yellow]")
@@ -3922,25 +3967,25 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
 
             # Well-known FPGA tool executables
             FPGA_TOOL_EXES: dict[str, str] = {
-                "vivado":       "vivado",
-                "quartus":      "quartus_sh",
-                "radiant":      "radiantlsp",
-                "diamond":      "diamondc",
-                "gowin":        "gw_sh",
-                "ghdl":         "ghdl",
-                "iverilog":     "iverilog",
-                "verilator":    "verilator",
-                "modelsim":     "vsim",
-                "questasim":    "vsim",
-                "xsim":         "xsim",
-                "gtkwave":      "gtkwave",
-                "surfer":       "surfer",
-                "vsg":          "vsg",
-                "verible":      "verible-verilog-lint",
-                "svlint":       "svlint",
-                "symbiyosys":   "sby",
-                "yosys":        "yosys",
-                "nextpnr":      "nextpnr-ecp5",
+                "vivado": "vivado",
+                "quartus": "quartus_sh",
+                "radiant": "radiantlsp",
+                "diamond": "diamondc",
+                "gowin": "gw_sh",
+                "ghdl": "ghdl",
+                "iverilog": "iverilog",
+                "verilator": "verilator",
+                "modelsim": "vsim",
+                "questasim": "vsim",
+                "xsim": "xsim",
+                "gtkwave": "gtkwave",
+                "surfer": "surfer",
+                "vsg": "vsg",
+                "verible": "verible-verilog-lint",
+                "svlint": "svlint",
+                "symbiyosys": "sby",
+                "yosys": "yosys",
+                "nextpnr": "nextpnr-ecp5",
                 "openFPGALoader": "openFPGALoader",
             }
             for tool_key in fpga_tool_list:
@@ -3958,10 +4003,14 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
                             version = m.group(0) if m else ver_out[0][:30]
                     except Exception:  # noqa: BLE001
                         pass
-                checks.append({
-                    "name": exe, "category": "fpga",
-                    "installed": bool(path_found), "version": version,
-                })
+                checks.append(
+                    {
+                        "name": exe,
+                        "category": "fpga",
+                        "installed": bool(path_found),
+                        "version": version,
+                    }
+                )
         except Exception as e:  # noqa: BLE001
             if not as_json:
                 console.print(f"[yellow]Could not read fpga_tools: {e}[/yellow]")
@@ -3989,7 +4038,7 @@ def tools_scan_cmd(project_dir: str, as_json: bool, fpga: bool) -> None:
         console.print(f"  [teal]{cat}[/teal]")
         for item in items:
             icon = "[green]\u2713[/green]" if item["installed"] else "[red]\u2717[/red]"
-            ver  = f" [dim]{item['version']}[/dim]" if item["version"] else ""
+            ver = f" [dim]{item['version']}[/dim]" if item["version"] else ""
             console.print(f"    {icon} {item['name']}{ver}")
     console.print()
     if installed_count < len(checks):
