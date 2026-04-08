@@ -168,10 +168,12 @@ H13: All proposals must state their epistemic boundaries. Hidden assumptions are
 
 ⚠ LANGUAGE RULE (HARD CONSTRAINT — NEVER VIOLATE):
   Respond ONLY in English. Every single response must be in English.
-  Never use Chinese (中文), Japanese (日本語), Korean (한국어), French, German, Spanish,
+  Never use Chinese (中文), Japanese (日本語), Korean (한국어), Thai (ไทย), French, German, Spanish,
   Arabic, or ANY other non-English language — not even a single word.
   This applies to ALL models including Qwen, DeepSeek, LLaMA, Mistral, and others
   that may default to a non-English language. ENGLISH ONLY, ALWAYS.
+  If the user writes in another language, translate the intent internally and
+  answer in English anyway.
 
 ## Project Governance
 {governance_text}
@@ -236,17 +238,21 @@ class AgentRunner:
     QUICK_COMMANDS = {
         "start": (
             "[RESPOND IN ENGLISH ONLY] "
-            "Run session start protocol: sync, load AGENTS.md, read last LEDGER.md entries"
+        "Run session start protocol: sync, load AGENTS.md, read last LEDGER.md entries. "
+        "Translate any non-English context internally if needed, but respond only in English."
         ),
-        "resume": "Resume from last LEDGER.md entry — summarize state and propose next task",
-        "save": "Write a ledger entry summarizing this session's work",
-        "audit": "Run specsmith audit --fix",
-        "commit": "Run specsmith commit",
-        "push": "Run specsmith push",
-        "sync": "Run specsmith sync",
-        "epistemic": "Run full epistemic audit",
-        "stress": "Run stress-test on requirements",
-        "status": "Show session status and credit spend",
+        "resume": (
+            "[RESPOND IN ENGLISH ONLY] Resume from last LEDGER.md entry"
+            " — summarize state and propose next task"
+        ),
+        "save": "[RESPOND IN ENGLISH ONLY] Write a ledger entry summarizing this session's work",
+        "audit": "[RESPOND IN ENGLISH ONLY] Run specsmith audit --fix",
+        "commit": "[RESPOND IN ENGLISH ONLY] Run specsmith commit",
+        "push": "[RESPOND IN ENGLISH ONLY] Run specsmith push",
+        "sync": "[RESPOND IN ENGLISH ONLY] Run specsmith sync",
+        "epistemic": "[RESPOND IN ENGLISH ONLY] Run full epistemic audit",
+        "stress": "[RESPOND IN ENGLISH ONLY] Run stress-test on requirements",
+        "status": "[RESPOND IN ENGLISH ONLY] Show session status and credit spend",
     }
 
     def __init__(

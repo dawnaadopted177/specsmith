@@ -34,6 +34,8 @@ _SUBPROCESS_ENV: dict[str, str] = {
     "NO_COLOR": "1",  # Disables Rich colour / Windows console API path
     "FORCE_COLOR": "0",  # Belt-and-suspenders: also suppress colour
     "PYTHONIOENCODING": "utf-8",  # Ensure UTF-8 on pipes regardless of locale
+    "PYTHONUTF8": "1",
+    "PYTHONLEGACYWINDOWSSTDIO": "utf-8",
 }
 
 
@@ -54,6 +56,30 @@ def _run_specsmith(args: list[str], project_dir: str = ".") -> str:
         return output or "(no output)"
     except subprocess.TimeoutExpired:
         return "[TIMEOUT] Command exceeded 120s"
+    except Exception as e:  # noqa: BLE001
+        return f"[ERROR] {e}"
+
+
+def _read_wireframe_handler(project_dir: str, wireframe_id: str) -> str:
+    """Read wireframe metadata or inline text/SVG content."""
+    try:
+        from specsmith.wireframes import read_wireframe
+
+        return read_wireframe(Path(project_dir).resolve(), wireframe_id)
+    except Exception as e:  # noqa: BLE001
+        return f"[ERROR] {e}"
+
+
+def _retrieve_context_handler(project_dir: str, query: str, limit: str = "5") -> str:
+    """Search the opt-in local retrieval index."""
+    try:
+        from specsmith.retrieval import search_index
+
+        try:
+            max_results = max(1, min(int(limit), 20))
+        except (TypeError, ValueError):
+            max_results = 5
+        return search_index(Path(project_dir).resolve(), query, limit=max_results)
     except Exception as e:  # noqa: BLE001
         return f"[ERROR] {e}"
 
@@ -302,6 +328,29 @@ def build_tool_registry(project_dir: str = ".") -> list[Tool]:
             description="Show REQ→TEST traceability matrix.",
             params=[],
             handler=lambda: _run_specsmith(["req", "trace"], pd),
+        ),
+        Tool(
+            name="read_wireframe",
+            description=(
+                "Resolve and inspect a wireframe artifact under docs/wireframes. "
+                "Returns metadata and, for SVG/text assets, inline content snippets."
+            ),
+            params=[
+                ToolParam("wireframe_id", "Wireframe ID or filename, e.g. WF-UI-001"),
+            ],
+            handler=lambda wireframe_id: _read_wireframe_handler(pd, wireframe_id),
+        ),
+        Tool(
+            name="retrieve_context",
+            description=(
+                "Search the explicit local retrieval index (opt-in) for relevant project "
+                "context across docs, ledger, and indexed source files."
+            ),
+            params=[
+                ToolParam("query", "Search query"),
+                ToolParam("limit", "Max results (default 5)", required=False),
+            ],
+            handler=lambda query, limit="5": _retrieve_context_handler(pd, query, limit),
         ),
         # ----------------------------------------------------------------
         # Session tools

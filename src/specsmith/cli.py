@@ -4240,5 +4240,122 @@ def tools_rules_cmd(project_dir: str, tool_key: str, list_all: bool) -> None:
 main.add_command(tools_group)
 
 
+# ---------------------------------------------------------------------------
+# Wireframes — UI wireframe artifact management
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="wireframes")
+def wireframes_group() -> None:
+    """Manage wireframe artifacts under docs/wireframes/."""
+
+
+@wireframes_group.command(name="list")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def wireframes_list_cmd(project_dir: str) -> None:
+    """List wireframe files and their requirement references."""
+    from specsmith.wireframes import list_wireframes
+
+    root = Path(project_dir).resolve()
+    items = list_wireframes(root)
+    if not items:
+        console.print("[yellow]No wireframes found in docs/wireframes/.[/yellow]")
+        console.print("  Create wireframe files there (SVG, PNG, PDF, etc.) and reference them")
+        console.print("  from REQUIREMENTS.md via a `Wireframe` field in each requirement.")
+        return
+    console.print(f"[bold]Wireframes[/bold] ({len(items)})\n")
+    for wf in items:
+        refs_str = wf.get("refs", "")
+        refs_note = f"  ← {refs_str}" if refs_str else "  [dim](unreferenced)[/dim]"
+        console.print(f"  [cyan]{wf['id']:20s}[/cyan]  {wf['file']}{refs_note}")
+
+
+@wireframes_group.command(name="check")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+def wireframes_check_cmd(project_dir: str) -> None:
+    """Check for missing wireframe files referenced in REQUIREMENTS.md."""
+    from specsmith.wireframes import check_wireframe_refs
+
+    root = Path(project_dir).resolve()
+    missing = check_wireframe_refs(root)
+    if not missing:
+        console.print("[bold green]✓ All wireframe references are valid.[/bold green]")
+        return
+    console.print(f"[bold red]{len(missing)} missing wireframe reference(s):[/bold red]\n")
+    for m in missing:
+        console.print(f"  [red]✗[/red] {m}")
+    raise SystemExit(1)
+
+
+main.add_command(wireframes_group)
+
+
+# ---------------------------------------------------------------------------
+# Index — opt-in local retrieval index (RAG foundation)
+# ---------------------------------------------------------------------------
+
+
+@main.group(name="index")
+def index_group() -> None:
+    """Manage the local retrieval index (explicit opt-in context retrieval).
+
+    This builds a keyword-searchable index of project docs and source files
+    stored at .specsmith/retrieval-index.json.  The agent tool `retrieve_context`
+    queries this index — it is never searched automatically.
+    """
+
+
+@index_group.command(name="build")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option(
+    "--include-ledger",
+    is_flag=True,
+    default=False,
+    help="Also index LEDGER.md (often large — only useful for long-running projects).",
+)
+@click.option(
+    "--external",
+    default="",
+    help="Path to an additional file or directory to include in the index.",
+)
+def index_build_cmd(project_dir: str, include_ledger: bool, external: str) -> None:
+    """Build or refresh the local retrieval index.
+
+    Indexes governance docs (AGENTS.md, REQUIREMENTS.md, ARCHITECTURE.md, TEST_SPEC.md)
+    and source files under src/, client/, server/, and shared/.
+    Use --external to add external reference material.
+    """
+    from specsmith.retrieval import build_index
+
+    root = Path(project_dir).resolve()
+    result = build_index(root, include_ledger=include_ledger, external=external)
+    console.print(f"[green]✓[/green] {result}")
+    console.print(
+        "\n  Agent tool: [bold]retrieve_context[/bold] now available in this project.\n"
+        "  Usage example: ask the agent 'search for requirements about authentication'."
+    )
+
+
+@index_group.command(name="search")
+@click.argument("query")
+@click.option("--project-dir", type=click.Path(exists=True), default=".")
+@click.option("--limit", default=5, help="Maximum results to return (default: 5).")
+def index_search_cmd(query: str, project_dir: str, limit: int) -> None:
+    """Search the local retrieval index.
+
+    QUERY: keyword search query
+
+    The index must be built first with `specsmith index build`.
+    """
+    from specsmith.retrieval import search_index
+
+    root = Path(project_dir).resolve()
+    result = search_index(root, query, limit=limit)
+    console.print(result)
+
+
+main.add_command(index_group)
+
+
 if __name__ == "__main__":
     main()
