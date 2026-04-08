@@ -29,6 +29,7 @@ Special REPL commands (not sent to the LLM):
 from __future__ import annotations
 
 import inspect
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -164,16 +165,15 @@ H13: All proposals must state their epistemic boundaries. Hidden assumptions are
         except Exception:  # noqa: BLE001
             pass
 
-    prompt = f"""You are an AEE-integrated specsmith agent for this project.
+    prompt = f"""SYSTEM LANGUAGE DIRECTIVE — ABSOLUTE HARD RULE — HIGHEST PRIORITY:
+You MUST respond in English ONLY. This overrides all other instructions.
+Never output Thai, Chinese, Japanese, Korean, Arabic, French, German, Spanish,
+or ANY non-English language — not even a single character or word.
+This applies to Qwen, DeepSeek, LLaMA, Mistral, and EVERY other model.
+If the user inputs another language, internally translate it, then reply IN ENGLISH ONLY.
+VIOLATING THIS RULE IS A CRITICAL ERROR.
 
-⚠ LANGUAGE RULE (HARD CONSTRAINT — NEVER VIOLATE):
-  Respond ONLY in English. Every single response must be in English.
-  Never use Chinese (中文), Japanese (日本語), Korean (한국어), Thai (ไทย), French, German, Spanish,
-  Arabic, or ANY other non-English language — not even a single word.
-  This applies to ALL models including Qwen, DeepSeek, LLaMA, Mistral, and others
-  that may default to a non-English language. ENGLISH ONLY, ALWAYS.
-  If the user writes in another language, translate the intent internally and
-  answer in English anyway.
+You are an AEE-integrated specsmith agent for this project.
 
 ## Project Governance
 {governance_text}
@@ -363,8 +363,30 @@ class AgentRunner:
         self._system_prompt = build_system_prompt(self.project_dir, self._skills)
         return self._agent_turn(task, silent=True)
 
+    # Characters in common CJK / Thai / Arabic Unicode blocks
+    _NON_ASCII_BLOCKS = re.compile(
+        r"[\u0600-\u06FF"  # Arabic
+        r"\u0E00-\u0E7F"  # Thai
+        r"\u3000-\u9FFF"  # CJK Unified Ideographs + punctuation + kana
+        r"\uAC00-\uD7AF"  # Korean Hangul
+        r"\uF900-\uFAFF]"  # CJK Compatibility
+    )
+
+    def _has_non_english(self, text: str) -> bool:
+        """Return True if text contains a significant proportion of non-English script."""
+        if not text:
+            return False
+        hits = len(self._NON_ASCII_BLOCKS.findall(text))
+        return hits > 5 and (hits / max(len(text), 1)) > 0.05
+
     def _agent_turn(self, user_input: str, silent: bool = False) -> str:
         """Execute one user→agent turn with tool loop."""
+        # Inject a lightweight English-only reminder into every user message.
+        # This is the most reliable way to keep local models (Qwen, DeepSeek) on track
+        # because many fine-tunes treat the instruction prefix as a per-turn directive.
+        _ENG_PFXS = ("[ENGLISH ONLY]", "[RESPOND IN ENGLISH", "[LANG:EN]")
+        if not any(user_input.startswith(p) for p in _ENG_PFXS):
+            user_input = "[LANG:EN] " + user_input
         # Add user message
         self._state.messages.append(Message(role=Role.USER, content=user_input))
 
@@ -403,6 +425,19 @@ class AgentRunner:
                 final_response = response.content
 
             if not response.has_tool_calls:
+                # Non-English correction: if response appears to be in another language,
+                # issue a single correction turn rather than showing the wrong-language response.
+                if response.content and self._has_non_english(response.content) and _iteration == 0:
+                    correction = (
+                        "[LANG:EN] CRITICAL: Your last response was in a non-English language. "
+                        "You MUST respond in English ONLY. Please re-answer in English."
+                    )
+                    self._state.messages.append(
+                        Message(role=Role.ASSISTANT, content=response.content)
+                    )
+                    self._state.messages.append(Message(role=Role.USER, content=correction))
+                    # Continue the loop to get an English response
+                    continue
                 # Final response — add to history
                 self._state.messages.append(Message(role=Role.ASSISTANT, content=response.content))
                 break

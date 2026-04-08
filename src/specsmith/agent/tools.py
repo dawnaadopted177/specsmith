@@ -47,6 +47,8 @@ def _run_specsmith(args: list[str], project_dir: str = ".") -> str:
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",  # always decode as UTF-8, not the system locale (cp1252 on Windows)
+            errors="replace",  # replace un-decodable bytes rather than raising UnicodeDecodeError
             timeout=120,
             env=_SUBPROCESS_ENV,
         )
