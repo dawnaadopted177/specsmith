@@ -27,6 +27,17 @@ from pathlib import Path
 from specsmith.agent.core import Tool, ToolParam
 
 
+# Env vars that prevent Rich from using the Windows Console API
+# (LegacyWindowsTerm) when stdout is a captured pipe. Without these, Rich
+# crashes with 'WriteFile failed' / handle errors on every command.
+_SUBPROCESS_ENV: dict[str, str] = {
+    **os.environ,
+    "NO_COLOR": "1",         # Disables Rich colour / Windows console API path
+    "FORCE_COLOR": "0",      # Belt-and-suspenders: also suppress colour
+    "PYTHONIOENCODING": "utf-8",  # Ensure UTF-8 on pipes regardless of locale
+}
+
+
 def _run_specsmith(args: list[str], project_dir: str = ".") -> str:
     """Execute a specsmith command and return combined stdout+stderr."""
     cmd = [sys.executable, "-m", "specsmith"] + args + ["--project-dir", project_dir]
@@ -36,6 +47,7 @@ def _run_specsmith(args: list[str], project_dir: str = ".") -> str:
             capture_output=True,
             text=True,
             timeout=120,
+            env=_SUBPROCESS_ENV,
         )
         output = (result.stdout + result.stderr).strip()
         if result.returncode != 0:

@@ -58,7 +58,7 @@ specsmith phase list     # list all phases
 ```
 
 The current phase is persisted in `scaffold.yml` as `aee_phase` and displayed in the VS Code
-Governance Panel. Each phase has a checklist of file/command criteria, recommended commands,
+Settings Panel. Each phase has a checklist of file/command criteria, recommended commands,
 and a readiness percentage.
 
 ---
@@ -126,7 +126,7 @@ The **specsmith AEE Workbench** VS Code extension is the flagship client:
 ```
 # Install specsmith first, then:
 # VS Code: Ctrl+Shift+P → specsmith: New Agent Session
-# Governance Panel: Ctrl+Shift+G
+# Settings Panel: Ctrl+Shift+G
 ```
 
 **Key features:**

@@ -46,13 +46,13 @@ npm install && npm run build
 3. Press `Ctrl+Shift+;` or click **+** in Sessions to start a session
 4. Select your project folder — the agent starts automatically and runs the start protocol
 
-The **Governance Panel** opens automatically on startup (`Ctrl+Shift+G` to open manually).
+The **Settings Panel** opens automatically on startup (`Ctrl+Shift+G` to open manually).
 
 ---
 
 ## AEE Workflow Phase Indicator
 
-The Governance Panel displays a persistent **phase bar** below the header showing:
+The Settings Panel displays a persistent **phase bar** below the header showing:
 
 - **Current phase pill** — emoji + label (e.g. `📋 Requirements`)
 - **Phase description** — what this phase accomplishes
@@ -89,7 +89,7 @@ Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 ### Tab: Tools
 - **FPGA/HDL tools** (21 tools) — vivado, quartus, gtkwave, ghdl, iverilog, verilator, vsg, yosys, nextpnr, symbiyosys, and more
 - **Auxiliary disciplines** — add mixed-discipline support (e.g. FPGA + embedded C + Python verification)
-- **Target platforms** — linux, windows, macos, embedded, cloud, FPGA variants
+- **CI/CD build platforms** — linux, windows, macos, embedded, cloud, FPGA variants (target deploy/test platforms, not the host OS)
 - **Installed Ollama models** with Update / Remove buttons
 - All saved to `fpga_tools:`, `platforms:` in scaffold.yml
 
@@ -205,7 +205,7 @@ installed model list before spawning the session.
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Shift+;` | New agent session |
-| `Ctrl+Shift+G` | Open Governance Panel |
+| `Ctrl+Shift+G` | Open Settings Panel |
 | `Ctrl+Shift+R` | Quick add requirement |
 | `Ctrl+Shift+Q` | Navigate requirements |
 | `Enter` | Send message |
@@ -226,7 +226,7 @@ All settings under `specsmith.*` in VS Code Settings (`Ctrl+,`):
 | `specsmith.defaultProvider` | `anthropic` | Default LLM provider |
 | `specsmith.defaultModel` | `` | Default model (blank = provider default) |
 | `specsmith.ollamaContextLength` | `0` | Ollama context size (0 = auto-detect from VRAM) |
-| `specsmith.autoOpenGovernancePanel` | `true` | Auto-open governance panel on VS Code start |
+| `specsmith.autoOpenGovernancePanel` | `true` | Auto-open Settings panel on VS Code start |
 
 ---
 

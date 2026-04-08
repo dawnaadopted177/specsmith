@@ -84,20 +84,20 @@ specsmith phase next     # advance to next phase (checks prerequisites first)
 specsmith phase list     # list all 7 phases
 ```
 
-The active phase is shown in the VS Code Governance Panel as a colored pill with readiness % and a Next Phase button.
+The active phase is shown in the VS Code Settings Panel as a colored pill with readiness % and a Next Phase button.
 
 ## VS Code Extension
 
 The **specsmith AEE Workbench** VS Code extension is the recommended client:
 
-- **5-tab Governance Panel** — Project, Tools (FPGA/HDL), Files, Updates & System, Actions & AI
+- **6-tab Settings panel** — Project, Tools (FPGA/HDL), Files, Updates & System, Actions & AI, Execution
 - **AEE phase indicator** — live phase pill with Next Phase and phase selector
 - **AI agent sessions** — per-project JSONL bridge to specsmith CLI
 - **Ollama integration** — GPU-aware catalog, model download, task-based suggestions
 - **API key management** — OS credential store
 
 ```bash
-# Ctrl+Shift+G — open Governance Panel
+# Ctrl+Shift+G — open Settings Panel
 # Ctrl+Shift+; — new agent session
 ```
 
