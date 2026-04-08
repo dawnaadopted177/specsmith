@@ -16,10 +16,17 @@ VS Code's secondary sidebar.
 - At least one LLM provider (API key or local Ollama)
 
 ```bash
-pipx install specsmith           # recommended
-# or
-pip install "specsmith[anthropic,openai,gemini]"
+pipx install specsmith                   # install core CLI
+pipx inject specsmith anthropic          # + Claude
+pipx inject specsmith openai             # + GPT / O-series
+pipx inject specsmith google-generativeai  # + Gemini
 ```
+
+!!! warning "Do not use bare `pip install specsmith`"
+    `pip install` without a virtual environment puts specsmith in your active
+    Python's Scripts directory. If you have multiple Pythons (Scoop, Conda,
+    system) this creates duplicate binaries that VS Code and your terminal may
+    resolve differently. **pipx is the only supported install method for VS Code users.**
 
 ---
 

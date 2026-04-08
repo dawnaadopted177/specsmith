@@ -14,6 +14,16 @@ cd specsmith
 pip install -e ".[dev]"
 ```
 
+!!! warning "Scope `PYTHONPATH` to this workspace only"
+    `pip install -e .` creates `src/specsmith.egg-info` which `importlib.metadata`
+    finds via `PYTHONPATH=.../src`. If this is set **globally** in your shell it
+    leaks into every Python process — including pipx venvs — and causes version
+    mismatches across tools.
+
+    Use the provided `.vscode/settings.json` which scopes `PYTHONPATH` to the
+    VS Code integrated terminal for **this workspace only**. Never export
+    `PYTHONPATH` in your shell profile for this purpose.
+
 ## Branching Strategy (gitflow)
 
 - `main` — production-ready releases

@@ -6,7 +6,50 @@
 Check your Python version (requires 3.10+) and that pip is up to date: `pip install --upgrade pip`.
 
 ### `python -m specsmith` gives "No module named specsmith.__main__"
-Update to the latest version: `pip install --upgrade specsmith`.
+Update to the latest version: `pipx upgrade specsmith` (or `pip install --upgrade specsmith` if not using pipx).
+
+## Version Mismatch — terminal vs VS Code
+
+### VS Code Settings Panel shows a different version than `specsmith --version` in the terminal
+
+This almost always means you have **two specsmith binaries** on PATH and they
+resolve differently between the VS Code extension host and your shell.
+
+Diagnose:
+```powershell
+Get-Command specsmith -All  # Windows: lists all binaries in PATH order
+```
+```bash
+which -a specsmith          # macOS/Linux
+```
+
+Fix: consolidate to a single **pipx** install:
+```bash
+pipx install specsmith               # canonical install
+pipx inject specsmith anthropic      # + Claude
+```
+
+Then remove any duplicate installs (e.g. `pip uninstall specsmith` in any
+other Python environment that has it).
+
+### `specsmith --version` shows an old version even after upgrading
+
+Your shell `PYTHONPATH` may include a dev source directory
+(`...specsmith/src`) that leaks an `egg-info` with an older version into
+every Python process. Check:
+```powershell
+$env:PYTHONPATH          # Windows
+echo $PYTHONPATH         # macOS/Linux
+```
+
+If it points to a specsmith `src/` directory, clear it for normal use:
+```powershell
+Remove-Item Env:PYTHONPATH
+```
+
+For development, scope `PYTHONPATH` to the workspace only via
+`.vscode/settings.json` (`terminal.integrated.env.windows`) rather than
+a global shell export.
 
 ## Import Issues
 

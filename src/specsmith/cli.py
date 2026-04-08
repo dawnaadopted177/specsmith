@@ -1969,8 +1969,8 @@ def run_cmd(
       SPECSMITH_PROVIDER=<name> → explicit override
 
     Install a provider:
-      pip install specsmith[anthropic]   # Claude
-      pip install specsmith[openai]      # GPT/O-series
+      pipx inject specsmith anthropic             # Claude
+      pipx inject specsmith openai               # GPT/O-series
     """
     from specsmith.agent.core import ModelTier
     from specsmith.agent.runner import AgentRunner
@@ -2002,11 +2002,11 @@ def run_cmd(
     except Exception as e:  # noqa: BLE001
         console.print(f"[red]{e}[/red]")
         console.print(
-            "\nInstall a provider:\n"
-            "  pip install specsmith[anthropic]   # Claude\n"
-            "  pip install specsmith[openai]      # GPT\n"
-            "  pip install specsmith[gemini]      # Gemini\n"
-            "  # Ollama: install locally, no pip extra needed"
+            "\nInstall a provider (pipx recommended):\n"
+            "  pipx inject specsmith anthropic             # Claude\n"
+            "  pipx inject specsmith openai               # GPT\n"
+            "  pipx inject specsmith google-generativeai  # Gemini\n"
+            "  # Ollama: install locally from https://ollama.ai"
         )
         raise SystemExit(1) from None
 
@@ -2027,11 +2027,11 @@ def agent_providers_cmd() -> None:
         icon = "[green]\u2713[/green]" if configured else "[yellow]\u2014[/yellow]"
         console.print(f"  {icon} {p['name']:12s} {p['status']}")
 
-    console.print("\nInstall providers:")
-    console.print("  pip install specsmith[anthropic]   # Claude")
-    console.print("  pip install specsmith[openai]      # GPT/O-series")
-    console.print("  pip install specsmith[gemini]      # Gemini")
-    console.print("  # Ollama: install from https://ollama.ai (no pip extra)")
+    console.print("\nInstall providers (pipx recommended):")
+    console.print("  pipx inject specsmith anthropic             # Claude")
+    console.print("  pipx inject specsmith openai               # GPT/O-series")
+    console.print("  pipx inject specsmith google-generativeai  # Gemini")
+    console.print("  # Ollama: install from https://ollama.ai (no extra needed)")
 
 
 @agent_group.command(name="tools")
