@@ -235,17 +235,27 @@ def _sync_full(
         except ValueError:
             pass
 
-    # 3. VCS CI configs — regenerate
+    # 3. VCS CI configs — create only if missing (never overwrite user CI)
     if config.vcs_platform:
-        try:
-            from specsmith.vcs import get_platform
+        ci_exists = (
+            (
+                list((root / ".github" / "workflows").glob("*.yml"))
+                if (root / ".github" / "workflows").is_dir()
+                else []
+            )
+            or (root / ".gitlab-ci.yml").exists()
+            or (root / "bitbucket-pipelines.yml").exists()
+        )
+        if not ci_exists:
+            try:
+                from specsmith.vcs import get_platform
 
-            platform = get_platform(config.vcs_platform)
-            files = platform.generate_all(config, root)
-            for f in files:
-                synced.append(str(f.relative_to(root)))
-        except ValueError:
-            pass
+                platform = get_platform(config.vcs_platform)
+                files = platform.generate_all(config, root)
+                for f in files:
+                    synced.append(str(f.relative_to(root)) + " (created)")
+            except ValueError:
+                pass
 
     # 4. Community files — create only if missing
     for tmpl_name, output_rel in _build_community_files(config):
