@@ -26,7 +26,6 @@ Every specsmith-governed project has this authority hierarchy — higher files o
 4. **docs/ARCHITECTURE.md** — How the system is structured.
 5. **docs/TEST_SPEC.md** — How the system is verified.
 6. **LEDGER.md** — Sole authority for session state (what's been done, what's next).
-7. **docs/WORKFLOW.md** — How work proceeds (milestones, PR expectations).
 
 ## AGENTS.md — The Governance Hub
 

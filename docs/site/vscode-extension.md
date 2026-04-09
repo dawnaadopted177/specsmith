@@ -12,7 +12,7 @@ VS Code's secondary sidebar.
 ## Requirements
 
 - VS Code 1.85+
-- specsmith **v0.3.5+** installed and on PATH
+- specsmith **v0.3.6+** installed and on PATH
 - At least one LLM provider (API key or local Ollama)
 
 ```bash
@@ -76,10 +76,33 @@ The 7 AEE phases:
 
 From the CLI:
 ```bash
-specsmith phase                    # show current phase + checklist
-specsmith phase next               # advance (checks prerequisites)
-specsmith phase set implementation # jump to a phase
+specsmith phase show               # show current phase + readiness checklist
+specsmith phase list               # visual pipeline with current phase highlighted
+specsmith phase next               # advance (checks prerequisites first)
+specsmith phase set implementation # jump to a phase (--force to skip checks)
 ```
+
+### Phase-Driven Prompts
+
+The Actions tab adapts to the current phase. Each phase shows:
+
+- **🤖 AI-Guided button** — starts a comprehensive interactive session for the phase (e.g. "Guide me through requirements gathering")
+- **Phase-specific prompts** — only prompts relevant to the current phase (e.g. architecture phase shows "Generate ARCHITECTURE.md" and "Define components")
+- **Always-available prompts** — audit, upgrade, and ledger update are always shown
+
+This means the extension actively guides you through the AEE lifecycle rather than showing a static list of actions.
+
+### Governance File Naming
+
+specsmith v0.3.7+ uses clearer governance file names:
+
+| Old Name | New Name | Purpose |
+|----------|----------|---------|
+| `WORKFLOW.md` | `SESSION-PROTOCOL.md` | How agent sessions work (proposals, ledger format) |
+| *(new)* | `LIFECYCLE.md` | Phase-aware project lifecycle roadmap |
+| `docs/WORKFLOW.md` | *(removed)* | Replaced by the phase system + LIFECYCLE.md |
+
+Old projects are automatically migrated when you run `specsmith upgrade`.
 
 ---
 
@@ -102,6 +125,7 @@ Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 
 ### Tab: Files
 - Governance file status table: scaffold.yml, AGENTS.md, REQUIREMENTS.md, TEST_SPEC.md, ARCHITECTURE.md, LEDGER.md
+- Governance files use new naming: SESSION-PROTOCOL.md, LIFECYCLE.md (replaces old WORKFLOW.md)
 - ✓ / ✗ indicators with line counts
 - **Add** buttons for missing files — choose AI-generated or template
 - **Open** buttons for existing files
@@ -115,8 +139,10 @@ Open with `Ctrl+Shift+G` or the `📖` toolbar icon.
 - System info panel (lazy-loaded): OS, CPU, cores, RAM, GPU, disk
 
 ### Tab: Actions & AI
-- Quick actions grid: audit --fix, validate, doctor, epistemic-audit, stress-test, export, req list, req gaps
-- AI Prompt Palette: 10 pre-written prompts sent to the active agent session
+- Quick actions grid: audit --fix, validate, doctor, epistemic-audit, stress-test, export, req list, req gaps, lifecycle status
+- **🤖 AI-Guided Session** button — launches a comprehensive interactive session for the current AEE phase
+- **Phase Prompts** — prompts change dynamically based on the current lifecycle phase (inception, architecture, requirements, etc.)
+- **Always Available** prompts — audit, upgrade, ledger update (available in every phase)
 
 ### Tab: Execution
 - **Execution profile selector** — `🔒 safe` (read-only), `⚙ standard` (default), `🔓 open`, `⚠ admin`
@@ -269,10 +295,17 @@ model dropdown and select from the **Installed** group, or `specsmith ollama lis
 
 ---
 
+## Learn More
+
+- **[AEE Primer (Full Guide)](aee-primer.md)** — Applied Epistemic Engineering from zero to productive
+- **[epistemic Library Reference](epistemic-library.md)** — standalone Python library for belief engineering
+- **[Governance Model](governance.md)** — the closed-loop workflow, file hierarchy, modular governance
+- **[CLI Commands](commands.md)** — every specsmith command with options and examples
+- **[Project Types](project-types.md)** — all 35+ project types with tools and governance rules
+- **[Importing Projects](importing.md)** — how detection works, merge behavior, type inference
+
 ## Links
 
 - [GitHub: specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode)
 - [GitHub: specsmith](https://github.com/BitConcepts/specsmith)
-- [specsmith CLI reference](commands.md)
-- [Agentic client overview](agent-client.md)
-- [AEE Workflow Phases](commands.md#specsmith-phase)
+- [specsmith Documentation (RTD)](https://specsmith.readthedocs.io)

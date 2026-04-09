@@ -62,11 +62,15 @@ AGENTS.md is < 200 lines. Run `specsmith upgrade --full` to generate them if nee
 - CI: GitHub Actions (3 OS × 3 Python)
 - Docs: Read the Docs (specsmith.readthedocs.io)
 
-## Documentation Rule
+## Documentation Rule (H14 — Hard Rule)
 
 The Read the Docs site (`docs/site/`) is the authoritative user manual.
-When ANY feature is added, changed, or removed:
-1. Update the relevant `docs/site/*.md` page(s) in the SAME commit
-2. Update `README.md` if it affects the project summary
-3. Update `CHANGELOG.md` under [Unreleased]
-4. README.md links to RTD for details — do NOT duplicate RTD content in README
+Before committing ANY change, verify documentation is current:
+1. Check if the change affects user-facing behavior, CLI commands, governance files, or configuration
+2. If yes: update the relevant `docs/site/*.md` page(s) in the SAME commit
+3. Update `README.md` if it affects the project summary
+4. Update `CHANGELOG.md` under [Unreleased]
+5. README.md links to RTD for details — do NOT duplicate RTD content in README
+6. The VS Code extension docs live in `docs/site/vscode-extension.md` — update when GovernancePanel, SettingsPanel, SessionPanel, or HelpPanel change
+
+This is a hard rule. Undocumented features are governance violations. Never commit code without checking for documentation gaps.

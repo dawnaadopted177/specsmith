@@ -3467,11 +3467,10 @@ def phase_list(project_dir: str) -> None:
         "\u2192 implementation \u2192 verification \u2192 release\n"
     )
     for i, p in enumerate(PHASES, 1):
-        marker = "[bold cyan]\u25b6[/bold cyan]" if p.key == current else " "
-        style = "bold cyan" if p.key == current else ""
-        console.print(
-            f"  {marker} {i}. {p.emoji} [{style}]{p.label:<20s}[/{style}] {p.description}"
-        )
+        is_cur = p.key == current
+        marker = "[bold cyan]\u25b6[/bold cyan]" if is_cur else " "
+        label = f"[bold cyan]{p.label:<20s}[/bold cyan]" if is_cur else f"{p.label:<20s}"
+        console.print(f"  {marker} {i}. {p.emoji} {label} {p.description}")
     console.print(f"\n  Current: [bold]{current}[/bold]")
 
 

@@ -166,6 +166,18 @@ Focus work on artifacts appropriate for this phase. Run `specsmith phase show` t
 
 ---
 
+## Documentation Rule (H14)
+
+Before committing ANY change, verify documentation is current:
+1. Check if the change affects user-facing behavior, CLI commands, governance files, or configuration
+2. If yes: update the relevant documentation (README.md, docs/, CHANGELOG.md) in the SAME commit
+3. Never commit code changes without checking for documentation gaps
+4. When adding a feature: document it. When changing behavior: update the docs. When removing: note it.
+
+This is a hard rule. Undocumented features are governance violations.
+
+---
+
 ## Epistemic Governance (AEE)
 
 This project follows Applied Epistemic Engineering (AEE) principles. Every proposal MUST:
