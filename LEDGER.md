@@ -279,3 +279,40 @@ Extensive research and gap analysis session to bring specsmith architecture to f
 
 ### Next step
 Begin Phase 1: `operations.py` first (it blocks tool handler refactoring), then commands surface, then instinct and eval systems. Each phase should have eval coverage before moving to the next.
+
+---
+
+## Session 2026-04-10 (cont.) — VS Code plugin fixes, releases, implementation plan
+
+**Status:** Complete
+**Branch:** develop (both repos)
+
+### What changed
+
+**specsmith (Python CLI):**
+- v0.3.10 released to PyPI — no-placeholder-requirements rule in system prompt (#69)
+- Architecture roadmap merged from main → develop (ARCHITECTURE.md, REQUIREMENTS.md, AGENTS.md, LEDGER.md)
+- Implementation plan created covering all 3 phases (10 workstreams)
+
+**specsmith-vscode (VS Code extension):**
+- v0.3.13 released — Ollama startup update check (#14), model digest column (#15), develop branch + gitflow (#16)
+- v0.3.13-dev.1 dev release — 6 bug fixes in single commit:
+  - #17 CRITICAL: GovernancePanel._getSpecsmithTerminal() infinite recursion → fixed (createTerminal)
+  - #18: Report Bug button delegates to LLM → fixed (routes to interactive BugReporter)
+  - #19: Auto-approve still asks questions → fixed (system prompt injection + immediate fire)
+  - #20: tools install --list fails → fixed (skip --project-dir for unsupported commands)
+  - #21: Ollama model list mismatch → fixed (exact then base-tag matching + download progress)
+  - #22: Auto-accept toggle in Project Settings → added (checkbox in Execution tab, saved to scaffold.yml)
+
+### Verification
+- specsmith: CI green on main and develop, PyPI v0.3.10 published
+- specsmith-vscode: CI + Dev Release green on develop, v0.3.13 stable on main
+- Both repos: develop and main in sync, zero failing workflows
+
+### Open TODOs (Phase 1 — next)
+- [ ] Implement `src/specsmith/operations.py` — typed ProjectOperations class
+- [ ] Refactor tool handlers in `agent/tools.py` to use ProjectOperations
+- [ ] Populate `src/specsmith/commands/` with priority slash commands
+- [ ] Implement `src/specsmith/instinct.py` — instinct persistence
+- [ ] Implement `src/specsmith/eval/` — EDD harness with pass@k
+- [ ] Merge specsmith-vscode develop → main, tag v0.3.14 stable
