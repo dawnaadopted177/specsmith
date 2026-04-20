@@ -4421,5 +4421,17 @@ def index_search_cmd(query: str, project_dir: str, limit: int) -> None:
 main.add_command(index_group)
 
 
+# ---------------------------------------------------------------------------
+# AG2 Agent Shell
+# ---------------------------------------------------------------------------
+
+try:
+    from specsmith.agents.cli import agent as agent_group
+
+    main.add_command(agent_group)
+except Exception:  # noqa: BLE001
+    pass  # AG2 not installed — agent commands unavailable
+
+
 if __name__ == "__main__":
     main()
