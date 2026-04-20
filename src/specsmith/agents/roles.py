@@ -108,13 +108,13 @@ def create_planner(config: AgentConfig, project_dir: str) -> Any:
     def _git_branch() -> str:
         return git_branch_info(project_dir=pd)
 
-    with llm_config:
-        agent = ConversableAgent(
-            name="Planner",
-            system_message=PLANNER_PROMPT,
-            human_input_mode="NEVER",
-            functions=[_read_file, _list_tree, _search, _git_status, _git_changed, _git_branch],
-        )
+    agent = ConversableAgent(
+        name="Planner",
+        system_message=PLANNER_PROMPT,
+        human_input_mode="NEVER",
+        llm_config=llm_config,
+        functions=[_read_file, _list_tree, _search, _git_status, _git_changed, _git_branch],
+    )
     return agent
 
 
@@ -150,16 +150,16 @@ def create_builder(config: AgentConfig, project_dir: str) -> Any:
     def _git_diff() -> str:
         return git_diff(project_dir=pd)
 
-    with llm_config:
-        agent = ConversableAgent(
-            name="Builder",
-            system_message=BUILDER_PROMPT,
-            human_input_mode="NEVER",
-            functions=[
-                _read_file, _write_file, _patch_file, _list_tree,
-                _run_command, _git_status, _git_diff,
-            ],
-        )
+    agent = ConversableAgent(
+        name="Builder",
+        system_message=BUILDER_PROMPT,
+        human_input_mode="NEVER",
+        llm_config=llm_config,
+        functions=[
+            _read_file, _write_file, _patch_file, _list_tree,
+            _run_command, _git_status, _git_diff,
+        ],
+    )
     return agent
 
 
@@ -193,11 +193,11 @@ def create_verifier(config: AgentConfig, project_dir: str) -> Any:
     def _git_diff() -> str:
         return git_diff(project_dir=pd)
 
-    with llm_config:
-        agent = ConversableAgent(
-            name="Verifier",
-            system_message=VERIFIER_PROMPT,
-            human_input_mode="NEVER",
-            functions=[_run_tests, _summarize, _read_file, _run_command, _git_status, _git_diff],
-        )
+    agent = ConversableAgent(
+        name="Verifier",
+        system_message=VERIFIER_PROMPT,
+        human_input_mode="NEVER",
+        llm_config=llm_config,
+        functions=[_run_tests, _summarize, _read_file, _run_command, _git_status, _git_diff],
+    )
     return agent

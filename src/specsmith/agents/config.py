@@ -14,7 +14,7 @@ class AgentConfig:
     """Configuration for the AG2 agent shell."""
 
     primary_model: str = "qwen2.5:14b"
-    utility_model: str = "qwen2.5:7b"
+    utility_model: str = "qwen2.5:14b"  # same as primary; override in scaffold.yml
     ollama_base_url: str = "http://localhost:11434"
     max_iterations: int = 10
     stream: bool = False
