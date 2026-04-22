@@ -1,12 +1,12 @@
 name: specsmith
 type: cli-python
 languages:
-  - Python
   - Bash
   - Cmd / Batch
-  - YAML
-  - TOML
   - Markdown
+  - Python
+  - TOML
+  - YAML
 platforms:
   - linux
   - windows
