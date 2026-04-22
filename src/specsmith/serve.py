@@ -227,7 +227,8 @@ class _Handler(BaseHTTPRequestHandler):
             return None
         raw = self.rfile.read(length)
         try:
-            return json.loads(raw)
+            result: dict[str, Any] = json.loads(raw)
+            return result
         except json.JSONDecodeError:
             return None
 
@@ -262,8 +263,8 @@ def run_server(
     class Handler(_Handler):
         pass
 
-    Handler.bus = bus  # type: ignore[assignment]
-    Handler.agent = agent  # type: ignore[assignment]
+    Handler.bus = bus
+    Handler.agent = agent
 
     server = _ThreadedHTTPServer((host, port), Handler)
     agent.start()
