@@ -390,3 +390,78 @@ Three agent roles: Planner (read-only inspection + planning), Builder (code/doc 
 
 ### Next step
 specsmith can now improve itself via `specsmith agent improve <task>`. Use it for Phase 4 tasks (feature flags, instinct, eval harness). Review changes before committing.
+
+---
+
+## Session 2026-04-21/22 — VS Code Extension Overhaul + Critical Fixes
+
+**Status:** Complete
+**Branch:** develop (both repos)
+
+### What changed
+
+**specsmith (Python CLI):**
+- Ollama timeout: 120s → 600s completion, 300s streaming (fixed frequent timeouts)
+- AgentConfig: effective_utility_model, effective_max_iterations (0=unlimited)
+- Model recommendation: qwen2.5:14b as default agent model (not 7b coder)
+- pip install -e after every code change
+
+**specsmith-vscode (VS Code extension) — MAJOR OVERHAUL:**
+
+*Architecture realignment:*
+- Project ≠ Session: GovernancePanel decoupled from SessionPanel
+- ⚙ on project row opens Project Settings without needing a session
+- GovernancePanel stays open when sessions close
+- Multiple sessions per project supported
+- Renamed "specsmith Settings" → "Global Settings"
+- Project name in tab title: "⚙ Project Settings (specsmith)"
+- Removed duplicate settings buttons from sidebar menus
+
+*New features:*
+- Agent tab in Project Settings: per-project provider/model/context/iteration config
+- Ollama model catalog: 16 models across 4 tiers (Tiny/Balanced/Capable/Powerful)
+- Filter buttons: All / Installed / Available / ⭐ Recommended
+- GPU-aware model recommendation (qwen2.5:14b for ≥8GB, coder:7b for 4GB, CPU fallback)
+- ✔ DEFAULT indicator per model (replaces confusing ⭐ star)
+- Model cards: name, size, VRAM, ctx, best-for, install status, pull/remove buttons
+- Sorted: default → installed → fits GPU → needs more VRAM
+- Conditional buttons: Update/Upgrade only shown when newer version available
+- "Free (local)" cost display for Ollama provider
+- View Full button for truncated errors/tool outputs
+- Bridge timeout: 5min warn + 15min kill (was 5min kill)
+- Governance auto-fix on session start
+- Phase dropdown dark mode fix
+
+*CRITICAL BUG FIXES:*
+- **SessionPanel webview JS extracted to media/session.js** — the entire 462-line
+  webview script was embedded in a TypeScript template literal. esbuild mangled
+  escaped backticks (\`) and variable references (\${var}), crashing the browser
+  JS parser and killing ALL chat functionality (Enter, Send, models, buttons).
+  Fix: external .js file that esbuild doesn't touch.
+- **SettingsPanel INST_VER variable mangled by esbuild** — same root cause.
+  Fix: pass version via data-* attribute, read from DOM.
+- **GovernancePanel LANGUAGES/FPGA_TOOLS mangled** — same root cause.
+  Fix: pass via JSON script tags, parse from DOM.
+- **All onclick quote escaping** — \\' in template literals became '' (empty).
+  Fix: use &#39; HTML entities.
+- **Model dropdown empty** — _refreshModels now always sends static fallback
+  if live fetch fails or returns empty.
+- **CSP blocking external session.js** — script-src needed both 'unsafe-inline'
+  AND vscode-resource origins.
+
+### Verification
+- specsmith: 249 tests pass, ruff clean
+- specsmith-vscode: lint clean, build clean
+- GovernancePanel webview: Node syntax check PASSED
+- SettingsPanel webview: Node syntax check PASSED
+- SessionPanel (media/session.js): Node syntax check PASSED
+- Chat session: loads, Enter sends, models populate, tools execute
+
+### Open TODOs
+- [ ] Agent tab: populate model dropdown from provider API
+- [ ] Agent tab: pre-fill defaults from Global Settings
+- [ ] Interactive architecture/requirements gap fixing
+- [ ] Git diff coloring in chat (green/red)
+- [ ] Agent task visualization panel
+- [ ] GPU support: AMD ROCm, Apple M, Intel Arc, CPU fallback detection
+- [ ] Phase 4: feature flags, instinct, eval, memory, multi-agent, server, Theia
