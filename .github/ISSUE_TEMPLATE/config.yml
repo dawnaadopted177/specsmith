@@ -1,8 +1,0 @@
-blank_issues_enabled: true
-contact_links:
-  - name: Discussions
-    url: https://github.com/BitConcepts/specsmith/discussions
-    about: Ask questions or share ideas in Discussions
-  - name: Documentation
-    url: https://specsmith.readthedocs.io
-    about: Check the docs before filing an issue
